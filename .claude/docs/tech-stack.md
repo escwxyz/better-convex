@@ -181,6 +181,7 @@ Evergarden is a modern web-based Character AI Chat Platform built with a compreh
 ### Validation & Security
 
 - **Zod**: Runtime type validation
+
   - Input validation for all Convex functions
   - Form validation schemas
   - Environment variable validation
@@ -216,6 +217,7 @@ Evergarden is a modern web-based Character AI Chat Platform built with a compreh
 ### Caching & Rate Limiting
 
 - **Redis (Upstash)**: Serverless Redis for additional caching
+
   - Rate limiting with sliding windows
   - Session storage (when needed beyond Convex)
   - Cache invalidation patterns
@@ -464,6 +466,7 @@ Evergarden is a modern web-based Character AI Chat Platform built with a compreh
 ### Hosting Platform
 
 - **Vercel**: Optimized Next.js hosting
+
   - Automatic deployments from Git
   - Preview deployments for PRs
   - Edge functions support
@@ -585,7 +588,7 @@ Evergarden is a modern web-based Character AI Chat Platform built with a compreh
 
 ### Development
 
-- `pnpm dev` - Start development with Convex backend and Next.js (port 3005)
+- `pnpm dev` - Start development with Convex backend and Next.js (port 3000)
 - `pnpm dev:app` - Start only Next.js development server
 - `pnpm dev:backend` - Start only Convex development
 - `pnpm build` - Build for production with Turbopack
@@ -666,6 +669,7 @@ PINECONE_ENVIRONMENT="..."
 ## Database Schema Overview
 
 The Convex schema is defined using Convex Ents in `convex/schema.ts` with the following features:
+
 - **Type-safe schema definition** with `defineEntSchema` and `defineEnt`
 - **Declarative edges** for relationships between tables
 - **Unique constraints** and **indexes** for performance
