@@ -7,6 +7,24 @@
 - Tech Stack: @.claude/docs/tech-stack.md
 - Project Structure: @.claude/docs/project-structure.md
 
+## Rules
+
+- .cursor/rules/convex.mdc - Convex backend development - **CRITICAL** you should absolutely read this file when working in convex folder (backend side)
+
+- @.cursor/rules/react.mdc - React patterns
+- @.cursor/rules/nextjs.mdc - Next.js patterns
+- @.cursor/rules/global-css.mdc - CSS configuration
+- @.cursor/rules/tailwind-v4.mdc - Tailwind v4 features
+- @.cursor/rules/convex-client.mdc - Convex client utilities
+- @.cursor/rules/modal-system.mdc - Modal implementation
+- @.cursor/rules/toast.mdc - Notification patterns
+- @.cursor/rules/jotai-x.mdc - State management patterns
+
+Read only when needed:
+
+- .cursor/rules/zustand-x.mdc - Zustand patterns
+- .cursor/rules/hookstate.mdc - Hookstate patterns
+
 ## Development
 
 ### Commands

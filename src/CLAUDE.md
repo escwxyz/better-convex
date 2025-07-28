@@ -1,3 +1,0 @@
-- @.cursor/rules/convex-client.mdc - Convex client utilities
-- @.cursor/rules/toast.mdc - Notification patterns
-- @.cursor/rules/jotai-x.mdc - State management patterns
