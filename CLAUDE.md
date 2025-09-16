@@ -18,6 +18,8 @@
 
 ## Rules
 
+- @.cursor/rules/convex.mdc@ - Convex backend development
+
 - @.cursor/rules/react.mdc - React patterns
 - @.cursor/rules/nextjs.mdc - Next.js patterns
 - @.cursor/rules/global-css.mdc - CSS configuration
@@ -27,18 +29,15 @@
 - @.cursor/rules/toast.mdc - Notification patterns
 - @.cursor/rules/jotai-x.mdc - State management patterns
 
-Read only when needed:
-
-- .cursor/rules/zustand-x.mdc - Zustand patterns
-- .cursor/rules/hookstate.mdc - Hookstate patterns
-
 ## Development
 
 ### Commands
 
-- `pnpm typecheck` - Run TypeScript type checking (must pass without errors) on each task end
+DO NOT run `pnpm dev`, or `pnpm build` or `pnpm start` unless asked.
+
+- `pnpm typecheck` - Run TypeScript type checking (must pass without errors) on each task end. Do not run this unless you can't see it in Background Bash Shells.
 - `pnpm lint:fix` - Run ESLint and fix linting errors on precommit (not on each task end)
-- DO NOT run `pnpm dev` or `pnpm build` or `pnpm start` - these are manual commands.
+- **NEVER make git commits unless explicitly asked by the user.**
 
 ### Agents
 

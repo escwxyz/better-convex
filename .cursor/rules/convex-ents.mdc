@@ -676,7 +676,7 @@ The available options are:
   in your code.
 - `field` is the name of the field on `table` that stores the ID of the ent on
   this end of the edge. It defaults to the edge name with suffixed with `Id`
-  (edge `tags` -> field `tagsId`). These fields will only be used by the
+  (edge `tags` -> field `tagsId` stores the message id). These fields will only be used by the
   framework under the hood, and won't appear in your code.
 
 #### Asymmetrical self-directed many:many edges
@@ -1196,7 +1196,7 @@ export function getEntDefinitionsWithRules(
 export async function getViewerId(
   ctx: Omit<QueryCtx, 'table' | 'viewerId' | 'viewer' | 'viewerX'>
 ): Promise<Id<'users'> | null> {
-  const user = await ctx.auth.getUserIdentity();
+  const user = await authComponent.safeGetAuthUser(ctx);
   if (user === null) {
     return null;
   }

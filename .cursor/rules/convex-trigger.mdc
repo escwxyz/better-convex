@@ -119,7 +119,7 @@ triggers.register('users', async (ctx, change) => {
 
 ```typescript
 triggers.register('teams', async (ctx, change) => {
-  const user = await ctx.auth.getUserIdentity();
+  const user = await authComponent.safeGetAuthUser(ctx);
   await ctx.table('auditLog').insert({
     table: 'teams',
     operation: change.operation,
@@ -152,7 +152,7 @@ triggers.register('follows', aggregateUserFollowsByFollower.trigger());
 
 ```typescript
 triggers.register('messages', async (ctx, change) => {
-  const identity = await ctx.auth.getUserIdentity();
+  const identity = await authComponent.safeGetAuthUser(ctx);
   const userId = identity?.subject;
 
   const owner = change.oldDoc?.userId ?? change.newDoc?.userId;

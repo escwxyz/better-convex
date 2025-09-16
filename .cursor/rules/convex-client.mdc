@@ -23,9 +23,9 @@ Read the files you need in:
 **From Next.js (`src/`):**
 
 ```typescript
-import { api, internal } from "@convex/_generated/api";
-import { Id, Doc } from "@convex/_generated/dataModel";
-import type { Ent, EntWriter } from "@convex/shared/types"; // Ent types
+import { api, internal } from '@convex/_generated/api';
+import { Id, Doc } from '@convex/_generated/dataModel';
+import type { Ent, EntWriter } from '@convex/shared/types'; // Ent types
 ```
 
 ## React Integration
@@ -37,7 +37,7 @@ import { usePublicQuery, useAuthQuery } from '@/lib/convex/hooks';
 
 // Public query (auth optional) - ALWAYS pass {} for no args
 const { data, isPending } = usePublicQuery(api.items.list, {}); // ALWAYS pass {} for no args
-const { data: profile } = useAuthQuery(api.users.getProfile, {}); // Skips if not authenticated
+const { data: profile } = useAuthQuery(api.user.getProfile, {}); // Skips if not authenticated
 const { data } = usePublicQuery(api.items.get, itemId ? { id: itemId } : 'skip'); // Conditional
 
 if (isPending) return <Skeleton />;
@@ -93,7 +93,7 @@ return (
 import { usePublicMutation, useAuthMutation } from '@/lib/convex/hooks';
 
 const createItem = usePublicMutation(api.items.create); // Don't destructure
-const updateSettings = useAuthMutation(api.users.updateSettings);
+const updateSettings = useAuthMutation(api.user.updateSettings);
 
 // Option 1: toast.promise (with loading state)
 toast.promise(updateSettings.mutateAsync({ name: 'New' }), {
@@ -103,7 +103,7 @@ toast.promise(updateSettings.mutateAsync({ name: 'New' }), {
 });
 
 // Option 2: callbacks (no loading toast)
-const updateSettings = useAuthMutation(api.users.updateSettings, {
+const updateSettings = useAuthMutation(api.user.updateSettings, {
   onSuccess: () => toast.success('Updated!'),
   onError: () => toast.error('Failed'),
 });
@@ -118,7 +118,7 @@ const updateSettings = useAuthMutation(api.users.updateSettings, {
 const { data, hasNextPage, isLoading, isFetchingNextPage, fetchNextPage } =
   usePublicPaginatedQuery(
     api.messages.list,
-    { author: "alice" }, // args (excluding paginationOpts)
+    { author: 'alice' }, // args (excluding paginationOpts)
     { initialNumItems: 10 }
   );
 ```
@@ -127,16 +127,17 @@ const { data, hasNextPage, isLoading, isFetchingNextPage, fetchNextPage } =
 
 ```typescript
 // Actions
-import { useAction } from "convex/react";
-const generateReport = useAction(api.reports.generate);
+import { usePublicAction, useAuthAction } from '@/lib/convex/hooks';
+const generateReport = usePublicAction(api.reports.generate);
+const processData = useAuthAction(api.data.process);
 
 // One-off queries
-import { useConvex } from "convex/react";
+import { useConvex } from 'convex/react';
 const convex = useConvex();
 await convex.query(api.items.validate, { id });
 
 // Auth hooks
-import { useIsAuth, useCurrentUser } from "@/lib/convex/hooks";
+import { useIsAuth, useCurrentUser } from '@/lib/convex/hooks';
 const isAuth = useIsAuth();
 const { isLoading, ...user } = useCurrentUser();
 ```
@@ -151,7 +152,7 @@ import {
   isUnauth,
   fetchAuthQuery,
   fetchAuthQueryOrThrow,
-} from "@/lib/convex/server";
+} from '@/lib/convex/server';
 
 // Get session token/user in server components
 const token = await getSessionToken(); // Returns string | null
@@ -166,10 +167,10 @@ if (await isUnauth()) {
 }
 
 // Fetch authenticated queries in server components
-const data = await fetchAuthQuery(api.users.getData, { id: userId });
+const data = await fetchAuthQuery(api.user.getData, { id: userId });
 // Returns null if not authenticated
 
-const data = await fetchAuthQueryOrThrow(api.users.getData, { id: userId });
+const data = await fetchAuthQueryOrThrow(api.user.getData, { id: userId });
 // Throws error if not authenticated
 ```
 
@@ -178,22 +179,21 @@ const data = await fetchAuthQueryOrThrow(api.users.getData, { id: userId });
 **Server-side guards (RSC)**:
 
 ```typescript
-import { authGuard, adminGuard, superAdminGuard } from "@/lib/convex/rsc";
+import { authGuard, adminGuard } from '@/lib/convex/rsc';
 
 // In server components/pages
 await authGuard(); // Redirects to login if not authenticated
 await adminGuard(); // Returns 404 if not admin
-await superAdminGuard(); // Returns 404 if not superadmin
 ```
 
 **Client-side guards (hooks)**:
 
 ```typescript
-import { useAuthGuard, usePremiumGuard } from "@/lib/convex/hooks";
+import { useAuthGuard, usePremiumGuard } from '@/lib/convex/hooks';
 
 // Auth guard - shows login modal if not authenticated
 const authGuard = useAuthGuard();
-if (authGuard(() => console.info("authenticated"))) return; // Blocked
+if (authGuard(() => console.info('authenticated'))) return; // Blocked
 
 // Premium guards - shows subscription modal if not premium
 const premiumGuard = usePremiumGuard();
@@ -204,11 +204,11 @@ if (premiumGuard()) return; // Blocked
 
 ```typescript
 // Document IDs
-type UserId = Id<"users">; // Use Id<T> for document IDs
-const userId = localStorage.getItem("id") as Id<"users">; // Cast external IDs
+type UserId = Id<'users'>; // Use Id<T> for document IDs
+const userId = localStorage.getItem('id') as Id<'users'>; // Cast external IDs
 
 // Return type inference (client-side)
-import { FunctionReturnType } from "convex/server";
+import { FunctionReturnType } from 'convex/server';
 type MyData = FunctionReturnType<typeof api.users.get>;
 
 // ❌ NEVER use: Awaited<ReturnType<typeof api.function>>

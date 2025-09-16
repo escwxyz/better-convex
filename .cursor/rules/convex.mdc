@@ -60,7 +60,7 @@ export const example = createAuthQuery()({
 // Rate limiting & admin
 export const createItem = createAuthMutation({
   rateLimit: "character/create", // Auto tier limits
-  role: "ADMIN", // Optional role requirement
+  role: "admin", // Optional role requirement
 })({
   args: { name: z.string().min(1).max(100) },
   returns: zid("items"),
@@ -72,9 +72,13 @@ export const createItem = createAuthMutation({
 });
 ```
 
-**ctx.user in auth functions:** Full `EntWriter<'users'>` with ent methods + computed properties  
-**❌ AVOID:** `ctx.table('users').get(ctx.userId)` - ctx.user is already loaded!  
-**Always throw ConvexError:** `throw new ConvexError({ code: 'UNAUTHENTICATED', message: 'Not authenticated' });`
+**ctx.user in auth functions:** Type `SessionUser` from `convex/authShared.ts` - includes:
+
+- Full `EntWriter<'users'>` with ent methods
+- Computed properties: `isAdmin`, `plan`
+- `session: AuthSession` with token, expiresAt, activeOrganizationId, etc.
+  **❌ AVOID:** `ctx.table('users').get(ctx.userId)` - ctx.user is already loaded!  
+  **Always throw ConvexError:** `throw new ConvexError({ code: 'UNAUTHENTICATED', message: 'Not authenticated' });`
 
 ### 🚨 CRITICAL: Rate Limiting Requirements
 
@@ -226,6 +230,7 @@ export const createUser = createAuthMutation()({
 **Internal functions** (only callable by Convex, NOT even by NextJS server):
 
 - `createInternalQuery/Mutation/Action()` - NO rate limiting needed
+- `createAuthInternalQuery()` - requires auth
 
 **Rules:**
 
@@ -238,8 +243,8 @@ export const createUser = createAuthMutation()({
 
 ```typescript
 // From query/mutation/action
-ctx.runQuery(api.example.getData, args);
-ctx.runMutation(api.example.update, args);
+ctx.runQuery(internal.example.getData, args);
+ctx.runMutation(internal.example.update, args);
 ctx.runAction(internal.example.process, args);
 
 // ⚠️ TypeScript circular reference fix: ALWAYS Type runQuery/runMutation results
@@ -401,6 +406,10 @@ When you define edges, Convex Ents automatically creates indexes:
 
 ## Import guidelines
 
+**🚨 CRITICAL: NEVER use dynamic imports in Convex functions**
+
+Dynamic imports (`await import()`) do NOT work in Convex's serverless environment. Convex requires static analysis of all dependencies at build time.
+
 **From Next.js (`src/`):**
 
 ```typescript
@@ -429,7 +438,7 @@ import { usePublicQuery, useAuthQuery } from '@/lib/convex/hooks';
 
 // Public query (auth optional) - ALWAYS pass {} for no args
 const { data, isPending } = usePublicQuery(api.items.list, {}); // ALWAYS pass {} for no args
-const { data: profile } = useAuthQuery(api.users.getProfile, {}); // Skips if not authenticated
+const { data: profile } = useAuthQuery(api.user.getProfile, {}); // Skips if not authenticated
 const { data } = usePublicQuery(api.items.get, itemId ? { id: itemId } : 'skip'); // Conditional
 
 if (isPending) return <Skeleton />;
@@ -485,7 +494,7 @@ return (
 import { usePublicMutation, useAuthMutation } from '@/lib/convex/hooks';
 
 const createItem = usePublicMutation(api.items.create); // Don't destructure
-const updateSettings = useAuthMutation(api.users.updateSettings);
+const updateSettings = useAuthMutation(api.user.updateSettings);
 
 // Option 1: toast.promise (with loading state)
 toast.promise(updateSettings.mutateAsync({ name: 'New' }), {
@@ -495,7 +504,7 @@ toast.promise(updateSettings.mutateAsync({ name: 'New' }), {
 });
 
 // Option 2: callbacks (no loading toast)
-const updateSettings = useAuthMutation(api.users.updateSettings, {
+const updateSettings = useAuthMutation(api.user.updateSettings, {
   onSuccess: () => toast.success('Updated!'),
   onError: () => toast.error('Failed'),
 });
@@ -507,8 +516,9 @@ const updateSettings = useAuthMutation(api.users.updateSettings, {
 
 ```typescript
 // Actions
-import { useAction } from "convex/react";
-const generateReport = useAction(api.reports.generate);
+import { usePublicAction, useAuthAction } from "@/lib/convex/hooks";
+const generateReport = usePublicAction(api.reports.generate);
+const processData = useAuthAction(api.data.process);
 
 // One-off queries
 import { useConvex } from "convex/react";
@@ -546,10 +556,10 @@ if (await isUnauth()) {
 }
 
 // Fetch authenticated queries in server components
-const data = await fetchAuthQuery(api.users.getData, { id: userId });
+const data = await fetchAuthQuery(api.user.getData, { id: userId });
 // Returns null if not authenticated
 
-const data = await fetchAuthQueryOrThrow(api.users.getData, { id: userId });
+const data = await fetchAuthQueryOrThrow(api.user.getData, { id: userId });
 // Throws error if not authenticated
 ```
 
@@ -558,12 +568,11 @@ const data = await fetchAuthQueryOrThrow(api.users.getData, { id: userId });
 **Server-side guards (RSC)**:
 
 ```typescript
-import { authGuard, adminGuard, superAdminGuard } from "@/lib/convex/rsc";
+import { authGuard, adminGuard } from "@/lib/convex/rsc";
 
 // In server components/pages
 await authGuard(); // Redirects to login if not authenticated
 await adminGuard(); // Returns 404 if not admin
-await superAdminGuard(); // Returns 404 if not superadmin
 ```
 
 **Client-side guards (hooks)**:
@@ -748,7 +757,7 @@ comments: defineEnt({ content: v.string() }).edge("user", {
 
 ```typescript
 // Document IDs
-type UserId = Id<"users">; // Use Id<T> for document IDs
+type UserId = Id<'users'>; // Use Id<T> for document IDs
 
 // Infer complex types (NEVER manually type)
 const mainCharacter = await (async () => {
@@ -757,21 +766,83 @@ const mainCharacter = await (async () => {
 })();
 
 // Record with IDs
-const idToUsername: Record<Id<"users">, string> = {};
+const idToUsername: Record<Id<'users'>, string> = {};
 
 // Auth-aware context (from convex/functions.ts), NEVER use ctx: any
 AuthQueryCtx, PublicQueryCtx, AuthMutationCtx, PublicMutationCtx;
-// SessionUser: EntWriter<'users'> + computed properties (isAdmin, isPremium, etc.)
-// In auth contexts: ctx.user (SessionUser), ctx.userId (Id<'users'>)
+
+// ctx.user in auth contexts is type SessionUser (from convex/authShared.ts):
+type SessionUser = {
+  // From AuthUser (better-auth fields)
+  id: Id<'users'>;
+  email: string;
+  emailVerified: boolean;
+  role?: string | null;
+  createdAt: number;
+  updatedAt: number;
+  banExpires?: number | null;
+  banned?: boolean | null;
+  banReason?: string | null;
+
+  // From Doc<'users'> (all user table fields)
+  _id: Id<'users'>;
+  _creationTime: number;
+  name?: string;
+  image?: string;
+  firstName?: string;
+  lastName?: string;
+  bio?: string;
+  location?: string;
+  website?: string;
+  x?: string;
+  github?: string;
+  linkedin?: string;
+  username: string;
+  credits: number;
+  monthlyCredits: number;
+  mainCharacterId?: Id<'characters'>;
+  usernameUpdatedAt?: number;
+  deletedAt?: number;
+
+  // Computed properties
+  isAdmin: boolean;
+  plan?: 'premium' | 'team';
+
+  // Session info
+  session: {
+    createdAt: number;
+    expiresAt: number;
+    token: string;
+    updatedAt: number;
+    userId: string;
+    activeOrganizationId?: string | null;
+    activeTeamId?: string | null;
+    impersonatedBy?: string | null;
+    ipAddress?: string | null;
+    userAgent?: string | null;
+  };
+
+  // Ent methods (for mutations)
+  doc: () => Doc<'users'>;
+  edge: <Edge extends keyof Edges>(edge: Edge) => Promise<...>;
+  edgeX: <Edge extends keyof Edges>(edge: Edge) => Promise<...>;
+  patch: (fields: Partial<...>) => Promise<void>;
+  replace: (doc: ...) => Promise<void>;
+  delete: () => Promise<void>;
+};
+```
+
+// In auth contexts: ctx.userId is Id<'users'>
 
 // For client-side type patterns, see convex-client.mdc
 
 // ALWAYS type runQuery/runMutation results in actions
 const user: { id: string; name: string } | null = await ctx.runQuery(
-  internal.user.getUser,
-  {}
+internal.user.getUser,
+{}
 );
-```
+
+````
 
 **For client-side TypeScript patterns**, see [convex-client.mdc](mdc:.cursor/rules/convex-client.mdc)
 
@@ -789,13 +860,13 @@ export default defineSchema({
   messages: defineTable({
     body: v.string(),
     channel: v.string(),
-    userId: v.id("users"),
-  }).searchIndex("search_body", {
-    searchField: "body",
-    filterFields: ["channel", "userId"], // Fast equality filters
+    userId: v.id('users'),
+  }).searchIndex('search_body', {
+    searchField: 'body',
+    filterFields: ['channel', 'userId'], // Fast equality filters
   }),
 });
-```
+````
 
 ### Run search queries
 

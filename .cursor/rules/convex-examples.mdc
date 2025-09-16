@@ -51,9 +51,7 @@ const schema = defineEntSchema({
     name: v.string(),
     username: v.string(),
     email: v.optional(v.string()),
-    role: v.optional(
-      v.union(v.literal('USER'), v.literal('ADMIN'), v.literal('SUPERADMIN'))
-    ),
+    role: v.optional(v.union(v.literal('user'), v.literal('admin'))),
   }).index('username', ['username']),
 
   messages: defineEnt({
