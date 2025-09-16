@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useAuthQuery } from "@/lib/convex/hooks";
-import { api } from "@convex/_generated/api";
-import { Id } from "@convex/_generated/dataModel";
-import { Button } from "@/components/ui/button";
+import { useState } from 'react';
+import { useAuthQuery } from '@/lib/convex/hooks';
+import { api } from '@convex/_generated/api';
+import { Id } from '@convex/_generated/dataModel';
+import { Button } from '@/components/ui/button';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from '@/components/ui/popover';
 import {
   Command,
   CommandEmpty,
@@ -17,14 +17,14 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
-import { Badge } from "@/components/ui/badge";
-import { Check, Tags, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/command';
+import { Badge } from '@/components/ui/badge';
+import { Check, Tags, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface TagPickerProps {
-  selectedTagIds: Id<"tags">[];
-  onTagsChange: (tagIds: Id<"tags">[]) => void;
+  selectedTagIds: Id<'tags'>[];
+  onTagsChange: (tagIds: Id<'tags'>[]) => void;
   disabled?: boolean;
 }
 
@@ -38,7 +38,7 @@ export function TagPicker({
 
   const selectedTags = tags.filter((tag) => selectedTagIds.includes(tag._id));
 
-  const toggleTag = (tagId: Id<"tags">) => {
+  const toggleTag = (tagId: Id<'tags'>) => {
     if (selectedTagIds.includes(tagId)) {
       onTagsChange(selectedTagIds.filter((id) => id !== tagId));
     } else {
@@ -46,7 +46,7 @@ export function TagPicker({
     }
   };
 
-  const removeTag = (tagId: Id<"tags">) => {
+  const removeTag = (tagId: Id<'tags'>) => {
     onTagsChange(selectedTagIds.filter((id) => id !== tagId));
   };
 
@@ -62,7 +62,7 @@ export function TagPicker({
             <Tags className="h-4 w-4" />
             {selectedTags.length > 0 ? (
               <span>
-                {selectedTags.length} tag{selectedTags.length !== 1 ? "s" : ""}{" "}
+                {selectedTags.length} tag{selectedTags.length !== 1 ? 's' : ''}{' '}
                 selected
               </span>
             ) : (
@@ -84,17 +84,17 @@ export function TagPicker({
                   >
                     <div
                       className={cn(
-                        "flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                        'flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
                         selectedTagIds.includes(tag._id)
-                          ? "bg-primary text-primary-foreground"
-                          : "opacity-50 [&_svg]:invisible"
+                          ? 'bg-primary text-primary-foreground'
+                          : 'opacity-50 [&_svg]:invisible'
                       )}
                     >
-                      <Check className={cn("h-4 w-4")} />
+                      <Check className={cn('h-4 w-4')} />
                     </div>
                     <div className="flex items-center gap-2">
                       <div
-                        className="w-3 h-3 rounded-full"
+                        className="h-3 w-3 rounded-full"
                         style={{ backgroundColor: tag.color }}
                       />
                       <span>{tag.name}</span>
@@ -118,9 +118,9 @@ export function TagPicker({
             <Badge
               key={tag._id}
               variant="secondary"
-              className="pl-2 pr-1"
+              className="pr-1 pl-2"
               style={{
-                backgroundColor: tag.color + "20",
+                backgroundColor: tag.color + '20',
                 color: tag.color,
                 borderColor: tag.color,
               }}
@@ -128,7 +128,7 @@ export function TagPicker({
               {tag.name}
               <button
                 type="button"
-                className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                className="ml-1 rounded-full ring-offset-background outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 onClick={() => removeTag(tag._id)}
                 disabled={disabled}
               >

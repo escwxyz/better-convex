@@ -55,7 +55,12 @@ export const aggregateTodosByStatus = new TableAggregate<{
   sortKey: (doc) => {
     // Include deletion status in the key to handle soft deletion properly
     const isDeleted = doc.deletionTime !== undefined;
-    return [doc.completed, doc.priority ?? 'none', doc.dueDate ?? Infinity, isDeleted];
+    return [
+      doc.completed,
+      doc.priority ?? 'none',
+      doc.dueDate ?? Infinity,
+      isDeleted,
+    ];
   },
 });
 

@@ -1,10 +1,10 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 // Define the environment schema
 const envSchema = z.object({
   // Public environment variables
-  NEXT_PUBLIC_ENVIRONMENT: z.string().default("production"),
-  NEXT_PUBLIC_SITE_URL: z.string().default("http://localhost:3000"),
+  NEXT_PUBLIC_ENVIRONMENT: z.string().default('production'),
+  NEXT_PUBLIC_SITE_URL: z.string().default('http://localhost:3000'),
 
   // Auth
   BETTER_AUTH_SECRET: z.string(),
@@ -16,7 +16,7 @@ const envSchema = z.object({
   // Superadmin emails
   SUPERADMIN: z
     .string()
-    .transform((s) => (s ? s.split(",") : []))
+    .transform((s) => (s ? s.split(',') : []))
     .pipe(z.array(z.string())),
 });
 
@@ -26,11 +26,11 @@ export const getEnv = () => {
 
   if (!parsed.success) {
     console.error(
-      "L Invalid environment variables:",
+      'L Invalid environment variables:',
       parsed.error.flatten().fieldErrors
     );
 
-    throw new Error("Invalid environment variables");
+    throw new Error('Invalid environment variables');
   }
 
   return parsed.data;

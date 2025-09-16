@@ -104,23 +104,23 @@ Instead of using raw Convex `query`/`mutation`/`action`, this template provides 
 ```typescript
 // Public query - auth optional
 export const example = createPublicQuery()({
-  args: { id: zid("items") }, // Always use zid() for IDs
+  args: { id: zid('items') }, // Always use zid() for IDs
   returns: z.object({ name: z.string() }).nullable(),
   handler: async (ctx, args) => {
-    return await ctx.table("items").get(args.id);
+    return await ctx.table('items').get(args.id);
   },
 });
 
 // Protected mutation with rate limiting
 export const createItem = createAuthMutation({
-  rateLimit: "item/create", // Auto tier limits
-  role: "ADMIN", // Optional role check
+  rateLimit: 'item/create', // Auto tier limits
+  role: 'ADMIN', // Optional role check
 })({
   args: { name: z.string().min(1).max(100) },
-  returns: zid("items"),
+  returns: zid('items'),
   handler: async ({ user, table }, args) => {
     // ctx.user is pre-loaded EntWriter<'users'>
-    return await table("items").insert({
+    return await table('items').insert({
       name: args.name,
       userId: user._id,
     });
@@ -149,16 +149,16 @@ const { data } = useAuthQuery(api.users.getProfile, {}); // Skips if not auth
 
 // Mutations with toast integration
 const updateSettings = useAuthMutation(api.users.updateSettings);
-toast.promise(updateSettings.mutateAsync({ name: "New" }), {
-  loading: "Updating...",
-  success: "Updated!",
-  error: (e) => e.data?.message ?? "Failed",
+toast.promise(updateSettings.mutateAsync({ name: 'New' }), {
+  loading: 'Updating...',
+  success: 'Updated!',
+  error: (e) => e.data?.message ?? 'Failed',
 });
 
 // Paginated queries
 const { data, hasNextPage, fetchNextPage } = usePublicPaginatedQuery(
   api.messages.list,
-  { author: "alice" },
+  { author: 'alice' },
   { initialNumItems: 10 }
 );
 ```
@@ -187,16 +187,16 @@ const schema = defineEntSchema({
     name: v.optional(v.string()),
     bio: v.optional(v.string()),
   })
-    .field("email", v.string(), { unique: true })
-    .field("emailVerified", v.boolean(), { default: false }),
+    .field('email', v.string(), { unique: true })
+    .field('emailVerified', v.boolean(), { default: false }),
 
   todos: defineEnt({
     title: v.string(),
     completed: v.boolean(),
-    userId: v.id("users"),
+    userId: v.id('users'),
   })
-    .index("by_user", ["userId"])
-    .index("by_user_completed", ["userId", "completed"]),
+    .index('by_user', ['userId'])
+    .index('by_user_completed', ['userId', 'completed']),
 });
 ```
 
@@ -209,7 +209,7 @@ In authenticated functions, `ctx.user` is a pre-loaded `EntWriter<'users'>` with
 ```typescript
 handler: async (ctx, args) => {
   // ❌ Don't refetch the user
-  const user = await ctx.table("users").get(ctx.userId);
+  const user = await ctx.table('users').get(ctx.userId);
 
   // ✅ Use pre-loaded user
   await ctx.user.patch({ credits: ctx.user.credits - 1 });
@@ -236,8 +236,8 @@ Always throw `ConvexError` with proper codes:
 
 ```typescript
 throw new ConvexError({
-  code: "UNAUTHENTICATED",
-  message: "Not authenticated",
+  code: 'UNAUTHENTICATED',
+  message: 'Not authenticated',
 });
 ```
 
@@ -393,8 +393,8 @@ users: defineEnt({
   role: v.optional(v.string()),
   deletedAt: v.optional(v.number()),
 })
-  .field("emailVerified", v.boolean(), { default: false })
-  .field("email", v.string(), { unique: true });
+  .field('emailVerified', v.boolean(), { default: false })
+  .field('email', v.string(), { unique: true });
 // Remove all todo/project related edges
 ```
 
@@ -419,7 +419,7 @@ Remove aggregate registrations:
 
 ```typescript
 // Keep only:
-app.use(aggregate, { name: "aggregateUsers" });
+app.use(aggregate, { name: 'aggregateUsers' });
 
 // Remove all todo/project/tag related aggregates
 ```
@@ -435,8 +435,8 @@ Replace with a simple authenticated landing page:
 ```tsx
 export default async function HomePage() {
   return (
-    <div className="container mx-auto py-6 px-4">
-      <h1 className="text-3xl font-bold mb-4">Welcome</h1>
+    <div className="container mx-auto px-4 py-6">
+      <h1 className="mb-4 text-3xl font-bold">Welcome</h1>
       <p>Your authenticated app starts here.</p>
     </div>
   );

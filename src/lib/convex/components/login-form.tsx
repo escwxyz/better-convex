@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
-import * as React from "react";
+import * as React from 'react';
 
-import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
-import { useQueryState } from "nuqs";
+import Link from 'next/link';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { useQueryState } from 'nuqs';
 
-import { Button } from "@/components/ui/button";
-import { env } from "@/env";
-import { signIn } from "@/lib/convex/auth-client";
-import { authRoutes, routes } from "@/lib/navigation/routes";
-import { cn } from "@/lib/utils";
-import type { LucideProps } from "lucide-react";
+import { Button } from '@/components/ui/button';
+import { env } from '@/env';
+import { signIn } from '@/lib/convex/auth-client';
+import { authRoutes, routes } from '@/lib/navigation/routes';
+import { cn } from '@/lib/utils';
+import type { LucideProps } from 'lucide-react';
 
 export function SignForm() {
-  let [callbackUrl] = useQueryState("callbackUrl");
+  let [callbackUrl] = useQueryState('callbackUrl');
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -29,7 +29,7 @@ export function SignForm() {
 
     signIn.social({
       callbackURL: `${env.NEXT_PUBLIC_SITE_URL}${callback}`,
-      provider: "google",
+      provider: 'google',
     });
   };
 
@@ -40,12 +40,12 @@ export function SignForm() {
 
     signIn.social({
       callbackURL: `${env.NEXT_PUBLIC_SITE_URL}${callback}`,
-      provider: "github",
+      provider: 'github',
     });
   };
 
   return (
-    <div className={cn("mx-auto grid max-w-[268px] gap-3")}>
+    <div className={cn('mx-auto grid max-w-[268px] gap-3')}>
       <Button
         size="lg"
         variant="outline"
@@ -67,11 +67,11 @@ export function SignForm() {
       </Button>
 
       <div className="my-3 max-w-xs text-center text-xs text-balance text-muted-foreground">
-        By continuing, you agree to our{" "}
+        By continuing, you agree to our{' '}
         <Link className="font-semibold hover:underline" href={routes.terms()}>
           Terms of Service
-        </Link>{" "}
-        and acknowledge you've read our{" "}
+        </Link>{' '}
+        and acknowledge you've read our{' '}
         <Link className="font-semibold hover:underline" href={routes.privacy()}>
           Privacy Policy
         </Link>
@@ -85,7 +85,7 @@ const encodeURL = (pathname: string, search?: string) => {
   let callbackUrl = pathname;
 
   if (search) {
-    if (!search.startsWith("?")) {
+    if (!search.startsWith('?')) {
       search = `?${search}`;
     }
 

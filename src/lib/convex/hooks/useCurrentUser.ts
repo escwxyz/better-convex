@@ -1,6 +1,6 @@
-import { api } from "@convex/_generated/api";
+import { api } from '@convex/_generated/api';
 
-import { useAuthQuery } from "@/lib/convex/hooks";
+import { useAuthQuery } from '@/lib/convex/hooks';
 
 export const useCurrentUser = () => {
   const { data, isLoading } = useAuthQuery(
@@ -8,8 +8,8 @@ export const useCurrentUser = () => {
     {},
     {
       placeholderData: {
-        id: "1" as any,
-        email: "better-convex@gmail.com",
+        id: '1' as any,
+        email: 'better-convex@gmail.com',
         name: undefined,
         isAdmin: false,
         isSuperAdmin: false,

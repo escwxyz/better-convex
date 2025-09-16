@@ -1,114 +1,115 @@
-import { z } from "zod";
-import { zid } from "convex-helpers/server/zod";
+import { z } from 'zod';
+import { zid } from 'convex-helpers/server/zod';
 import {
   createAuthQuery,
   createAuthMutation,
   createAuthPaginatedQuery,
   createPublicPaginatedQuery,
-} from "./functions";
-import { ConvexError } from "convex/values";
+} from './functions';
+import { ConvexError } from 'convex/values';
 
 // List todos - shows user's todos when authenticated, public project todos when not
 export const list = createPublicPaginatedQuery()({
   args: {
     completed: z.boolean().optional(),
-    projectId: zid("projects").optional(),
-    priority: z.enum(["low", "medium", "high"]).optional(),
+    projectId: zid('projects').optional(),
+    priority: z.enum(['low', 'medium', 'high']).optional(),
   },
   handler: async (ctx, args) => {
     // If projectId is specified, check if it's a public project
     if (args.projectId) {
-      const project = await ctx.table("projects").getX(args.projectId);
+      const project = await ctx.table('projects').getX(args.projectId);
 
       // Check access
       if (!project.isPublic) {
         if (!ctx.userId) {
           throw new ConvexError({
-            code: "FORBIDDEN",
-            message: "You do not have access to this project",
+            code: 'FORBIDDEN',
+            message: 'You do not have access to this project',
           });
         }
 
         // Check if user is owner or member
         const isOwner = project.ownerId === ctx.userId;
         const isMember = await ctx
-          .table("projectMembers", "projectId_userId", (q) =>
-            q.eq("projectId", args.projectId!).eq("userId", ctx.userId!)
+          .table('projectMembers', 'projectId_userId', (q) =>
+            q.eq('projectId', args.projectId!).eq('userId', ctx.userId!)
           )
           .first();
 
         if (!isOwner && !isMember) {
           throw new ConvexError({
-            code: "FORBIDDEN",
-            message: "You do not have access to this project",
+            code: 'FORBIDDEN',
+            message: 'You do not have access to this project',
           });
         }
       }
 
       // For public projects or authorized users, show all project todos
-      let query = ctx.table("todos", "projectId", (q) =>
-        q.eq("projectId", args.projectId)
+      let query = ctx.table('todos', 'projectId', (q) =>
+        q.eq('projectId', args.projectId)
       );
 
       // Apply filters
       if (args.completed !== undefined) {
         query = query.filter((q) =>
-          q.eq(q.field("completed"), args.completed!)
+          q.eq(q.field('completed'), args.completed!)
         );
       }
 
       if (args.priority !== undefined) {
-        query = query.filter((q) => q.eq(q.field("priority"), args.priority!));
+        query = query.filter((q) => q.eq(q.field('priority'), args.priority!));
       }
 
       // Order by creation time (newest first) and paginate
       return await query
-        .order("desc")
+        .order('desc')
         .paginate(args.paginationOpts)
         .map(async (todo) => ({
           ...todo.doc(),
-          tags: await todo.edge("tags").map((tag) => tag.doc()),
-          project: await ctx.table("projects").get(todo.projectId!),
+          tags: await todo.edge('tags').map((tag) => tag.doc()),
+          project: await ctx.table('projects').get(todo.projectId!),
         }));
     }
 
     // No projectId specified - show user's todos only (must be authenticated)
     if (!ctx.userId) {
       // Return empty paginated result using a filter that matches nothing
-      return await ctx.table("todos")
-        .filter((q) => q.eq(q.field("userId"), "impossible-user-id" as any))
+      return await ctx
+        .table('todos')
+        .filter((q) => q.eq(q.field('userId'), 'impossible-user-id' as any))
         .paginate(args.paginationOpts)
         .map(async (todo) => ({
           ...todo.doc(),
-          tags: await todo.edge("tags").map((tag) => tag.doc()),
+          tags: await todo.edge('tags').map((tag) => tag.doc()),
           project: null,
         }));
     }
 
     // Start with user's todos
-    let query = ctx.table("todos", "userId", (q) =>
-      q.eq("userId", ctx.userId!)
+    let query = ctx.table('todos', 'userId', (q) =>
+      q.eq('userId', ctx.userId!)
     );
 
     // Apply completed filter if specified
     if (args.completed !== undefined) {
-      query = query.filter((q) => q.eq(q.field("completed"), args.completed!));
+      query = query.filter((q) => q.eq(q.field('completed'), args.completed!));
     }
 
     // Apply priority filter if specified
     if (args.priority !== undefined) {
-      query = query.filter((q) => q.eq(q.field("priority"), args.priority!));
+      query = query.filter((q) => q.eq(q.field('priority'), args.priority!));
     }
 
     // Order by creation time (newest first) and paginate
     return await query
-      .order("desc")
+      .order('desc')
       .paginate(args.paginationOpts)
       .map(async (todo) => ({
         ...todo.doc(),
-        tags: await todo.edge("tags").map((tag) => tag.doc()),
+        tags: await todo.edge('tags').map((tag) => tag.doc()),
         project: todo.projectId
-          ? await ctx.table("projects").get(todo.projectId)
+          ? await ctx.table('projects').get(todo.projectId)
           : null,
       }));
   },
@@ -119,48 +120,48 @@ export const search = createPublicPaginatedQuery()({
   args: {
     query: z.string().min(1),
     completed: z.boolean().optional(),
-    projectId: zid("projects").optional(),
+    projectId: zid('projects').optional(),
   },
   handler: async (ctx, args) => {
     // If projectId is specified, check if it's a public project
     if (args.projectId) {
-      const project = await ctx.table("projects").getX(args.projectId);
+      const project = await ctx.table('projects').getX(args.projectId);
 
       // Check access
       if (!project.isPublic) {
         if (!ctx.userId) {
           throw new ConvexError({
-            code: "FORBIDDEN",
-            message: "You do not have access to this project",
+            code: 'FORBIDDEN',
+            message: 'You do not have access to this project',
           });
         }
 
         // Check if user is owner or member
         const isOwner = project.ownerId === ctx.userId;
         const isMember = await ctx
-          .table("projectMembers", "projectId_userId", (q) =>
-            q.eq("projectId", args.projectId!).eq("userId", ctx.userId!)
+          .table('projectMembers', 'projectId_userId', (q) =>
+            q.eq('projectId', args.projectId!).eq('userId', ctx.userId!)
           )
           .first();
 
         if (!isOwner && !isMember) {
           throw new ConvexError({
-            code: "FORBIDDEN",
-            message: "You do not have access to this project",
+            code: 'FORBIDDEN',
+            message: 'You do not have access to this project',
           });
         }
       }
 
       // Search within the project
       return await ctx
-        .table("todos")
-        .search("search_title_description", (q) => {
+        .table('todos')
+        .search('search_title_description', (q) => {
           let searchQuery = q
-            .search("title", args.query)
-            .eq("projectId", args.projectId);
+            .search('title', args.query)
+            .eq('projectId', args.projectId);
 
           if (args.completed !== undefined) {
-            searchQuery = searchQuery.eq("completed", args.completed);
+            searchQuery = searchQuery.eq('completed', args.completed);
           }
 
           return searchQuery;
@@ -168,28 +169,28 @@ export const search = createPublicPaginatedQuery()({
         .paginate(args.paginationOpts)
         .map(async (todo) => ({
           ...todo.doc(),
-          tags: await todo.edge("tags").map((tag) => tag.doc()),
-          project: await ctx.table("projects").get(todo.projectId!),
+          tags: await todo.edge('tags').map((tag) => tag.doc()),
+          project: await ctx.table('projects').get(todo.projectId!),
         }));
     }
 
     // No projectId - search user's todos only (must be authenticated)
     if (!ctx.userId) {
       throw new ConvexError({
-        code: "UNAUTHENTICATED",
-        message: "You must be logged in to search your todos",
+        code: 'UNAUTHENTICATED',
+        message: 'You must be logged in to search your todos',
       });
     }
 
     return await ctx
-      .table("todos")
-      .search("search_title_description", (q) => {
+      .table('todos')
+      .search('search_title_description', (q) => {
         let searchQuery = q
-          .search("title", args.query)
-          .eq("userId", ctx.userId!);
+          .search('title', args.query)
+          .eq('userId', ctx.userId!);
 
         if (args.completed !== undefined) {
-          searchQuery = searchQuery.eq("completed", args.completed);
+          searchQuery = searchQuery.eq('completed', args.completed);
         }
 
         return searchQuery;
@@ -197,9 +198,9 @@ export const search = createPublicPaginatedQuery()({
       .paginate(args.paginationOpts)
       .map(async (todo) => ({
         ...todo.doc(),
-        tags: await todo.edge("tags").map((tag) => tag.doc()),
+        tags: await todo.edge('tags').map((tag) => tag.doc()),
         project: todo.projectId
-          ? await ctx.table("projects").get(todo.projectId)
+          ? await ctx.table('projects').get(todo.projectId)
           : null,
       }));
   },
@@ -208,42 +209,42 @@ export const search = createPublicPaginatedQuery()({
 // Get a single todo with all relations
 export const get = createAuthQuery()({
   args: {
-    id: zid("todos"),
+    id: zid('todos'),
   },
   returns: z
     .object({
-      _id: zid("todos"),
+      _id: zid('todos'),
       _creationTime: z.number(),
-      userId: zid("users"),
+      userId: zid('users'),
       title: z.string(),
       description: z.string().optional(),
       completed: z.boolean(),
-      priority: z.enum(["low", "medium", "high"]).optional(),
+      priority: z.enum(['low', 'medium', 'high']).optional(),
       dueDate: z.number().optional(),
-      projectId: zid("projects").optional(),
+      projectId: zid('projects').optional(),
       deletionTime: z.number().optional(),
       tags: z.array(
         z.object({
-          _id: zid("tags"),
+          _id: zid('tags'),
           _creationTime: z.number(),
           name: z.string(),
           color: z.string(),
-          createdBy: zid("users"),
+          createdBy: zid('users'),
         })
       ),
       project: z
         .object({
-          _id: zid("projects"),
+          _id: zid('projects'),
           _creationTime: z.number(),
           name: z.string(),
           description: z.string().optional(),
           isPublic: z.boolean(),
           archived: z.boolean(),
-          ownerId: zid("users"),
+          ownerId: zid('users'),
         })
         .nullable(),
       user: z.object({
-        _id: zid("users"),
+        _id: zid('users'),
         _creationTime: z.number(),
         name: z.string().optional(),
         email: z.string(),
@@ -252,7 +253,7 @@ export const get = createAuthQuery()({
     })
     .nullable(),
   handler: async (ctx, args) => {
-    const todo = await ctx.table("todos").get(args.id);
+    const todo = await ctx.table('todos').get(args.id);
 
     if (!todo || todo.userId !== ctx.userId) {
       return null;
@@ -260,40 +261,40 @@ export const get = createAuthQuery()({
 
     return {
       ...todo.doc(),
-      tags: await todo.edge("tags").map((tag) => tag.doc()),
+      tags: await todo.edge('tags').map((tag) => tag.doc()),
       project: todo.projectId
-        ? await ctx.table("projects").get(todo.projectId)
+        ? await ctx.table('projects').get(todo.projectId)
         : null,
-      user: (await todo.edge("user"))!.doc(),
+      user: (await todo.edge('user'))!.doc(),
     };
   },
 });
 
 // Create a new todo
 export const create = createAuthMutation({
-  rateLimit: "todo/create",
+  rateLimit: 'todo/create',
 })({
   args: {
     title: z.string().min(1).max(200),
     description: z.string().max(1000).optional(),
-    priority: z.enum(["low", "medium", "high"]).optional(),
+    priority: z.enum(['low', 'medium', 'high']).optional(),
     dueDate: z.number().optional(),
-    projectId: zid("projects").optional(),
-    tagIds: z.array(zid("tags")).max(10).optional(),
+    projectId: zid('projects').optional(),
+    tagIds: z.array(zid('tags')).max(10).optional(),
   },
-  returns: zid("todos"),
+  returns: zid('todos'),
   handler: async (ctx, args) => {
     // Validate project access if provided
     if (args.projectId) {
-      const project = await ctx.table("projects").getX(args.projectId);
+      const project = await ctx.table('projects').getX(args.projectId);
 
       // Check if user is owner or member
       const isOwner = project.ownerId === ctx.userId;
-      const isMember = await project.edge("members").has(ctx.userId);
+      const isMember = await project.edge('members').has(ctx.userId);
 
       if (!isOwner && !isMember) {
         throw new ConvexError({
-          code: "FORBIDDEN",
+          code: 'FORBIDDEN',
           message: "You don't have access to this project",
         });
       }
@@ -301,21 +302,21 @@ export const create = createAuthMutation({
 
     // Validate tags if provided
     if (args.tagIds && args.tagIds.length > 0) {
-      const tags = await ctx.table("tags").getMany(args.tagIds);
+      const tags = await ctx.table('tags').getMany(args.tagIds);
       const validTags = tags.filter(
         (tag) => tag && tag.createdBy === ctx.userId
       );
 
       if (validTags.length !== args.tagIds.length) {
         throw new ConvexError({
-          code: "INVALID_TAGS",
+          code: 'INVALID_TAGS',
           message: "Some tags are invalid or don't belong to you",
         });
       }
     }
 
     // Create the todo
-    const todoId = await ctx.table("todos").insert({
+    const todoId = await ctx.table('todos').insert({
       title: args.title,
       description: args.description,
       completed: false,
@@ -332,25 +333,25 @@ export const create = createAuthMutation({
 
 // Update a todo
 export const update = createAuthMutation({
-  rateLimit: "todo/update",
+  rateLimit: 'todo/update',
 })({
   args: {
-    id: zid("todos"),
+    id: zid('todos'),
     title: z.string().min(1).max(200).optional(),
     description: z.string().max(1000).optional(),
-    priority: z.enum(["low", "medium", "high"]).nullable().optional(),
+    priority: z.enum(['low', 'medium', 'high']).nullable().optional(),
     dueDate: z.number().nullable().optional(),
-    projectId: zid("projects").nullable().optional(),
-    tagIds: z.array(zid("tags")).max(10).optional(),
+    projectId: zid('projects').nullable().optional(),
+    tagIds: z.array(zid('tags')).max(10).optional(),
   },
   returns: z.null(),
   handler: async (ctx, args) => {
-    const todo = await ctx.table("todos").getX(args.id);
+    const todo = await ctx.table('todos').getX(args.id);
 
     if (todo.userId !== ctx.userId) {
       throw new ConvexError({
-        code: "NOT_FOUND",
-        message: "Todo not found",
+        code: 'NOT_FOUND',
+        message: 'Todo not found',
       });
     }
 
@@ -366,14 +367,14 @@ export const update = createAuthMutation({
     // Handle project update
     if (args.projectId !== undefined) {
       if (args.projectId) {
-        const project = await ctx.table("projects").getX(args.projectId);
+        const project = await ctx.table('projects').getX(args.projectId);
 
         const isOwner = project.ownerId === ctx.userId;
-        const isMember = await project.edge("members").has(ctx.userId);
+        const isMember = await project.edge('members').has(ctx.userId);
 
         if (!isOwner && !isMember) {
           throw new ConvexError({
-            code: "FORBIDDEN",
+            code: 'FORBIDDEN',
             message: "You don't have access to this project",
           });
         }
@@ -386,14 +387,14 @@ export const update = createAuthMutation({
     // Handle tag updates
     if (args.tagIds !== undefined) {
       if (args.tagIds.length > 0) {
-        const tags = await ctx.table("tags").getMany(args.tagIds);
+        const tags = await ctx.table('tags').getMany(args.tagIds);
         const validTags = tags.filter(
           (tag) => tag && tag.createdBy === ctx.userId
         );
 
         if (validTags.length !== args.tagIds.length) {
           throw new ConvexError({
-            code: "INVALID_TAGS",
+            code: 'INVALID_TAGS',
             message: "Some tags are invalid or don't belong to you",
           });
         }
@@ -410,19 +411,19 @@ export const update = createAuthMutation({
 
 // Toggle todo completion status
 export const toggleComplete = createAuthMutation({
-  rateLimit: "todo/update",
+  rateLimit: 'todo/update',
 })({
   args: {
-    id: zid("todos"),
+    id: zid('todos'),
   },
   returns: z.boolean(),
   handler: async (ctx, args) => {
-    const todo = await ctx.table("todos").getX(args.id);
+    const todo = await ctx.table('todos').getX(args.id);
 
     if (todo.userId !== ctx.userId) {
       throw new ConvexError({
-        code: "NOT_FOUND",
-        message: "Todo not found",
+        code: 'NOT_FOUND',
+        message: 'Todo not found',
       });
     }
 
@@ -435,19 +436,19 @@ export const toggleComplete = createAuthMutation({
 
 // Soft delete a todo
 export const deleteTodo = createAuthMutation({
-  rateLimit: "todo/delete",
+  rateLimit: 'todo/delete',
 })({
   args: {
-    id: zid("todos"),
+    id: zid('todos'),
   },
   returns: z.null(),
   handler: async (ctx, args) => {
-    const todo = await ctx.table("todos").getX(args.id);
+    const todo = await ctx.table('todos').getX(args.id);
 
     if (todo.userId !== ctx.userId) {
       throw new ConvexError({
-        code: "NOT_FOUND",
-        message: "Todo not found",
+        code: 'NOT_FOUND',
+        message: 'Todo not found',
       });
     }
 
@@ -460,26 +461,26 @@ export const deleteTodo = createAuthMutation({
 
 // Restore a soft-deleted todo
 export const restore = createAuthMutation({
-  rateLimit: "todo/update",
+  rateLimit: 'todo/update',
 })({
   args: {
-    id: zid("todos"),
+    id: zid('todos'),
   },
   returns: z.null(),
   handler: async (ctx, args) => {
-    const todo = await ctx.table("todos").getX(args.id);
+    const todo = await ctx.table('todos').getX(args.id);
 
     if (todo.userId !== ctx.userId) {
       throw new ConvexError({
-        code: "NOT_FOUND",
-        message: "Todo not found",
+        code: 'NOT_FOUND',
+        message: 'Todo not found',
       });
     }
 
     if (!todo.deletionTime) {
       throw new ConvexError({
-        code: "INVALID_STATE",
-        message: "Todo is not deleted",
+        code: 'INVALID_STATE',
+        message: 'Todo is not deleted',
       });
     }
 
@@ -492,10 +493,10 @@ export const restore = createAuthMutation({
 
 // Bulk delete todos
 export const bulkDelete = createAuthMutation({
-  rateLimit: "todo/delete",
+  rateLimit: 'todo/delete',
 })({
   args: {
-    ids: z.array(zid("todos")).min(1).max(100),
+    ids: z.array(zid('todos')).min(1).max(100),
   },
   returns: z.object({
     deleted: z.number(),
@@ -507,7 +508,7 @@ export const bulkDelete = createAuthMutation({
 
     for (const id of args.ids) {
       try {
-        const todo = await ctx.table("todos").get(id);
+        const todo = await ctx.table('todos').get(id);
 
         if (todo && todo.userId === ctx.userId) {
           await todo.delete();
@@ -526,12 +527,12 @@ export const bulkDelete = createAuthMutation({
 
 // Reorder todos (for drag-and-drop support)
 export const reorder = createAuthMutation({
-  rateLimit: "todo/update",
+  rateLimit: 'todo/update',
 })({
   args: {
-    todoId: zid("todos"),
+    todoId: zid('todos'),
     targetIndex: z.number().min(0),
-    projectId: zid("projects").optional(),
+    projectId: zid('projects').optional(),
   },
   returns: z.null(),
   handler: async (ctx, args) => {
@@ -541,12 +542,12 @@ export const reorder = createAuthMutation({
     // 2. Update the order of todos within the same project/list
     // 3. Ensure consistent ordering
 
-    const todo = await ctx.table("todos").getX(args.todoId);
+    const todo = await ctx.table('todos').getX(args.todoId);
 
     if (todo.userId !== ctx.userId) {
       throw new ConvexError({
-        code: "NOT_FOUND",
-        message: "Todo not found",
+        code: 'NOT_FOUND',
+        message: 'Todo not found',
       });
     }
 
@@ -556,4 +557,3 @@ export const reorder = createAuthMutation({
     return null;
   },
 });
-

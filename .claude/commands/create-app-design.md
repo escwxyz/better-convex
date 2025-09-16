@@ -82,19 +82,16 @@ a) **Pre-MVP** - Building initial version, not deployed to production yet
 **2. Based on your selected stage, here are the development priorities:**
 
 - **Pre-MVP Priorities:**
-
   - ✅ DO: Core functionality, security basics, input validation, working features
   - ❌ DON'T: Unit tests, performance optimization, accessibility polish, perfect code
   - 🚀 Focus: Ship fast with security, iterate based on feedback
 
 - **MVP Priorities:**
-
   - ✅ DO: Critical path testing, basic monitoring, user feedback loops
   - ❌ DON'T: Comprehensive test coverage, advanced patterns, premature optimization
   - 🚀 Focus: Stability for early users, rapid iteration
 
 - **Production Priorities:**
-
   - ✅ DO: Testing, monitoring, performance, accessibility, documentation
   - ❌ DON'T: Skip security reviews, ignore technical debt
   - 🚀 Focus: Reliability, scalability, user experience

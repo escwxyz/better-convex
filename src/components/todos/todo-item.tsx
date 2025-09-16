@@ -1,41 +1,41 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useAuthMutation } from "@/lib/convex/hooks";
-import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
+import { useState } from 'react';
+import { useAuthMutation } from '@/lib/convex/hooks';
+import { api } from '@convex/_generated/api';
+import type { Id } from '@convex/_generated/dataModel';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Calendar, Edit, MoreHorizontal, Trash, RotateCcw } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+} from '@/components/ui/dropdown-menu';
+import { Calendar, Edit, MoreHorizontal, Trash, RotateCcw } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface TodoItemProps {
   todo: {
-    _id: Id<"todos">;
+    _id: Id<'todos'>;
     _creationTime: number;
     title: string;
     description?: string;
     completed: boolean;
-    priority?: "low" | "medium" | "high";
+    priority?: 'low' | 'medium' | 'high';
     dueDate?: number;
     deletionTime?: number;
     tags?: Array<{
-      _id: Id<"tags">;
+      _id: Id<'tags'>;
       name: string;
       color: string;
     }>;
     project?: {
-      _id: Id<"projects">;
+      _id: Id<'projects'>;
       name: string;
     } | null;
   };
@@ -54,7 +54,7 @@ export function TodoItem({ todo, onEdit }: TodoItemProps) {
     try {
       await toggleComplete.mutateAsync({ id: todo._id });
     } catch (error) {
-      toast.error("Failed to update todo");
+      toast.error('Failed to update todo');
     } finally {
       setIsUpdating(false);
     }
@@ -62,17 +62,17 @@ export function TodoItem({ todo, onEdit }: TodoItemProps) {
 
   const handleDelete = async () => {
     toast.promise(deleteTodo.mutateAsync({ id: todo._id }), {
-      loading: "Deleting todo...",
-      success: "Todo deleted",
-      error: (e) => e.data?.message ?? "Failed to delete todo",
+      loading: 'Deleting todo...',
+      success: 'Todo deleted',
+      error: (e) => e.data?.message ?? 'Failed to delete todo',
     });
   };
 
   const handleRestore = async () => {
     toast.promise(restoreTodo.mutateAsync({ id: todo._id }), {
-      loading: "Restoring todo...",
-      success: "Todo restored",
-      error: (e) => e.data?.message ?? "Failed to restore todo",
+      loading: 'Restoring todo...',
+      success: 'Todo restored',
+      error: (e) => e.data?.message ?? 'Failed to restore todo',
     });
   };
 
@@ -81,18 +81,18 @@ export function TodoItem({ todo, onEdit }: TodoItemProps) {
   const isDeleted = !!todo.deletionTime;
 
   const priorityColors = {
-    low: "bg-gray-100 text-gray-800",
-    medium: "bg-yellow-100 text-yellow-800",
-    high: "bg-red-100 text-red-800",
+    low: 'bg-gray-100 text-gray-800',
+    medium: 'bg-yellow-100 text-yellow-800',
+    high: 'bg-red-100 text-red-800',
   };
 
   return (
     <div
       className={cn(
-        "flex items-start gap-3 p-4 rounded-lg border transition-colors",
-        todo.completed && "bg-muted/50",
-        isDeleted && "bg-destructive/5 border-destructive/20",
-        isOverdue && !isDeleted && "border-red-500/50"
+        'flex items-start gap-3 rounded-lg border p-4 transition-colors',
+        todo.completed && 'bg-muted/50',
+        isDeleted && 'border-destructive/20 bg-destructive/5',
+        isOverdue && !isDeleted && 'border-red-500/50'
       )}
     >
       <Checkbox
@@ -106,9 +106,9 @@ export function TodoItem({ todo, onEdit }: TodoItemProps) {
         <div className="flex items-start justify-between gap-2">
           <h3
             className={cn(
-              "font-medium",
-              todo.completed && "line-through text-muted-foreground",
-              isDeleted && "text-muted-foreground"
+              'font-medium',
+              todo.completed && 'text-muted-foreground line-through',
+              isDeleted && 'text-muted-foreground'
             )}
           >
             {todo.title}
@@ -150,11 +150,11 @@ export function TodoItem({ todo, onEdit }: TodoItemProps) {
           <p className="text-sm text-muted-foreground">{todo.description}</p>
         )}
 
-        <div className="flex flex-wrap items-center gap-2 mt-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           {todo.priority && (
             <Badge
               variant="secondary"
-              className={cn("text-xs", priorityColors[todo.priority])}
+              className={cn('text-xs', priorityColors[todo.priority])}
             >
               {todo.priority}
             </Badge>
@@ -164,12 +164,12 @@ export function TodoItem({ todo, onEdit }: TodoItemProps) {
             <Badge
               variant="outline"
               className={cn(
-                "text-xs",
-                isOverdue && "border-red-500 text-red-600"
+                'text-xs',
+                isOverdue && 'border-red-500 text-red-600'
               )}
             >
               <Calendar className="mr-1 h-3 w-3" />
-              {format(todo.dueDate, "MMM d, yyyy")}
+              {format(todo.dueDate, 'MMM d, yyyy')}
             </Badge>
           )}
 

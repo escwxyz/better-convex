@@ -150,9 +150,9 @@ handler: async (ctx, args) => {
 ```typescript
 // Efficient relationship queries
 const todos = await user
-  .edge("todos")
-  .filter((q) => q.eq(q.field("completed"), false))
-  .order("desc")
+  .edge('todos')
+  .filter((q) => q.eq(q.field('completed'), false))
+  .order('desc')
   .take(10);
 ```
 
@@ -170,9 +170,9 @@ const todoCount = await aggregateTodosByUser.count(ctx, {
 ```typescript
 // Full-text + field filters
 const results = await ctx
-  .table("todos")
-  .search("search_title_description", (q) =>
-    q.search("title", query).eq("userId", userId).eq("completed", false)
+  .table('todos')
+  .search('search_title_description', (q) =>
+    q.search('title', query).eq('userId', userId).eq('completed', false)
   )
   .take(20);
 ```
@@ -182,9 +182,9 @@ const results = await ctx
 ```typescript
 // Complex filters with consistent pages
 const stream = await stream(ctx.db, schema)
-  .query("todos")
+  .query('todos')
   .filterWith(async (todo) => {
-    const tags = await todo.edge("tags");
+    const tags = await todo.edge('tags');
     return tags.some((t) => selectedTags.includes(t._id));
   })
   .paginate(args.paginationOpts);
@@ -225,25 +225,21 @@ const stream = await stream(ctx.db, schema)
 ## Development Order
 
 1. **Phase 1**: Core Todo CRUD
-
    - Basic todo operations
    - Real-time updates
    - Soft deletion
 
 2. **Phase 2**: Projects & Relationships
-
    - Project CRUD
    - Todo-project association
    - Member management
 
 3. **Phase 3**: Tags & Search
-
    - Tag system
    - Full-text search
    - Combined filters
 
 4. **Phase 4**: Comments & Aggregates
-
    - Comment threads
    - Count displays
    - Trigger setup

@@ -22,20 +22,17 @@ To quickly create a Product Requirements Document (PRD) without asking clarifyin
 ## Process
 
 1. **Analyze Feature Request:**
-
    - Think deeply about the user's feature request
    - Make reasonable assumptions based on common patterns
    - Review existing codebase for context
 
 2. **Codebase Analysis:**
-
    - Search for relevant existing code patterns
    - Review components that might be affected
    - Identify potential integration points
    - Consider architectural impacts
 
 3. **Generate PRD Immediately:**
-
    - Follow the example PRD structure exactly
    - Include all required sections from the template
    - Make reasonable assumptions for unclear requirements

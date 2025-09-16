@@ -173,30 +173,25 @@ d) **Business Goal** - Partnerships, funding, market expansion
 ### Always Review:
 
 1. **Introduction**
-
    - Update if purpose or audience has shifted
    - Reflect any pivot in value proposition
 
 2. **Core Features**
-
    - Add new feature categories if needed
    - Update existing features with enhancements
    - Mark removed features as deprecated
 
 3. **User Experience**
-
    - Update user journeys with new flows
    - Add new user personas if applicable
    - Reflect UI/UX improvements
 
 4. **System Architecture**
-
    - Add new integrations
    - Update data flow diagrams
    - Reflect new security patterns
 
 5. **Business Logic**
-
    - Update rules and workflows
    - Reflect new validation requirements
    - Document new business constraints

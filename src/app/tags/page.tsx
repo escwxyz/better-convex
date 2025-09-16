@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useAuthQuery, useAuthMutation } from "@/lib/convex/hooks";
-import { api } from "@convex/_generated/api";
-import { Id } from "@convex/_generated/dataModel";
-import { Button } from "@/components/ui/button";
+import { useState } from 'react';
+import { useAuthQuery, useAuthMutation } from '@/lib/convex/hooks';
+import { api } from '@convex/_generated/api';
+import { Id } from '@convex/_generated/dataModel';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -20,16 +20,16 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Plus,
   MoreVertical,
@@ -38,22 +38,22 @@ import {
   GitMerge,
   Tag,
   Hash,
-} from "lucide-react";
-import { toast } from "sonner";
-import { WithSkeleton } from "@/components/ui/skeleton";
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { WithSkeleton } from '@/components/ui/skeleton';
 
 export default function TagsPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [selectedTag, setSelectedTag] = useState<{
-    _id: Id<"tags">;
+    _id: Id<'tags'>;
     name: string;
     color: string;
   } | null>(null);
-  const [newTag, setNewTag] = useState({ name: "", color: "" });
-  const [editTag, setEditTag] = useState({ name: "", color: "" });
-  const [mergeTarget, setMergeTarget] = useState<Id<"tags"> | null>(null);
+  const [newTag, setNewTag] = useState({ name: '', color: '' });
+  const [editTag, setEditTag] = useState({ name: '', color: '' });
+  const [mergeTarget, setMergeTarget] = useState<Id<'tags'> | null>(null);
 
   const { data: tags, isLoading } = useAuthQuery(
     api.tags.list,
@@ -61,24 +61,24 @@ export default function TagsPage() {
     {
       placeholderData: [
         {
-          _id: "1" as any,
+          _id: '1' as any,
           _creationTime: Date.now(),
-          name: "Work",
-          color: "#3B82F6",
+          name: 'Work',
+          color: '#3B82F6',
           usageCount: 5,
         },
         {
-          _id: "2" as any,
+          _id: '2' as any,
           _creationTime: Date.now(),
-          name: "Personal",
-          color: "#10B981",
+          name: 'Personal',
+          color: '#10B981',
           usageCount: 3,
         },
         {
-          _id: "3" as any,
+          _id: '3' as any,
           _creationTime: Date.now(),
-          name: "Urgent",
-          color: "#EF4444",
+          name: 'Urgent',
+          color: '#EF4444',
           usageCount: 2,
         },
       ],
@@ -90,11 +90,11 @@ export default function TagsPage() {
   const createTag = useAuthMutation(api.tags.create, {
     onSuccess: () => {
       setShowCreateDialog(false);
-      setNewTag({ name: "", color: "" });
-      toast.success("Tag created successfully");
+      setNewTag({ name: '', color: '' });
+      toast.success('Tag created successfully');
     },
     onError: (error: any) => {
-      toast.error(error.data?.message ?? "Failed to create tag");
+      toast.error(error.data?.message ?? 'Failed to create tag');
     },
   });
 
@@ -102,19 +102,19 @@ export default function TagsPage() {
     onSuccess: () => {
       setShowEditDialog(false);
       setSelectedTag(null);
-      toast.success("Tag updated successfully");
+      toast.success('Tag updated successfully');
     },
     onError: (error: any) => {
-      toast.error(error.data?.message ?? "Failed to update tag");
+      toast.error(error.data?.message ?? 'Failed to update tag');
     },
   });
 
   const deleteTag = useAuthMutation(api.tags.deleteTag, {
     onSuccess: () => {
-      toast.success("Tag deleted successfully");
+      toast.success('Tag deleted successfully');
     },
     onError: (error: any) => {
-      toast.error(error.data?.message ?? "Failed to delete tag");
+      toast.error(error.data?.message ?? 'Failed to delete tag');
     },
   });
 
@@ -123,16 +123,16 @@ export default function TagsPage() {
       setShowMergeDialog(false);
       setSelectedTag(null);
       setMergeTarget(null);
-      toast.success("Tags merged successfully");
+      toast.success('Tags merged successfully');
     },
     onError: (error: any) => {
-      toast.error(error.data?.message ?? "Failed to merge tags");
+      toast.error(error.data?.message ?? 'Failed to merge tags');
     },
   });
 
   const handleCreateTag = () => {
     if (!newTag.name.trim()) {
-      toast.error("Tag name is required");
+      toast.error('Tag name is required');
       return;
     }
 
@@ -144,7 +144,7 @@ export default function TagsPage() {
 
   const handleEditTag = () => {
     if (!selectedTag || !editTag.name.trim()) {
-      toast.error("Tag name is required");
+      toast.error('Tag name is required');
       return;
     }
 
@@ -155,10 +155,10 @@ export default function TagsPage() {
     });
   };
 
-  const handleDeleteTag = (tagId: Id<"tags">) => {
+  const handleDeleteTag = (tagId: Id<'tags'>) => {
     if (
       confirm(
-        "Are you sure you want to delete this tag? It will be removed from all todos."
+        'Are you sure you want to delete this tag? It will be removed from all todos.'
       )
     ) {
       deleteTag.mutate({ tagId });
@@ -167,7 +167,7 @@ export default function TagsPage() {
 
   const handleMergeTags = () => {
     if (!selectedTag || !mergeTarget) {
-      toast.error("Please select a target tag");
+      toast.error('Please select a target tag');
       return;
     }
 
@@ -178,7 +178,7 @@ export default function TagsPage() {
   };
 
   const openEditDialog = (tag: {
-    _id: Id<"tags">;
+    _id: Id<'tags'>;
     name: string;
     color: string;
   }) => {
@@ -188,7 +188,7 @@ export default function TagsPage() {
   };
 
   const openMergeDialog = (tag: {
-    _id: Id<"tags">;
+    _id: Id<'tags'>;
     name: string;
     color: string;
   }) => {
@@ -198,11 +198,11 @@ export default function TagsPage() {
   };
 
   return (
-    <div className="container mx-auto py-6 px-4">
-      <div className="flex justify-between items-center mb-6">
+    <div className="container mx-auto px-4 py-6">
+      <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Tags</h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="mt-2 text-muted-foreground">
             Organize your todos with tags
           </p>
         </div>
@@ -234,15 +234,15 @@ export default function TagsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="tag-color">Color (optional)</Label>
-                <div className="flex gap-2 items-center">
+                <div className="flex items-center gap-2">
                   <Input
                     id="tag-color"
                     type="color"
-                    value={newTag.color || "#3B82F6"}
+                    value={newTag.color || '#3B82F6'}
                     onChange={(e) =>
                       setNewTag({ ...newTag, color: e.target.value })
                     }
-                    className="w-20 h-10 cursor-pointer"
+                    className="h-10 w-20 cursor-pointer"
                   />
                   <Input
                     value={newTag.color}
@@ -282,14 +282,14 @@ export default function TagsPage() {
                 <Badge
                   key={tag._id}
                   style={{
-                    backgroundColor: tag.color + "20",
+                    backgroundColor: tag.color + '20',
                     color: tag.color,
                     borderColor: tag.color,
                   }}
                   variant="outline"
                   className="px-3 py-1"
                 >
-                  <Hash className="h-3 w-3 mr-1" />
+                  <Hash className="mr-1 h-3 w-3" />
                   {tag.name}
                   <span className="ml-2 text-xs opacity-70">
                     ({tag.usageCount})
@@ -305,7 +305,7 @@ export default function TagsPage() {
         <CardHeader>
           <CardTitle>Your Tags</CardTitle>
           <CardDescription>
-            {tags?.length || 0} tag{tags?.length !== 1 ? "s" : ""}
+            {tags?.length || 0} tag{tags?.length !== 1 ? 's' : ''}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -316,11 +316,11 @@ export default function TagsPage() {
                 isLoading={isLoading}
                 className="w-full"
               >
-                <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50">
+                <div className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50">
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: tag.color + "20" }}
+                      className="flex h-8 w-8 items-center justify-center rounded-full"
+                      style={{ backgroundColor: tag.color + '20' }}
                     >
                       <Tag className="h-4 w-4" style={{ color: tag.color }} />
                     </div>
@@ -328,7 +328,7 @@ export default function TagsPage() {
                       <div className="font-medium">{tag.name}</div>
                       <div className="text-sm text-muted-foreground">
                         Used in {tag.usageCount} todo
-                        {tag.usageCount !== 1 ? "s" : ""}
+                        {tag.usageCount !== 1 ? 's' : ''}
                       </div>
                     </div>
                   </div>
@@ -364,10 +364,10 @@ export default function TagsPage() {
           </div>
 
           {tags?.length === 0 && !isLoading && (
-            <div className="text-center py-8 text-muted-foreground">
-              <Tag className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <div className="py-8 text-center text-muted-foreground">
+              <Tag className="mx-auto mb-4 h-12 w-12 opacity-50" />
               <p>No tags yet</p>
-              <p className="text-sm mt-2">
+              <p className="mt-2 text-sm">
                 Create your first tag to start organizing
               </p>
             </div>
@@ -395,7 +395,7 @@ export default function TagsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-tag-color">Color</Label>
-              <div className="flex gap-2 items-center">
+              <div className="flex items-center gap-2">
                 <Input
                   id="edit-tag-color"
                   type="color"
@@ -403,7 +403,7 @@ export default function TagsPage() {
                   onChange={(e) =>
                     setEditTag({ ...editTag, color: e.target.value })
                   }
-                  className="w-20 h-10 cursor-pointer"
+                  className="h-10 w-20 cursor-pointer"
                 />
                 <Input
                   value={editTag.color}
@@ -445,13 +445,13 @@ export default function TagsPage() {
                   .map((tag) => (
                     <div
                       key={tag._id}
-                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50 ${
-                        mergeTarget === tag._id ? "ring-2 ring-primary" : ""
+                      className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50 ${
+                        mergeTarget === tag._id ? 'ring-2 ring-primary' : ''
                       }`}
                       onClick={() => setMergeTarget(tag._id)}
                     >
                       <div
-                        className="w-6 h-6 rounded-full"
+                        className="h-6 w-6 rounded-full"
                         style={{ backgroundColor: tag.color }}
                       />
                       <div className="font-medium">{tag.name}</div>

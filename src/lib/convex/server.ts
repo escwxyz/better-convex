@@ -1,15 +1,15 @@
-import type { SessionUser } from "@convex/user/mapSessionToUser";
-import type { NextjsOptions } from "convex/nextjs";
+import type { SessionUser } from '@convex/user/mapSessionToUser';
+import type { NextjsOptions } from 'convex/nextjs';
 import type {
   ArgsAndOptions,
   FunctionReference,
   FunctionReturnType,
-} from "convex/server";
+} from 'convex/server';
 
-import { getToken } from "@convex-dev/better-auth/nextjs";
-import { api } from "@convex/_generated/api";
-import { createAuth } from "@convex/auth";
-import { fetchMutation, fetchQuery } from "convex/nextjs";
+import { getToken } from '@convex-dev/better-auth/nextjs';
+import { api } from '@convex/_generated/api';
+import { createAuth } from '@convex/auth';
+import { fetchMutation, fetchQuery } from 'convex/nextjs';
 
 export const getSessionToken = async (): Promise<string | null> => {
   const token = await getToken(createAuth);
@@ -57,7 +57,7 @@ export const getSessionUser = async (): Promise<
   return { ...user, token };
 };
 
-export async function fetchAuthQuery<Query extends FunctionReference<"query">>(
+export async function fetchAuthQuery<Query extends FunctionReference<'query'>>(
   query: Query,
   ...args: ArgsAndOptions<Query, NextjsOptions>
 ): Promise<FunctionReturnType<Query> | null> {
@@ -78,7 +78,7 @@ export async function fetchAuthQuery<Query extends FunctionReference<"query">>(
 }
 
 export async function fetchAuthQueryOrThrow<
-  Query extends FunctionReference<"query">,
+  Query extends FunctionReference<'query'>,
 >(
   query: Query,
   ...args: ArgsAndOptions<Query, NextjsOptions>
@@ -86,7 +86,7 @@ export async function fetchAuthQueryOrThrow<
   const token = await getSessionToken();
 
   if (!token) {
-    throw new Error("Not authenticated");
+    throw new Error('Not authenticated');
   }
   // Handle both cases: with and without args
   if (args.length === 0) {
@@ -100,7 +100,7 @@ export async function fetchAuthQueryOrThrow<
 }
 
 export async function fetchAuthMutation<
-  Mutation extends FunctionReference<"mutation">,
+  Mutation extends FunctionReference<'mutation'>,
 >(
   mutation: Mutation,
   ...args: ArgsAndOptions<Mutation, NextjsOptions>

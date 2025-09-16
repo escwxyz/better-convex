@@ -197,14 +197,12 @@ When adding major new tools:
    ```
 
 2. **Configuration files**
-
    - tsconfig.json updates
    - New .config files
    - Build tool configurations
    - Linting rule changes
 
 3. **Development scripts**
-
    - New npm/pnpm scripts
    - Changed command purposes
    - Removed scripts

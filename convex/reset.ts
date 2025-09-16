@@ -1,7 +1,7 @@
-import { z } from "zod";
+import { z } from 'zod';
 
-import { components, internal } from "./_generated/api";
-import { createInternalMutation, createAuthMutation } from "./functions";
+import { components, internal } from './_generated/api';
+import { createInternalMutation, createAuthMutation } from './functions';
 
 /** Reset only better-auth tables Usage: npx convex run reset:betterAuth */
 export const resetAuth = createInternalMutation()({
@@ -11,30 +11,30 @@ export const resetAuth = createInternalMutation()({
     totalDeleted: z.number(),
   }),
   handler: async (ctx) => {
-    console.info("🗑️ Resetting better-auth tables...");
+    console.info('🗑️ Resetting better-auth tables...');
 
     const deletedCounts: Record<string, number> = {};
     let totalDeleted = 0;
 
     const betterAuthTables = [
-      "account",
-      "apikey",
-      "invitation",
-      "jwks",
-      "member",
-      "oauthAccessToken",
-      "oauthApplication",
-      "oauthConsent",
-      "organization",
-      "passkey",
-      "rateLimit",
-      "session",
-      "ssoProvider",
-      "subscription",
-      "team",
-      "twoFactor",
-      "user",
-      "verification",
+      'account',
+      'apikey',
+      'invitation',
+      'jwks',
+      'member',
+      'oauthAccessToken',
+      'oauthApplication',
+      'oauthConsent',
+      'organization',
+      'passkey',
+      'rateLimit',
+      'session',
+      'ssoProvider',
+      'subscription',
+      'team',
+      'twoFactor',
+      'user',
+      'verification',
     ] as const;
 
     for (const tableName of betterAuthTables) {
@@ -73,7 +73,7 @@ export const resetAuth = createInternalMutation()({
       }
     }
 
-    console.info("");
+    console.info('');
     console.info(`🎯 Better-auth reset complete!`);
     console.info(`   Total documents deleted: ${totalDeleted}`);
     console.info(`   Tables affected: ${Object.keys(deletedCounts).length}`);
@@ -93,7 +93,7 @@ export const resetAppData = createAuthMutation()({
     totalDeleted: z.number(),
   }),
   handler: async (ctx) => {
-    console.info("🗑️ Resetting app data...");
+    console.info('🗑️ Resetting app data...');
 
     const deletedCounts: Record<string, number> = {};
     let totalDeleted = 0;
@@ -102,9 +102,9 @@ export const resetAppData = createAuthMutation()({
     // We delete parent entities first, which cascade delete their children
 
     // 1. Delete projects - this cascades to delete all todos and their comments
-    const projects = await ctx.table("projects").take(20);
+    const projects = await ctx.table('projects').take(20);
     for (const project of projects) {
-      await ctx.table("projects").getX(project._id).delete();
+      await ctx.table('projects').getX(project._id).delete();
       deletedCounts.projects = (deletedCounts.projects || 0) + 1;
       totalDeleted++;
     }
@@ -112,9 +112,9 @@ export const resetAppData = createAuthMutation()({
     // Continue deleting projects in batches
     let hasMoreProjects = projects.length === 20;
     while (hasMoreProjects) {
-      const moreProjects = await ctx.table("projects").take(20);
+      const moreProjects = await ctx.table('projects').take(20);
       for (const project of moreProjects) {
-        await ctx.table("projects").getX(project._id).delete();
+        await ctx.table('projects').getX(project._id).delete();
         deletedCounts.projects = (deletedCounts.projects || 0) + 1;
         totalDeleted++;
       }
@@ -124,12 +124,12 @@ export const resetAppData = createAuthMutation()({
     // 2. Delete orphaned todos (those without projects)
     // Note: Todos use soft deletion, so they'll be marked as deleted
     const orphanTodos = await ctx
-      .table("todos")
-      .filter((q) => q.eq(q.field("projectId"), undefined))
+      .table('todos')
+      .filter((q) => q.eq(q.field('projectId'), undefined))
       .take(20);
 
     for (const todo of orphanTodos) {
-      await ctx.table("todos").getX(todo._id).delete();
+      await ctx.table('todos').getX(todo._id).delete();
       deletedCounts.todos = (deletedCounts.todos || 0) + 1;
       totalDeleted++;
     }
@@ -138,12 +138,12 @@ export const resetAppData = createAuthMutation()({
     let hasMoreTodos = orphanTodos.length === 20;
     while (hasMoreTodos) {
       const moreTodos = await ctx
-        .table("todos")
-        .filter((q) => q.eq(q.field("projectId"), undefined))
+        .table('todos')
+        .filter((q) => q.eq(q.field('projectId'), undefined))
         .take(20);
 
       for (const todo of moreTodos) {
-        await ctx.table("todos").getX(todo._id).delete();
+        await ctx.table('todos').getX(todo._id).delete();
         deletedCounts.todos = (deletedCounts.todos || 0) + 1;
         totalDeleted++;
       }
@@ -151,18 +151,18 @@ export const resetAppData = createAuthMutation()({
     }
 
     // 3. Delete tags (independent entities)
-    const tags = await ctx.table("tags").take(50);
+    const tags = await ctx.table('tags').take(50);
     for (const tag of tags) {
-      await ctx.table("tags").getX(tag._id).delete();
+      await ctx.table('tags').getX(tag._id).delete();
       deletedCounts.tags = (deletedCounts.tags || 0) + 1;
       totalDeleted++;
     }
 
     let hasMoreTags = tags.length === 50;
     while (hasMoreTags) {
-      const moreTags = await ctx.table("tags").take(50);
+      const moreTags = await ctx.table('tags').take(50);
       for (const tag of moreTags) {
-        await ctx.table("tags").getX(tag._id).delete();
+        await ctx.table('tags').getX(tag._id).delete();
         deletedCounts.tags = (deletedCounts.tags || 0) + 1;
         totalDeleted++;
       }
@@ -181,7 +181,7 @@ export const resetAppData = createAuthMutation()({
       totalDeleted += count as number;
     });
 
-    console.info("");
+    console.info('');
     console.info(`🎯 App data reset complete!`);
     console.info(`   Total documents deleted: ${totalDeleted}`);
     console.info(`   Tables affected: ${Object.keys(deletedCounts).length}`);
@@ -204,9 +204,9 @@ export const cleanupJoinTables = createInternalMutation()({
 
     // Clean up join tables using raw db to bypass triggers
     const joinTables = [
-      "todoTags",
-      "projectMembers",
-      "commentReplies",
+      'todoTags',
+      'projectMembers',
+      'commentReplies',
     ] as const;
 
     for (const tableName of joinTables) {

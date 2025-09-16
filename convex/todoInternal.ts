@@ -1,18 +1,18 @@
-import { z } from "zod";
-import { zid } from "convex-helpers/server/zod";
+import { z } from 'zod';
+import { zid } from 'convex-helpers/server/zod';
 
-import type { Id } from "./_generated/dataModel";
+import type { Id } from './_generated/dataModel';
 import {
   createInternalQuery,
   createInternalMutation,
   createInternalAction,
-} from "./functions";
-import { internal } from "./_generated/api";
+} from './functions';
+import { internal } from './_generated/api';
 import {
   aggregateTodosByUser,
   aggregateTodosByStatus,
   aggregateTodosByProject,
-} from "./aggregates";
+} from './aggregates';
 
 // ============================================
 // INTERNAL QUERIES (Background Processing)
@@ -26,12 +26,12 @@ export const getUsersWithOverdueTodos = createInternalQuery()({
   },
   returns: z.array(
     z.object({
-      userId: zid("users"),
+      userId: zid('users'),
       email: z.string(),
       name: z.string().optional(),
       overdueTodos: z.array(
         z.object({
-          _id: zid("todos"),
+          _id: zid('todos'),
           title: z.string(),
           dueDate: z.number(),
           daysOverdue: z.number(),
@@ -45,19 +45,19 @@ export const getUsersWithOverdueTodos = createInternalQuery()({
 
     // Find overdue todos (exclude soft-deleted)
     const overdueTodos = await ctx
-      .table("todos")
+      .table('todos')
       .filter((q) =>
         q.and(
-          q.eq(q.field("completed"), false),
-          q.neq(q.field("dueDate"), undefined),
-          q.lt(q.field("dueDate"), cutoff),
-          q.eq(q.field("deletionTime"), undefined)
+          q.eq(q.field('completed'), false),
+          q.neq(q.field('dueDate'), undefined),
+          q.lt(q.field('dueDate'), cutoff),
+          q.eq(q.field('deletionTime'), undefined)
         )
       )
       .take(1000); // Get more than limit to group by user
 
     // Group by user
-    const userTodos = new Map<Id<"users">, typeof overdueTodos>();
+    const userTodos = new Map<Id<'users'>, typeof overdueTodos>();
     for (const todo of overdueTodos) {
       const existing = userTodos.get(todo.userId) || [];
       existing.push(todo);
@@ -66,11 +66,11 @@ export const getUsersWithOverdueTodos = createInternalQuery()({
 
     // Get user details and format response
     const results: Array<{
-      userId: Id<"users">;
+      userId: Id<'users'>;
       email: string;
       name: string | undefined;
       overdueTodos: Array<{
-        _id: Id<"todos">;
+        _id: Id<'todos'>;
         title: string;
         dueDate: number;
         daysOverdue: number;
@@ -79,7 +79,7 @@ export const getUsersWithOverdueTodos = createInternalQuery()({
     for (const [userId, todos] of userTodos) {
       if (results.length >= args.limit) break;
 
-      const user = await ctx.table("users").get(userId);
+      const user = await ctx.table('users').get(userId);
       if (user && user.emailVerified) {
         results.push({
           userId,
@@ -133,7 +133,7 @@ export const getSystemStats = createInternalQuery()({
     const todayStart = new Date().setHours(0, 0, 0, 0);
 
     // User stats
-    const allUsers = await ctx.table("users");
+    const allUsers = await ctx.table('users');
     // For active users, check by creation time since _lastModified doesn't exist
     const activeUsers = allUsers.filter((u) => u._creationTime > thirtyDaysAgo);
 
@@ -144,8 +144,8 @@ export const getSystemStats = createInternalQuery()({
       const activeTodoCount = await aggregateTodosByUser.count(ctx, {
         namespace: user._id,
         bounds: {
-          lower: { key: ["high", false, false], inclusive: true },
-          upper: { key: ["none", true, false], inclusive: true },
+          lower: { key: ['high', false, false], inclusive: true },
+          upper: { key: ['none', true, false], inclusive: true },
         },
       });
       if (activeTodoCount > 0) usersWithTodos++;
@@ -154,76 +154,79 @@ export const getSystemStats = createInternalQuery()({
     // Todo stats (only count active todos, not soft-deleted)
     const totalTodos = await aggregateTodosByStatus.count(ctx, {
       bounds: {
-        lower: { key: [false, "high", 0, false], inclusive: true },
-        upper: { key: [true, "none", Infinity, false], inclusive: true },
+        lower: { key: [false, 'high', 0, false], inclusive: true },
+        upper: { key: [true, 'none', Infinity, false], inclusive: true },
       },
     });
     // Count completed active todos
     const completedTodos = await aggregateTodosByStatus.count(ctx, {
       bounds: {
-        lower: { key: [true, "high", 0, false], inclusive: true },
-        upper: { key: [true, "none", Infinity, false], inclusive: true },
+        lower: { key: [true, 'high', 0, false], inclusive: true },
+        upper: { key: [true, 'none', Infinity, false], inclusive: true },
       },
     });
 
     // Count overdue (exclude soft-deleted)
     const overdueTodosList = await ctx
-      .table("todos")
+      .table('todos')
       .filter((q) =>
         q.and(
-          q.eq(q.field("completed"), false),
-          q.neq(q.field("dueDate"), undefined),
-          q.lt(q.field("dueDate"), now),
-          q.eq(q.field("deletionTime"), undefined)
+          q.eq(q.field('completed'), false),
+          q.neq(q.field('dueDate'), undefined),
+          q.lt(q.field('dueDate'), now),
+          q.eq(q.field('deletionTime'), undefined)
         )
       );
     const overdueTodos = overdueTodosList.length;
 
     // Priority breakdown (exclude soft-deleted)
-    const priorities = ["low", "medium", "high", "none"];
+    const priorities = ['low', 'medium', 'high', 'none'];
     const byPriority: Record<string, number> = {};
     for (const priority of priorities) {
       const todosList = await ctx
-        .table("todos")
+        .table('todos')
         .filter((q) =>
           q.and(
-            q.eq(q.field("priority"), priority === "none" ? undefined : priority),
-            q.eq(q.field("deletionTime"), undefined)
+            q.eq(
+              q.field('priority'),
+              priority === 'none' ? undefined : priority
+            ),
+            q.eq(q.field('deletionTime'), undefined)
           )
         );
       byPriority[priority] = todosList.length;
     }
 
     // Project stats
-    const projects = await ctx.table("projects");
+    const projects = await ctx.table('projects');
     const publicProjects = projects.filter((p) => p.isPublic);
     const activeProjects = projects.filter((p) => !p.archived);
 
     // Today's activity (exclude soft-deleted)
     const todosCreatedTodayList = await ctx
-      .table("todos")
-      .filter((q) => 
+      .table('todos')
+      .filter((q) =>
         q.and(
-          q.gte(q.field("_creationTime"), todayStart),
-          q.eq(q.field("deletionTime"), undefined)
+          q.gte(q.field('_creationTime'), todayStart),
+          q.eq(q.field('deletionTime'), undefined)
         )
       );
     const todosCreatedToday = todosCreatedTodayList.length;
 
     const todosCompletedTodayList = await ctx
-      .table("todos")
+      .table('todos')
       .filter((q) =>
         q.and(
-          q.eq(q.field("completed"), true),
-          q.gte(q.field("_creationTime"), todayStart),
-          q.eq(q.field("deletionTime"), undefined)
+          q.eq(q.field('completed'), true),
+          q.gte(q.field('_creationTime'), todayStart),
+          q.eq(q.field('deletionTime'), undefined)
         )
       );
     const todosCompletedToday = todosCompletedTodayList.length;
 
     const commentsTodayList = await ctx
-      .table("todoComments")
-      .filter((q) => q.gte(q.field("_creationTime"), todayStart));
+      .table('todoComments')
+      .filter((q) => q.gte(q.field('_creationTime'), todayStart));
     const commentsToday = commentsTodayList.length;
 
     return {
@@ -271,21 +274,21 @@ export const updateOverduePriorities = createInternalMutation()({
 
     // Find todos due soon that aren't high priority (exclude soft-deleted)
     const urgentTodos = await ctx
-      .table("todos")
+      .table('todos')
       .filter((q) =>
         q.and(
-          q.eq(q.field("completed"), false),
-          q.neq(q.field("dueDate"), undefined),
-          q.lt(q.field("dueDate"), tomorrow),
-          q.neq(q.field("priority"), "high"),
-          q.eq(q.field("deletionTime"), undefined)
+          q.eq(q.field('completed'), false),
+          q.neq(q.field('dueDate'), undefined),
+          q.lt(q.field('dueDate'), tomorrow),
+          q.neq(q.field('priority'), 'high'),
+          q.eq(q.field('deletionTime'), undefined)
         )
       )
       .take(args.batchSize);
 
     // Update priorities
     for (const todo of urgentTodos) {
-      await ctx.table("todos").getX(todo._id).patch({ priority: "high" });
+      await ctx.table('todos').getX(todo._id).patch({ priority: 'high' });
     }
 
     return {
@@ -309,12 +312,12 @@ export const archiveOldCompletedTodos = createInternalMutation()({
     const cutoff = Date.now() - args.daysOld * 24 * 60 * 60 * 1000;
 
     const oldTodos = await ctx
-      .table("todos")
+      .table('todos')
       .filter((q) =>
         q.and(
-          q.eq(q.field("completed"), true),
-          q.lt(q.field("_creationTime"), cutoff),
-          q.eq(q.field("deletionTime"), undefined)
+          q.eq(q.field('completed'), true),
+          q.lt(q.field('_creationTime'), cutoff),
+          q.eq(q.field('deletionTime'), undefined)
         )
       )
       .take(args.batchSize);
@@ -322,7 +325,7 @@ export const archiveOldCompletedTodos = createInternalMutation()({
     // In a real app, might move to an archive table
     // For demo, we'll just delete them (soft delete)
     for (const todo of oldTodos) {
-      await ctx.table("todos").getX(todo._id).delete();
+      await ctx.table('todos').getX(todo._id).delete();
     }
 
     return {
@@ -335,7 +338,7 @@ export const archiveOldCompletedTodos = createInternalMutation()({
 // Recalculate user statistics
 export const recalculateUserStats = createInternalMutation()({
   args: {
-    userId: zid("users"),
+    userId: zid('users'),
   },
   returns: z.object({
     totalTodos: z.number(),
@@ -343,14 +346,14 @@ export const recalculateUserStats = createInternalMutation()({
     streak: z.number(),
   }),
   handler: async (ctx, args) => {
-    const user = await ctx.table("users").getX(args.userId);
+    const user = await ctx.table('users').getX(args.userId);
 
     // Get todo counts from aggregates (exclude soft-deleted)
     const totalTodos = await aggregateTodosByUser.count(ctx, {
       namespace: args.userId,
       bounds: {
-        lower: { key: ["high", false, false], inclusive: true },
-        upper: { key: ["none", true, false], inclusive: true },
+        lower: { key: ['high', false, false], inclusive: true },
+        upper: { key: ['none', true, false], inclusive: true },
       },
     });
 
@@ -359,29 +362,29 @@ export const recalculateUserStats = createInternalMutation()({
       aggregateTodosByUser.count(ctx, {
         namespace: args.userId,
         bounds: {
-          lower: { key: ["low", true, false], inclusive: true },
-          upper: { key: ["low", true, false], inclusive: true },
+          lower: { key: ['low', true, false], inclusive: true },
+          upper: { key: ['low', true, false], inclusive: true },
         },
       }),
       aggregateTodosByUser.count(ctx, {
         namespace: args.userId,
         bounds: {
-          lower: { key: ["medium", true, false], inclusive: true },
-          upper: { key: ["medium", true, false], inclusive: true },
+          lower: { key: ['medium', true, false], inclusive: true },
+          upper: { key: ['medium', true, false], inclusive: true },
         },
       }),
       aggregateTodosByUser.count(ctx, {
         namespace: args.userId,
         bounds: {
-          lower: { key: ["high", true, false], inclusive: true },
-          upper: { key: ["high", true, false], inclusive: true },
+          lower: { key: ['high', true, false], inclusive: true },
+          upper: { key: ['high', true, false], inclusive: true },
         },
       }),
       aggregateTodosByUser.count(ctx, {
         namespace: args.userId,
         bounds: {
-          lower: { key: ["none", true, false], inclusive: true },
-          upper: { key: ["none", true, false], inclusive: true },
+          lower: { key: ['none', true, false], inclusive: true },
+          upper: { key: ['none', true, false], inclusive: true },
         },
       }),
     ]);
@@ -394,16 +397,16 @@ export const recalculateUserStats = createInternalMutation()({
     // Calculate streak (consecutive days with completed todos, exclude soft-deleted)
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const recentCompleted = await ctx
-      .table("todos")
+      .table('todos')
       .filter((q) =>
         q.and(
-          q.eq(q.field("userId"), args.userId),
-          q.eq(q.field("completed"), true),
-          q.gte(q.field("_creationTime"), thirtyDaysAgo),
-          q.eq(q.field("deletionTime"), undefined)
+          q.eq(q.field('userId'), args.userId),
+          q.eq(q.field('completed'), true),
+          q.gte(q.field('_creationTime'), thirtyDaysAgo),
+          q.eq(q.field('deletionTime'), undefined)
         )
       )
-      .order("desc");
+      .order('desc');
 
     // Calculate streak
     let streak = 0;
@@ -452,11 +455,11 @@ export const processDailySummaries = createInternalAction()({
   handler: async (ctx) => {
     // Get users with overdue todos
     const usersToNotify: {
-      userId: Id<"users">;
+      userId: Id<'users'>;
       email: string;
       name?: string;
       overdueTodos: Array<{
-        _id: Id<"todos">;
+        _id: Id<'todos'>;
         title: string;
         dueDate: number;
         daysOverdue: number;
@@ -500,7 +503,7 @@ export const processDailySummaries = createInternalAction()({
 // Generate weekly report
 export const generateWeeklyReport = createInternalAction()({
   args: {
-    userId: zid("users"),
+    userId: zid('users'),
   },
   returns: z.object({
     week: z.object({
@@ -522,23 +525,23 @@ export const generateWeeklyReport = createInternalAction()({
     // Get user's todos from the past week
     const weekTodos: {
       created: Array<{
-        _id: Id<"todos">;
+        _id: Id<'todos'>;
         title: string;
         dueDate: number;
         completedAt: number;
       }>;
       completed: Array<{
-        _id: Id<"todos">;
+        _id: Id<'todos'>;
         title: string;
         dueDate: number;
         completedAt: number;
       }>;
       all: Array<{
-        _id: Id<"todos">;
+        _id: Id<'todos'>;
         title: string;
         dueDate: number;
         completedAt: number;
-        projectId: Id<"projects"> | null;
+        projectId: Id<'projects'> | null;
       }>;
     } = await ctx.runQuery(internal.todoInternal.getUserWeeklyActivity, {
       userId: args.userId,
@@ -555,8 +558,8 @@ export const generateWeeklyReport = createInternalAction()({
     // Find most productive day
     const dayActivity = new Map<string, number>();
     for (const todo of weekTodos.completed) {
-      const day = new Date(todo.completedAt).toLocaleDateString("en-US", {
-        weekday: "long",
+      const day = new Date(todo.completedAt).toLocaleDateString('en-US', {
+        weekday: 'long',
       });
       dayActivity.set(day, (dayActivity.get(day) || 0) + 1);
     }
@@ -575,7 +578,7 @@ export const generateWeeklyReport = createInternalAction()({
 
     if (todosCompleted > todosCreated) {
       insights.push(
-        "Great job! You completed more tasks than you created this week."
+        'Great job! You completed more tasks than you created this week.'
       );
     }
 
@@ -599,7 +602,7 @@ export const generateWeeklyReport = createInternalAction()({
       );
     } else if (completionRate < 50) {
       insights.push(
-        "Consider breaking down tasks into smaller, more manageable pieces."
+        'Consider breaking down tasks into smaller, more manageable pieces.'
       );
     }
 
@@ -622,7 +625,7 @@ export const generateWeeklyReport = createInternalAction()({
 // Internal query for weekly activity
 export const getUserWeeklyActivity = createInternalQuery()({
   args: {
-    userId: zid("users"),
+    userId: zid('users'),
     weekStart: z.number(),
   },
   returns: z.object({
@@ -632,8 +635,8 @@ export const getUserWeeklyActivity = createInternalQuery()({
   }),
   handler: async (ctx, args) => {
     const allTodos = await ctx
-      .table("todos")
-      .filter((q) => q.eq(q.field("userId"), args.userId));
+      .table('todos')
+      .filter((q) => q.eq(q.field('userId'), args.userId));
 
     const created = allTodos.filter((t) => t._creationTime >= args.weekStart);
 

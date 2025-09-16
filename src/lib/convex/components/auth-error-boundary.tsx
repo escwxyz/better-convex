@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import React from "react";
+import React from 'react';
 
-import { ConvexError } from "convex/values";
+import { ConvexError } from 'convex/values';
 
-import { signOut } from "@/lib/convex/auth-client";
+import { signOut } from '@/lib/convex/auth-client';
 
 interface Props {
   children: React.ReactNode;
@@ -28,14 +28,14 @@ export class AuthErrorBoundary extends React.Component<Props, State> {
 
   override componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Check if this is an authentication error
-    if (error instanceof ConvexError && error.data?.code === "USER_NOT_FOUND") {
+    if (error instanceof ConvexError && error.data?.code === 'USER_NOT_FOUND') {
       // Sign out and reload to clear invalid session
       signOut().then(() => {
         window.location.reload();
       });
     } else {
       // Log other errors to error reporting service
-      console.error("Error caught by boundary:", error, errorInfo);
+      console.error('Error caught by boundary:', error, errorInfo);
     }
   }
 
@@ -46,7 +46,7 @@ export class AuthErrorBoundary extends React.Component<Props, State> {
       // Check if it's an authentication error
       if (
         error instanceof ConvexError &&
-        error.data?.code === "USER_NOT_FOUND"
+        error.data?.code === 'USER_NOT_FOUND'
       ) {
         return (
           <div className="flex h-screen items-center justify-center">

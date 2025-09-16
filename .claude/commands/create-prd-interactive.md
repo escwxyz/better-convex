@@ -24,20 +24,17 @@ To create a detailed Product Requirements Document (PRD) in Markdown format. The
 1. **Analyze Feature Request:** Think deeply about the user's feature request and its implications for the codebase.
 
 2. **Codebase Analysis:**
-
    - Search for relevant existing code patterns
    - Review components that might be affected
    - Identify potential integration points
    - Consider architectural impacts
 
 3. **Ask Clarifying Questions:**
-
    - Ask 4-6 targeted questions based on codebase analysis
    - Provide lettered/numbered options for easy response
    - Focus on understanding the "what" and "why", not the "how"
 
 4. **Generate PRD:**
-
    - Follow the example PRD structure exactly
    - Include all required sections from the template
    - Ensure clarity for junior developers

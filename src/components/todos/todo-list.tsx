@@ -1,41 +1,41 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState } from 'react';
 import {
   usePublicPaginatedQuery,
   useAuthMutation,
   useIsAuth,
-} from "@/lib/convex/hooks";
-import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
-import { TodoItem } from "./todo-item";
-import { TodoForm } from "./todo-form";
-import { TodoSearch } from "./todo-search";
-import { Button } from "@/components/ui/button";
-import { WithSkeleton } from "@/components/ui/skeleton";
+} from '@/lib/convex/hooks';
+import { api } from '@convex/_generated/api';
+import type { Id } from '@convex/_generated/dataModel';
+import { TodoItem } from './todo-item';
+import { TodoForm } from './todo-form';
+import { TodoSearch } from './todo-search';
+import { Button } from '@/components/ui/button';
+import { WithSkeleton } from '@/components/ui/skeleton';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Archive } from "lucide-react";
-import { toast } from "sonner";
+} from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2, Archive } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface TodoListProps {
-  projectId?: Id<"projects">;
+  projectId?: Id<'projects'>;
   showFilters?: boolean;
 }
 
 export function TodoList({ projectId, showFilters = true }: TodoListProps) {
   const [completedFilter, setCompletedFilter] = useState<boolean | undefined>();
   const [priorityFilter, setPriorityFilter] = useState<
-    "low" | "medium" | "high" | undefined
+    'low' | 'medium' | 'high' | undefined
   >();
   const [showDeleted, setShowDeleted] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Use search API when there's a query, otherwise use the regular list
   const listResult = usePublicPaginatedQuery(
@@ -55,25 +55,25 @@ export function TodoList({ projectId, showFilters = true }: TodoListProps) {
       initialNumItems: 9,
       placeholderData: [
         {
-          _id: "1" as any,
+          _id: '1' as any,
           _creationTime: Date.now(),
-          title: "Example Todo 1",
-          description: "This is a placeholder todo item",
+          title: 'Example Todo 1',
+          description: 'This is a placeholder todo item',
           completed: false,
-          priority: "medium" as const,
+          priority: 'medium' as const,
           dueDate: Date.now() + 86400000,
-          userId: "user1" as any,
+          userId: 'user1' as any,
           tags: [],
           project: null,
         },
         {
-          _id: "2" as any,
+          _id: '2' as any,
           _creationTime: Date.now() - 86400000,
-          title: "Example Todo 2",
-          description: "Another placeholder todo item",
+          title: 'Example Todo 2',
+          description: 'Another placeholder todo item',
           completed: true,
-          priority: "low" as const,
-          userId: "user1" as any,
+          priority: 'low' as const,
+          userId: 'user1' as any,
           tags: [],
           project: null,
         },
@@ -99,10 +99,10 @@ export function TodoList({ projectId, showFilters = true }: TodoListProps) {
             variant="outline"
             size="sm"
             onClick={() => setShowDeleted(!showDeleted)}
-            className={showDeleted ? "bg-muted" : ""}
+            className={showDeleted ? 'bg-muted' : ''}
           >
             <Archive className="h-4 w-4" />
-            {showDeleted ? "Hide" : "Show"} Deleted
+            {showDeleted ? 'Hide' : 'Show'} Deleted
           </Button>
           <TodoForm defaultProjectId={projectId} />
         </div>
@@ -116,14 +116,14 @@ export function TodoList({ projectId, showFilters = true }: TodoListProps) {
             <Tabs
               value={
                 completedFilter === undefined
-                  ? "all"
+                  ? 'all'
                   : completedFilter
-                    ? "completed"
-                    : "active"
+                    ? 'completed'
+                    : 'active'
               }
               onValueChange={(value) => {
                 setCompletedFilter(
-                  value === "all" ? undefined : value === "completed"
+                  value === 'all' ? undefined : value === 'completed'
                 );
               }}
             >
@@ -135,9 +135,9 @@ export function TodoList({ projectId, showFilters = true }: TodoListProps) {
             </Tabs>
 
             <Select
-              value={priorityFilter || "all"}
+              value={priorityFilter || 'all'}
               onValueChange={(value) =>
-                setPriorityFilter(value === "all" ? undefined : (value as any))
+                setPriorityFilter(value === 'all' ? undefined : (value as any))
               }
             >
               <SelectTrigger className="w-[180px]">
@@ -156,16 +156,16 @@ export function TodoList({ projectId, showFilters = true }: TodoListProps) {
 
       <div className="space-y-2">
         {isEmpty ? (
-          <div className="text-center py-12 text-muted-foreground">
+          <div className="py-12 text-center text-muted-foreground">
             {searchQuery
               ? `No todos found for "${searchQuery}"`
               : showDeleted
-                ? "No deleted todos."
+                ? 'No deleted todos.'
                 : completedFilter === false
-                  ? "No active todos. Great job!"
+                  ? 'No active todos. Great job!'
                   : completedFilter === true
-                    ? "No completed todos yet."
-                    : "No todos yet. Create your first one!"}
+                    ? 'No completed todos yet.'
+                    : 'No todos yet. Create your first one!'}
           </div>
         ) : (
           <>
@@ -192,7 +192,7 @@ export function TodoList({ projectId, showFilters = true }: TodoListProps) {
                       Loading...
                     </>
                   ) : (
-                    "Load more"
+                    'Load more'
                   )}
                 </Button>
               </div>

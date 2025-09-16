@@ -1,23 +1,23 @@
-import type { SessionUser } from "./user/mapSessionToUser";
+import type { SessionUser } from './user/mapSessionToUser';
 
-import { entsTableFactory } from "convex-ents";
+import { entsTableFactory } from 'convex-ents';
 import {
   customCtx,
   customMutation,
-} from "convex-helpers/server/customFunctions";
+} from 'convex-helpers/server/customFunctions';
 import {
   type CustomBuilder,
   zCustomAction,
   zCustomMutation,
   zCustomQuery,
-} from "convex-helpers/server/zod";
-import { paginationOptsValidator } from "convex/server";
-import { ConvexError } from "convex/values";
+} from 'convex-helpers/server/zod';
+import { paginationOptsValidator } from 'convex/server';
+import { ConvexError } from 'convex/values';
 
-import type { Id } from "./_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
+import type { Id } from './_generated/dataModel';
+import type { MutationCtx, QueryCtx } from './_generated/server';
 
-import { internal } from "./_generated/api";
+import { internal } from './_generated/api';
 import {
   action,
   internalMutation as baseInternalMutation,
@@ -25,17 +25,17 @@ import {
   internalAction,
   internalQuery,
   query,
-} from "./_generated/server";
+} from './_generated/server';
 import {
   betterAuthComponent,
   getSessionUser,
   getSessionUserWriter,
-} from "./auth";
-import { rateLimitGuard } from "./helpers/rateLimiter";
-import { roleGuard } from "./helpers/roleGuard";
-import { entDefinitions } from "./schema";
-import { triggers } from "./triggers";
-import { getEnv } from "./helpers/getEnv";
+} from './auth';
+import { rateLimitGuard } from './helpers/rateLimiter';
+import { roleGuard } from './helpers/roleGuard';
+import { entDefinitions } from './schema';
+import { triggers } from './triggers';
+import { getEnv } from './helpers/getEnv';
 
 type Overwrite<T, U> = Omit<T, keyof U> & U;
 type CustomCtx<Builder> =
@@ -76,34 +76,34 @@ const internalMutation = customMutation(
 
 // Helper function to check if function is dev-only
 function checkDevOnly(devOnly?: boolean) {
-  if (devOnly && getEnv().NEXT_PUBLIC_ENVIRONMENT !== "development") {
+  if (devOnly && getEnv().NEXT_PUBLIC_ENVIRONMENT !== 'development') {
     throw new ConvexError({
-      code: "FORBIDDEN",
-      message: "This function is only available in development",
+      code: 'FORBIDDEN',
+      message: 'This function is only available in development',
     });
   }
 }
 
 export async function getAuthUserId(
   ctx: MutationCtx | QueryCtx
-): Promise<{ userId: Id<"users"> }> {
+): Promise<{ userId: Id<'users'> }> {
   const userId = await betterAuthComponent.getAuthUserId(ctx);
 
   if (!userId) {
     throw new ConvexError({
-      code: "UNAUTHENTICATED",
-      message: "Not authenticated",
+      code: 'UNAUTHENTICATED',
+      message: 'Not authenticated',
     });
   }
 
-  return { userId: userId as Id<"users"> };
+  return { userId: userId as Id<'users'> };
 }
 
 // Protected query that adds user and userId to context
 export const createAuthQuery = ({
   devOnly,
   role,
-}: { devOnly?: boolean; role?: "ADMIN" | "SUPERADMIN" } = {}) =>
+}: { devOnly?: boolean; role?: 'ADMIN' | 'SUPERADMIN' } = {}) =>
   zCustomQuery(
     query,
     customCtx(async (ctx) => {
@@ -113,8 +113,8 @@ export const createAuthQuery = ({
 
       if (!user) {
         throw new ConvexError({
-          code: "UNAUTHENTICATED",
-          message: "Not authenticated",
+          code: 'UNAUTHENTICATED',
+          message: 'Not authenticated',
         });
       }
       if (role) {
@@ -132,7 +132,7 @@ export const createAuthQuery = ({
 export const createAuthPaginatedQuery = ({
   devOnly,
   role,
-}: { devOnly?: boolean; role?: "ADMIN" | "SUPERADMIN" } = {}) =>
+}: { devOnly?: boolean; role?: 'ADMIN' | 'SUPERADMIN' } = {}) =>
   zCustomQuery(query, {
     args: { paginationOpts: paginationOptsValidator },
     input: async (ctx, args) => {
@@ -142,8 +142,8 @@ export const createAuthPaginatedQuery = ({
 
       if (!user) {
         throw new ConvexError({
-          code: "UNAUTHENTICATED",
-          message: "Not authenticated",
+          code: 'UNAUTHENTICATED',
+          message: 'Not authenticated',
         });
       }
       if (role) {
@@ -220,7 +220,7 @@ export const createAuthAction = ({
 }: {
   devOnly?: boolean;
   rateLimit?: string | null;
-  role?: "ADMIN" | "SUPERADMIN";
+  role?: 'ADMIN' | 'SUPERADMIN';
 } = {}) =>
   zCustomAction(
     action,
@@ -234,8 +234,8 @@ export const createAuthAction = ({
 
       if (!user) {
         throw new ConvexError({
-          code: "UNAUTHENTICATED",
-          message: "Not authenticated",
+          code: 'UNAUTHENTICATED',
+          message: 'Not authenticated',
         });
       }
       if (role) {
@@ -298,7 +298,7 @@ export const createAuthMutation = ({
 }: {
   devOnly?: boolean;
   rateLimit?: string | null;
-  role?: "ADMIN" | "SUPERADMIN";
+  role?: 'ADMIN' | 'SUPERADMIN';
 } = {}) =>
   zCustomMutation(
     mutation,
@@ -309,8 +309,8 @@ export const createAuthMutation = ({
 
       if (!user) {
         throw new ConvexError({
-          code: "USER_NOT_FOUND",
-          message: "Not authenticated",
+          code: 'USER_NOT_FOUND',
+          message: 'Not authenticated',
         });
       }
       if (role) {

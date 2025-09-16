@@ -1,47 +1,49 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useAuthMutation, useAuthQuery } from "@/lib/convex/hooks";
-import { api } from "@convex/_generated/api";
-import { Id } from "@convex/_generated/dataModel";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { useState } from 'react';
+import { useAuthMutation, useAuthQuery } from '@/lib/convex/hooks';
+import { api } from '@convex/_generated/api';
+import { Id } from '@convex/_generated/dataModel';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { CalendarIcon, Plus } from "lucide-react";
-import { format } from "date-fns";
-import { Calendar } from "@/components/ui/calendar";
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { CalendarIcon, Plus } from 'lucide-react';
+import { format } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import { TagPicker } from "./tag-picker";
+} from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { TagPicker } from './tag-picker';
 
-export function TodoForm({ 
+export function TodoForm({
   onSuccess,
-  defaultProjectId 
-}: { 
+  defaultProjectId,
+}: {
   onSuccess?: () => void;
-  defaultProjectId?: Id<"projects">;
+  defaultProjectId?: Id<'projects'>;
 }) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<
-    "low" | "medium" | "high" | undefined
+    'low' | 'medium' | 'high' | undefined
   >();
   const [dueDate, setDueDate] = useState<Date | undefined>();
-  const [projectId, setProjectId] = useState<Id<"projects"> | undefined>(defaultProjectId);
-  const [selectedTagIds, setSelectedTagIds] = useState<Id<"tags">[]>([]);
+  const [projectId, setProjectId] = useState<Id<'projects'> | undefined>(
+    defaultProjectId
+  );
+  const [selectedTagIds, setSelectedTagIds] = useState<Id<'tags'>[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
   const createTodo = useAuthMutation(api.todos.create);
@@ -51,7 +53,7 @@ export function TodoForm({
     e.preventDefault();
 
     if (!title.trim()) {
-      toast.error("Title is required");
+      toast.error('Title is required');
       return;
     }
 
@@ -65,26 +67,26 @@ export function TodoForm({
         tagIds: selectedTagIds,
       }),
       {
-        loading: "Creating todo...",
+        loading: 'Creating todo...',
         success: () => {
-          setTitle("");
-          setDescription("");
+          setTitle('');
+          setDescription('');
           setPriority(undefined);
           setDueDate(undefined);
           setProjectId(defaultProjectId);
           setSelectedTagIds([]);
           setIsOpen(false);
           onSuccess?.();
-          return "Todo created!";
+          return 'Todo created!';
         },
-        error: (e) => e.data?.message ?? "Failed to create todo",
+        error: (e) => e.data?.message ?? 'Failed to create todo',
       }
     );
   };
 
   const resetForm = () => {
-    setTitle("");
-    setDescription("");
+    setTitle('');
+    setDescription('');
     setPriority(undefined);
     setDueDate(undefined);
     setProjectId(defaultProjectId);
@@ -125,9 +127,13 @@ export function TodoForm({
 
           <div className="space-y-2">
             <Label htmlFor="project">Project (optional)</Label>
-            <Select 
-              value={projectId || "no-project"} 
-              onValueChange={(v) => setProjectId(v === "no-project" ? undefined : v as Id<"projects">)}
+            <Select
+              value={projectId || 'no-project'}
+              onValueChange={(v) =>
+                setProjectId(
+                  v === 'no-project' ? undefined : (v as Id<'projects'>)
+                )
+              }
             >
               <SelectTrigger id="project">
                 <SelectValue placeholder="Select a project" />
@@ -136,7 +142,7 @@ export function TodoForm({
                 <SelectItem value="no-project">No Project</SelectItem>
                 {projects?.map((project) => (
                   <SelectItem key={project._id} value={project._id}>
-                    {project.name} {project.isOwner ? "(Owner)" : "(Member)"}
+                    {project.name} {project.isOwner ? '(Owner)' : '(Member)'}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -146,7 +152,10 @@ export function TodoForm({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="priority">Priority</Label>
-              <Select value={priority} onValueChange={(v) => setPriority(v as any)}>
+              <Select
+                value={priority}
+                onValueChange={(v) => setPriority(v as any)}
+              >
                 <SelectTrigger id="priority">
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
@@ -166,12 +175,12 @@ export function TodoForm({
                     id="dueDate"
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !dueDate && "text-muted-foreground"
+                      'w-full justify-start text-left font-normal',
+                      !dueDate && 'text-muted-foreground'
                     )}
                   >
                     <CalendarIcon className="h-4 w-4" />
-                    {dueDate ? format(dueDate, "PPP") : "Pick a date"}
+                    {dueDate ? format(dueDate, 'PPP') : 'Pick a date'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -194,7 +203,7 @@ export function TodoForm({
             />
           </div>
 
-          <div className="flex gap-2 justify-end pt-2 border-t">
+          <div className="flex justify-end gap-2 border-t pt-2">
             <Button
               type="button"
               variant="outline"

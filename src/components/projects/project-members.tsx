@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useAuthMutation } from "@/lib/convex/hooks";
-import { api } from "@convex/_generated/api";
-import { Id } from "@convex/_generated/dataModel";
-import { Button } from "@/components/ui/button";
+import { useState } from 'react';
+import { useAuthMutation } from '@/lib/convex/hooks';
+import { api } from '@convex/_generated/api';
+import { Id } from '@convex/_generated/dataModel';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -20,34 +20,34 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   UserPlus,
   MoreVertical,
   Crown,
   UserMinus,
   UserCheck,
-} from "lucide-react";
-import { toast } from "sonner";
+} from 'lucide-react';
+import { toast } from 'sonner';
 
 interface ProjectMembersProps {
-  projectId: Id<"projects">;
+  projectId: Id<'projects'>;
   owner: {
-    _id: Id<"users">;
+    _id: Id<'users'>;
     name: string | null;
     email: string;
   };
   members: Array<{
-    _id: Id<"users">;
+    _id: Id<'users'>;
     name: string | null;
     email: string;
     joinedAt: number;
@@ -62,40 +62,40 @@ export function ProjectMembers({
   isOwner,
 }: ProjectMembersProps) {
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
 
   const addMember = useAuthMutation(api.projects.addMember, {
     onSuccess: () => {
       setShowAddDialog(false);
-      setEmail("");
-      toast.success("Member added successfully");
+      setEmail('');
+      toast.success('Member added successfully');
     },
     onError: (error: any) => {
-      toast.error(error.data?.message ?? "Failed to add member");
+      toast.error(error.data?.message ?? 'Failed to add member');
     },
   });
 
   const removeMember = useAuthMutation(api.projects.removeMember, {
     onSuccess: () => {
-      toast.success("Member removed");
+      toast.success('Member removed');
     },
     onError: (error: any) => {
-      toast.error(error.data?.message ?? "Failed to remove member");
+      toast.error(error.data?.message ?? 'Failed to remove member');
     },
   });
 
   const transferOwnership = useAuthMutation(api.projects.transfer, {
     onSuccess: () => {
-      toast.success("Ownership transferred");
+      toast.success('Ownership transferred');
     },
     onError: (error: any) => {
-      toast.error(error.data?.message ?? "Failed to transfer ownership");
+      toast.error(error.data?.message ?? 'Failed to transfer ownership');
     },
   });
 
   const handleAddMember = () => {
     if (!email.trim()) {
-      toast.error("Please enter an email address");
+      toast.error('Please enter an email address');
       return;
     }
 
@@ -105,17 +105,17 @@ export function ProjectMembers({
     });
   };
 
-  const handleRemoveMember = (userId: Id<"users">) => {
+  const handleRemoveMember = (userId: Id<'users'>) => {
     removeMember.mutate({
       projectId,
       userId,
     });
   };
 
-  const handleTransferOwnership = (userId: Id<"users">) => {
+  const handleTransferOwnership = (userId: Id<'users'>) => {
     if (
       confirm(
-        "Are you sure you want to transfer ownership? This action cannot be undone."
+        'Are you sure you want to transfer ownership? This action cannot be undone.'
       )
     ) {
       transferOwnership.mutate({
@@ -128,9 +128,9 @@ export function ProjectMembers({
   const getInitials = (name: string | null, email: string) => {
     if (name) {
       return name
-        .split(" ")
+        .split(' ')
         .map((n) => n[0])
-        .join("")
+        .join('')
         .toUpperCase()
         .slice(0, 2);
     }
@@ -140,7 +140,7 @@ export function ProjectMembers({
   return (
     <Card>
       <CardHeader>
-        <div className="flex justify-between items-center">
+        <div className="flex items-center justify-between">
           <div>
             <CardTitle>Project Members</CardTitle>
             <CardDescription>
@@ -151,7 +151,7 @@ export function ProjectMembers({
             <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
               <DialogTrigger asChild>
                 <Button size="sm">
-                  <UserPlus className="h-4 w-4 mr-1" />
+                  <UserPlus className="mr-1 h-4 w-4" />
                   Add Member
                 </Button>
               </DialogTrigger>
@@ -195,7 +195,7 @@ export function ProjectMembers({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Owner */}
-        <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50">
+        <div className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50">
           <div className="flex items-center gap-3">
             <Avatar>
               <AvatarImage src={undefined} />
@@ -222,7 +222,7 @@ export function ProjectMembers({
         {members.map((member) => (
           <div
             key={member._id}
-            className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50"
+            className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50"
           >
             <div className="flex items-center gap-3">
               <Avatar>
@@ -273,10 +273,10 @@ export function ProjectMembers({
         ))}
 
         {members.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="py-8 text-center text-muted-foreground">
             <p>No members yet</p>
             {isOwner && (
-              <p className="text-sm mt-2">
+              <p className="mt-2 text-sm">
                 Add members to collaborate on this project
               </p>
             )}

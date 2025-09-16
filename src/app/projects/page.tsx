@@ -1,21 +1,21 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState } from 'react';
 import {
   usePublicPaginatedQuery,
   useAuthMutation,
   useIsAuth,
-} from "@/lib/convex/hooks";
-import { api } from "@convex/_generated/api";
-import { Id } from "@convex/_generated/dataModel";
-import { Button } from "@/components/ui/button";
+} from '@/lib/convex/hooks';
+import { api } from '@convex/_generated/api';
+import { Id } from '@convex/_generated/dataModel';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -24,22 +24,22 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Archive, Users, CheckSquare, Square } from "lucide-react";
-import { toast } from "sonner";
-import { WithSkeleton } from "@/components/ui/skeleton";
-import Link from "next/link";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Plus, Archive, Users, CheckSquare, Square } from 'lucide-react';
+import { toast } from 'sonner';
+import { WithSkeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
 
 export default function ProjectsPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [includeArchived, setIncludeArchived] = useState(false);
   const [newProject, setNewProject] = useState({
-    name: "",
-    description: "",
+    name: '',
+    description: '',
     isPublic: false,
   });
 
@@ -55,11 +55,11 @@ export default function ProjectsPage() {
   const createProject = useAuthMutation(api.projects.create, {
     onSuccess: () => {
       setShowCreateDialog(false);
-      setNewProject({ name: "", description: "", isPublic: false });
-      toast.success("Project created successfully");
+      setNewProject({ name: '', description: '', isPublic: false });
+      toast.success('Project created successfully');
     },
     onError: (error: any) => {
-      toast.error(error.data?.message ?? "Failed to create project");
+      toast.error(error.data?.message ?? 'Failed to create project');
     },
   });
 
@@ -68,7 +68,7 @@ export default function ProjectsPage() {
 
   const handleCreateProject = async () => {
     if (!newProject.name.trim()) {
-      toast.error("Project name is required");
+      toast.error('Project name is required');
       return;
     }
 
@@ -80,23 +80,23 @@ export default function ProjectsPage() {
   };
 
   const handleArchiveToggle = async (
-    projectId: Id<"projects">,
+    projectId: Id<'projects'>,
     isArchived: boolean
   ) => {
     const mutation = isArchived ? restoreProject : archiveProject;
 
     toast.promise(mutation.mutateAsync({ projectId }), {
-      loading: isArchived ? "Restoring project..." : "Archiving project...",
-      success: isArchived ? "Project restored" : "Project archived",
-      error: (e) => e.data?.message ?? "Failed to update project",
+      loading: isArchived ? 'Restoring project...' : 'Archiving project...',
+      success: isArchived ? 'Project restored' : 'Project archived',
+      error: (e) => e.data?.message ?? 'Failed to update project',
     });
   };
 
   const projects = data || [];
 
   return (
-    <div className="container mx-auto py-6 px-4">
-      <div className="flex justify-between items-center mb-6">
+    <div className="container mx-auto px-4 py-6">
+      <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold">Projects</h1>
         {isAuth && (
           <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
@@ -197,15 +197,15 @@ export default function ProjectsPage() {
             isLoading={isLoading}
             className="w-full"
           >
-            <Card className={project.archived ? "opacity-60" : ""}>
+            <Card className={project.archived ? 'opacity-60' : ''}>
               <CardHeader>
                 <Link href={`/projects/${project._id}`}>
-                  <CardTitle className="hover:underline cursor-pointer">
+                  <CardTitle className="cursor-pointer hover:underline">
                     {project.name}
                   </CardTitle>
                 </Link>
                 <CardDescription>
-                  {project.description || "No description"}
+                  {project.description || 'No description'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -228,7 +228,7 @@ export default function ProjectsPage() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs">
-                      {project.isOwner ? "Owner" : "Member"}
+                      {project.isOwner ? 'Owner' : 'Member'}
                     </span>
                     {project.isOwner && (
                       <Button
@@ -239,8 +239,8 @@ export default function ProjectsPage() {
                         }
                         className="h-7 px-2"
                       >
-                        <Archive className="h-3 w-3 mr-1" />
-                        {project.archived ? "Restore" : "Archive"}
+                        <Archive className="mr-1 h-3 w-3" />
+                        {project.archived ? 'Restore' : 'Archive'}
                       </Button>
                     )}
                   </div>
@@ -252,13 +252,13 @@ export default function ProjectsPage() {
       </div>
 
       {projects.length === 0 && !isLoading && (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground mb-4">
+        <div className="py-12 text-center">
+          <p className="mb-4 text-muted-foreground">
             {!isAuth
-              ? "No public projects available"
+              ? 'No public projects available'
               : includeArchived
-                ? "No archived projects found"
-                : "No active projects found"}
+                ? 'No archived projects found'
+                : 'No active projects found'}
           </p>
           {isAuth && (
             <Button onClick={() => setShowCreateDialog(true)}>
@@ -276,7 +276,7 @@ export default function ProjectsPage() {
             onClick={() => fetchNextPage()}
             disabled={isFetchingNextPage}
           >
-            {isFetchingNextPage ? "Loading..." : "Load more"}
+            {isFetchingNextPage ? 'Loading...' : 'Load more'}
           </Button>
         </div>
       )}

@@ -3,9 +3,9 @@ import { zid } from 'convex-helpers/server/zod';
 import { ConvexError } from 'convex/values';
 
 import type { Id } from './_generated/dataModel';
-import { 
-  createAuthQuery, 
-  createAuthMutation, 
+import {
+  createAuthQuery,
+  createAuthMutation,
   createPublicQuery,
   createPublicPaginatedQuery,
   createInternalMutation,
@@ -31,37 +31,40 @@ export const getTodoComments = createPublicPaginatedQuery()({
         message: 'Todo not found',
       });
     }
-    
+
     // Get top-level comments (no parent)
-    return await ctx.table('todoComments')
-      .filter(q => q.eq(q.field('todoId'), args.todoId))
-      .filter(q => q.eq(q.field('parentId'), undefined))
+    return await ctx
+      .table('todoComments')
+      .filter((q) => q.eq(q.field('todoId'), args.todoId))
+      .filter((q) => q.eq(q.field('parentId'), undefined))
       .order('desc')
       .paginate(args.paginationOpts)
       .map(async (comment) => {
         // Get user info
         const user = await comment.edge('user');
-        
+
         // Get replies if requested
         let replies: any[] = [];
         if (args.includeReplies) {
           replies = await getNestedReplies(
-            ctx, 
-            comment._id, 
-            0, 
+            ctx,
+            comment._id,
+            0,
             args.maxReplyDepth
           );
         }
-        
+
         return {
           _id: comment._id,
           content: comment.content,
           createdAt: comment._creationTime,
-          user: user ? {
-            _id: user._id,
-            name: user.name,
-            image: user.image,
-          } : null,
+          user: user
+            ? {
+                _id: user._id,
+                name: user.name,
+                image: user.image,
+              }
+            : null,
           replies,
           replyCount: (await comment.edge('replies')).length,
         };
@@ -77,12 +80,12 @@ async function getNestedReplies(
   maxDepth: number
 ): Promise<any[]> {
   if (currentDepth >= maxDepth) return [];
-  
+
   const parent = await ctx.table('todoComments').get(parentId);
   if (!parent) return [];
-  
+
   const replies = await parent.edge('replies').order('asc').take(10);
-  
+
   return await Promise.all(
     replies.map(async (reply: any) => {
       const user = await reply.edge('user');
@@ -92,16 +95,18 @@ async function getNestedReplies(
         currentDepth + 1,
         maxDepth
       );
-      
+
       return {
         _id: reply._id,
         content: reply.content,
         createdAt: reply._creationTime,
-        user: user ? {
-          _id: user._id,
-          name: user.name,
-          image: user.image,
-        } : null,
+        user: user
+          ? {
+              _id: user._id,
+              name: user.name,
+              image: user.image,
+            }
+          : null,
         replies: nestedReplies,
         replyCount: (await reply.edge('replies')).length,
       };
@@ -115,42 +120,54 @@ export const getCommentThread = createPublicQuery()({
     commentId: zid('todoComments'),
     maxDepth: z.number().min(0).max(10).default(10),
   },
-  returns: z.object({
-    comment: z.object({
-      _id: zid('todoComments'),
-      content: z.string(),
-      createdAt: z.number(),
-      todoId: zid('todos'),
-      todo: z.object({
-        title: z.string(),
-        completed: z.boolean(),
+  returns: z
+    .object({
+      comment: z.object({
+        _id: zid('todoComments'),
+        content: z.string(),
+        createdAt: z.number(),
+        todoId: zid('todos'),
+        todo: z.object({
+          title: z.string(),
+          completed: z.boolean(),
+        }),
+        user: z
+          .object({
+            _id: zid('users'),
+            name: z.string().optional(),
+            image: z.string().optional(),
+          })
+          .nullable(),
+        parent: z
+          .object({
+            _id: zid('todoComments'),
+            content: z.string(),
+            user: z
+              .object({
+                name: z.string().optional(),
+              })
+              .nullable(),
+          })
+          .nullable(),
+        replies: z.array(z.any()),
+        ancestors: z.array(
+          z.object({
+            _id: zid('todoComments'),
+            content: z.string(),
+            user: z
+              .object({
+                name: z.string().optional(),
+              })
+              .nullable(),
+          })
+        ),
       }),
-      user: z.object({
-        _id: zid('users'),
-        name: z.string().optional(),
-        image: z.string().optional(),
-      }).nullable(),
-      parent: z.object({
-        _id: zid('todoComments'),
-        content: z.string(),
-        user: z.object({
-          name: z.string().optional(),
-        }).nullable(),
-      }).nullable(),
-      replies: z.array(z.any()),
-      ancestors: z.array(z.object({
-        _id: zid('todoComments'),
-        content: z.string(),
-        user: z.object({
-          name: z.string().optional(),
-        }).nullable(),
-      })),
-    }),
-  }).nullable(),
+    })
+    .nullable(),
   handler: async (ctx, args) => {
     const comment = await ctx.table('todoComments').get(args.commentId);
     if (!comment) return null;
-    
+
     // Get related data
     const [user, todo, parentId, replies] = await Promise.all([
       comment.edge('user'),
@@ -158,17 +175,21 @@ export const getCommentThread = createPublicQuery()({
       Promise.resolve(comment.parentId),
       getNestedReplies(ctx, comment._id, 0, args.maxDepth),
     ]);
-    
+
     // Get parent if exists
-    const parent = parentId ? await ctx.table('todoComments').get(parentId) : null;
-    
+    const parent = parentId
+      ? await ctx.table('todoComments').get(parentId)
+      : null;
+
     // Get ancestors (for context)
     const ancestors: any[] = [];
     let currentParentId = parentId;
     while (currentParentId && ancestors.length < 5) {
-      const currentParent = await ctx.table('todoComments').get(currentParentId);
+      const currentParent = await ctx
+        .table('todoComments')
+        .get(currentParentId);
       if (!currentParent) break;
-      
+
       const parentUser = await currentParent.edge('user');
       ancestors.unshift({
         _id: currentParent._id,
@@ -177,7 +198,7 @@ export const getCommentThread = createPublicQuery()({
       });
       currentParentId = currentParent.parentId;
     }
-    
+
     return {
       comment: {
         _id: comment._id,
@@ -188,16 +209,22 @@ export const getCommentThread = createPublicQuery()({
           title: todo.title,
           completed: todo.completed,
         },
-        user: user ? {
-          _id: user._id,
-          name: user.name,
-          image: user.image,
-        } : null,
-        parent: parent ? {
-          _id: parent._id,
-          content: parent.content,
-          user: (await parent.edge('user'))?.name ? { name: (await parent.edge('user'))!.name } : null,
-        } : null,
+        user: user
+          ? {
+              _id: user._id,
+              name: user.name,
+              image: user.image,
+            }
+          : null,
+        parent: parent
+          ? {
+              _id: parent._id,
+              content: parent.content,
+              user: (await parent.edge('user'))?.name
+                ? { name: (await parent.edge('user'))!.name }
+                : null,
+            }
+          : null,
         replies,
         ancestors,
       },
@@ -212,8 +239,9 @@ export const getUserComments = createPublicPaginatedQuery()({
     includeTodo: z.boolean().default(true),
   },
   handler: async (ctx, args) => {
-    return await ctx.table('todoComments')
-      .filter(q => q.eq(q.field('userId'), args.userId))
+    return await ctx
+      .table('todoComments')
+      .filter((q) => q.eq(q.field('userId'), args.userId))
       .order('desc')
       .paginate(args.paginationOpts)
       .map(async (comment) => {
@@ -223,28 +251,32 @@ export const getUserComments = createPublicPaginatedQuery()({
           createdAt: comment._creationTime,
           isReply: comment.parentId !== undefined,
         };
-        
+
         if (args.includeTodo) {
           const todo = await comment.edge('todo');
-          result.todo = todo ? {
-            _id: todo._id,
-            title: todo.title,
-            completed: todo.completed,
-          } : null;
+          result.todo = todo
+            ? {
+                _id: todo._id,
+                title: todo.title,
+                completed: todo.completed,
+              }
+            : null;
         }
-        
+
         // Include parent preview if it's a reply
         if (comment.parentId) {
           const parent = await ctx.table('todoComments').get(comment.parentId);
           if (parent) {
             const parentUser = await parent.edge('user');
             result.parentPreview = {
-              content: parent.content.slice(0, 100) + (parent.content.length > 100 ? '...' : ''),
+              content:
+                parent.content.slice(0, 100) +
+                (parent.content.length > 100 ? '...' : ''),
               userName: parentUser?.name,
             };
           }
         }
-        
+
         return result;
       });
   },
@@ -266,7 +298,7 @@ export const addComment = createAuthMutation({
   returns: zid('todoComments'),
   handler: async (ctx, args) => {
     const todo = await ctx.table('todos').getX(args.todoId);
-    
+
     // Check access (todo must be public, owned by user, or user is project member)
     const hasAccess = await checkTodoAccess(ctx, todo);
     if (!hasAccess) {
@@ -275,7 +307,7 @@ export const addComment = createAuthMutation({
         message: 'No access to this todo',
       });
     }
-    
+
     // Validate parent if provided
     if (args.parentId) {
       const parent = await ctx.table('todoComments').get(args.parentId);
@@ -285,7 +317,7 @@ export const addComment = createAuthMutation({
           message: 'Invalid parent comment',
         });
       }
-      
+
       // Check reply depth limit
       const depth = await getCommentDepth(ctx, args.parentId);
       if (depth >= 5) {
@@ -295,7 +327,7 @@ export const addComment = createAuthMutation({
         });
       }
     }
-    
+
     return await ctx.table('todoComments').insert({
       content: args.content,
       todoId: args.todoId,
@@ -316,7 +348,7 @@ export const updateComment = createAuthMutation({
   returns: z.null(),
   handler: async (ctx, args) => {
     const comment = await ctx.table('todoComments').getX(args.commentId);
-    
+
     // Only author can update
     if (comment.userId !== ctx.userId) {
       throw new ConvexError({
@@ -324,16 +356,16 @@ export const updateComment = createAuthMutation({
         message: 'Only comment author can update',
       });
     }
-    
+
     // Don't allow editing after 1 hour
-    const hourAgo = Date.now() - (60 * 60 * 1000);
+    const hourAgo = Date.now() - 60 * 60 * 1000;
     if (comment._creationTime < hourAgo) {
       throw new ConvexError({
         code: 'BAD_REQUEST',
         message: 'Cannot edit comments older than 1 hour',
       });
     }
-    
+
     await comment.patch({ content: args.content });
     return null;
   },
@@ -349,7 +381,7 @@ export const deleteComment = createAuthMutation({
   returns: z.null(),
   handler: async (ctx, args) => {
     const comment = await ctx.table('todoComments').getX(args.commentId);
-    
+
     // Author or todo owner can delete
     const todo = await comment.edgeX('todo');
     if (comment.userId !== ctx.userId && todo.userId !== ctx.userId) {
@@ -358,18 +390,18 @@ export const deleteComment = createAuthMutation({
         message: 'Insufficient permissions',
       });
     }
-    
+
     // If has replies, just mark as deleted
-    const hasReplies = await comment.edge('replies').first() !== null;
+    const hasReplies = (await comment.edge('replies').first()) !== null;
     if (hasReplies) {
-      await comment.patch({ 
+      await comment.patch({
         content: '[deleted]',
         // Could add a deletedAt field in schema for soft delete
       });
     } else {
       await ctx.table('todoComments').getX(comment._id).delete();
     }
-    
+
     return null;
   },
 });
@@ -392,11 +424,11 @@ export const toggleReaction = createAuthMutation({
   }),
   handler: async (ctx, args) => {
     const comment = await ctx.table('todoComments').getX(args.commentId);
-    
+
     // Store reactions in a simple format (could be a separate table)
     // For demo, we'll use a map stored on the comment
     // In production, use a separate reactions table
-    
+
     // This is a simplified example - in real app, create a reactions table
     throw new ConvexError({
       code: 'NOT_IMPLEMENTED',
@@ -421,7 +453,7 @@ export const cleanupOrphanedComments = createInternalMutation()({
   handler: async (ctx, args) => {
     // Find comments where todo was deleted
     const comments = await ctx.table('todoComments').take(args.batchSize);
-    
+
     let deleted = 0;
     for (const comment of comments) {
       const todo = await comment.edge('todo');
@@ -430,7 +462,7 @@ export const cleanupOrphanedComments = createInternalMutation()({
         deleted++;
       }
     }
-    
+
     return {
       deleted,
       hasMore: comments.length === args.batchSize,
@@ -446,31 +478,34 @@ export const cleanupOrphanedComments = createInternalMutation()({
 async function checkTodoAccess(ctx: any, todo: any): Promise<boolean> {
   // Owner always has access
   if (todo.userId === ctx.userId) return true;
-  
+
   // Check if todo is in a public project
   if (todo.projectId) {
     const project = await todo.edge('project');
     if (project?.isPublic) return true;
-    
+
     // Check if user is project member
     if (project) {
       const isMember = await project.edge('members').has(ctx.userId);
       if (isMember || project.ownerId === ctx.userId) return true;
     }
   }
-  
+
   return false;
 }
 
 // Get comment depth in thread
-async function getCommentDepth(ctx: any, commentId: Id<'todoComments'>): Promise<number> {
+async function getCommentDepth(
+  ctx: any,
+  commentId: Id<'todoComments'>
+): Promise<number> {
   let depth = 0;
   let current = await ctx.table('todoComments').get(commentId);
-  
+
   while (current?.parentId && depth < 10) {
     depth++;
     current = await ctx.table('todoComments').get(current.parentId);
   }
-  
+
   return depth;
 }
