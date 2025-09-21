@@ -1,18 +1,22 @@
 import { convex } from '@convex-dev/better-auth/plugins';
-import { betterAuth } from 'better-auth';
+import { betterAuth, BetterAuthOptions } from 'better-auth';
 import { admin, organization } from 'better-auth/plugins';
 
 import { type AuthFunctions, createClient } from './betterAuth/client';
 import { api, internal } from './_generated/api';
 import { ActionCtx, type GenericCtx } from './_generated/server';
 import { entsTableFactory } from 'convex-ents';
-import { entDefinitions } from './schema';
+import schema, { entDefinitions } from './schema';
 import { createPersonalOrganization } from './organizationHelpers';
 import { getEnv } from './helpers/getEnv';
+import { dbAdapter } from './betterAuth/adapter';
+import { getStaticAuth } from './betterAuth/registerRoutes';
+import { createApi } from './betterAuth/api';
+import { DataModel } from '@convex/_generated/dataModel';
 
 const authFunctions: AuthFunctions = internal.auth;
 
-export const authComponent = createClient({
+export const authClient = createClient<DataModel, typeof schema>({
   authFunctions,
   triggers: {
     user: {
@@ -61,16 +65,13 @@ export const authComponent = createClient({
       },
     },
   },
-  verbose: false,
 });
 
-export const { onCreate, onDelete, onUpdate } = authComponent.triggersApi();
-
-export const createAuth = <Ctx extends GenericCtx = ActionCtx>(_ctx: Ctx) => {
-  const ctx = _ctx as ActionCtx;
+export const getAuthOptions = (genericCtx?: GenericCtx) => {
+  const ctx = genericCtx as ActionCtx;
   const baseURL = process.env.NEXT_PUBLIC_SITE_URL!;
 
-  return betterAuth({
+  return {
     account: {
       accountLinking: {
         enabled: true,
@@ -78,7 +79,7 @@ export const createAuth = <Ctx extends GenericCtx = ActionCtx>(_ctx: Ctx) => {
       },
     },
     baseURL,
-    database: authComponent.adapter(ctx),
+    database: authClient.adapter(ctx),
     logger: { disabled: true },
     plugins: [
       admin(),
@@ -205,5 +206,32 @@ export const createAuth = <Ctx extends GenericCtx = ActionCtx>(_ctx: Ctx) => {
         enabled: false,
       },
     },
+  } satisfies BetterAuthOptions;
+};
+
+export const createAuth = <Ctx extends GenericCtx = ActionCtx>(ctx: Ctx) => {
+  return betterAuth(getAuthOptions(ctx));
+};
+
+export const getAuth = <Ctx extends GenericCtx>(ctx: Ctx) => {
+  const options = getAuthOptions(ctx);
+
+  return betterAuth({
+    ...options,
+    database: dbAdapter(ctx, schema, options, authClient),
   });
 };
+
+export const auth = getStaticAuth(createAuth);
+
+export const {
+  create,
+  deleteMany,
+  deleteOne,
+  findMany,
+  findOne,
+  updateMany,
+  updateOne,
+} = createApi(schema, getAuthOptions());
+
+export const { onCreate, onDelete, onUpdate } = authClient.triggersApi();

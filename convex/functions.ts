@@ -270,10 +270,7 @@ export const createAuthAction = ({
     customCtx(async (ctx) => {
       checkDevOnly(devOnly);
 
-      const user: SessionUser | null = await ctx.runQuery(
-        api.user.getSessionUser,
-        {}
-      );
+      const user = await ctx.runQuery(api.user.getSessionUser, {});
 
       if (!user) {
         throw new ConvexError({

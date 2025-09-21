@@ -22,6 +22,7 @@ export const useCurrentUser = () => {
         image: undefined,
         isAdmin: false,
         name: '',
+        personalOrganizationId: undefined,
         session: {
           token: token ?? undefined,
         },

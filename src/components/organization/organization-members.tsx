@@ -38,7 +38,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   UserPlus,
   MoreHorizontal,
@@ -105,23 +111,24 @@ export function OrganizationMembers({
     role: 'member',
   });
 
-  const { data: pendingInvitations, isLoading: invitationsLoading } = useAuthQuery(
-    api.organization.listPendingInvitations,
-    organization ? { slug: organization.slug } : 'skip',
-    {
-      placeholderData: [
-        {
-          id: '1',
-          createdAt: Date.now(),
-          email: 'pending@example.com',
-          expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
-          organizationId: '1',
-          role: 'member',
-          status: 'pending',
-        },
-      ],
-    }
-  );
+  const { data: pendingInvitations, isLoading: invitationsLoading } =
+    useAuthQuery(
+      api.organization.listPendingInvitations,
+      organization ? { slug: organization.slug } : 'skip',
+      {
+        placeholderData: [
+          {
+            id: '1',
+            createdAt: Date.now(),
+            email: 'pending@example.com',
+            expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+            organizationId: '1',
+            role: 'member',
+            status: 'pending',
+          },
+        ],
+      }
+    );
 
   const inviteMember = useAuthMutation(api.organization.inviteMember, {
     onSuccess: () => {
@@ -247,7 +254,9 @@ export function OrganizationMembers({
                   <TableHead>Member</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Joined</TableHead>
-                  {isOwner && <TableHead className="w-[70px]">Actions</TableHead>}
+                  {isOwner && (
+                    <TableHead className="w-[70px]">Actions</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -309,7 +318,9 @@ export function OrganizationMembers({
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
-                                onClick={() => handleRemoveMember(member.userId)}
+                                onClick={() =>
+                                  handleRemoveMember(member.userId)
+                                }
                                 className="text-destructive"
                               >
                                 <UserMinus className="h-4 w-4" />
@@ -423,7 +434,10 @@ export function OrganizationMembers({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowInviteDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowInviteDialog(false)}
+            >
               Cancel
             </Button>
             <Button

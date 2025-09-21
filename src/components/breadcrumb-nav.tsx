@@ -31,6 +31,7 @@ import {
 import { signOut } from '@/lib/convex/auth-client';
 import { api } from '@convex/_generated/api';
 import { toast } from 'sonner';
+import { OrganizationSwitcher } from '@/components/organization/organization-switcher';
 
 export function BreadcrumbNav() {
   const pathname = usePathname();
@@ -169,10 +170,11 @@ export function BreadcrumbNav() {
             )}
           </div>
 
-          {/* Right side - Auth */}
+          {/* Right side - Organization Switcher & Auth */}
           <div className="flex items-center gap-2">
             {user && user.id ? (
               <>
+                <OrganizationSwitcher />
                 {hasData ? (
                   <Button
                     variant="outline"

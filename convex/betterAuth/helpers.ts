@@ -1,47 +1,34 @@
-import { Id } from '../_generated/dataModel';
-import { QueryCtx } from '../_generated/server';
+import {
+  GenericDataModel,
+  GenericQueryCtx,
+  DocumentByName,
+} from 'convex/server';
 
-export const getAuthUserId = async (ctx: QueryCtx) => {
+export const getAuthUserId = async <DataModel extends GenericDataModel>(
+  ctx: GenericQueryCtx<DataModel>
+) => {
   const identity = await ctx.auth.getUserIdentity();
 
   if (!identity) {
     return null;
   }
 
-  return identity.subject as Id<'user'>;
+  return identity.subject as DocumentByName<DataModel, 'user'>['_id'];
 };
 
-export const getHeaders = async (ctx: QueryCtx) => {
-  const userId = await getAuthUserId(ctx);
-
-  if (!userId) {
-    return new Headers();
-  }
-
-  const session = await ctx.db
-    .query('session')
-    .withIndex('userId', (q) => q.eq('userId', userId))
-    .first();
-
-  return new Headers({
-    ...(session?.token ? { authorization: `Bearer ${session.token}` } : {}),
-    ...(session?.ipAddress
-      ? { 'x-forwarded-for': session.ipAddress as string }
-      : {}),
-  });
-};
-
-export const getSession = async (ctx: QueryCtx) => {
+export const getSession = async <DataModel extends GenericDataModel>(
+  ctx: GenericQueryCtx<DataModel>
+) => {
   const userId = await getAuthUserId(ctx);
 
   if (!userId) {
     return null;
   }
 
-  const doc = await ctx.db
-    .query('session')
-    .withIndex('userId', (q) => q.eq('userId', userId))
-    .first();
+  const doc = (await ctx.db
+    .query('session' as any)
+    .withIndex('userId', (q) => q.eq('userId', userId as any))
+    .first()) as DocumentByName<DataModel, 'session'> | null;
 
   if (!doc) {
     return null;
@@ -50,4 +37,21 @@ export const getSession = async (ctx: QueryCtx) => {
   const { _id, ...rest } = doc;
 
   return { id: _id, ...rest };
+};
+
+export const getHeaders = async <DataModel extends GenericDataModel>(
+  ctx: GenericQueryCtx<DataModel>
+) => {
+  const session = await getSession(ctx);
+
+  if (!session) {
+    return new Headers();
+  }
+
+  return new Headers({
+    ...(session?.token ? { authorization: `Bearer ${session.token}` } : {}),
+    ...(session?.ipAddress
+      ? { 'x-forwarded-for': session.ipAddress as string }
+      : {}),
+  });
 };

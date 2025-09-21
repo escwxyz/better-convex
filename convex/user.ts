@@ -8,6 +8,7 @@ import { updateSettingsSchema } from './userShared';
 export const getIsAuthenticated = createPublicQuery({
   publicOnly: true,
 })({
+  returns: z.boolean(),
   handler: async (ctx) => {
     return !!(await ctx.auth.getUserIdentity());
   },
@@ -15,6 +16,58 @@ export const getIsAuthenticated = createPublicQuery({
 
 // Get session user (minimal data)
 export const getSessionUser = createPublicQuery()({
+  returns: z.union([
+    z.object({
+      id: zid('user'),
+      _id: zid('user'),
+      _creationTime: z.number(),
+      activeOrganization: z.object({
+        id: zid('organization'),
+        createdAt: z.number(),
+        logo: z.string().nullish(),
+        monthlyCredits: z.number(),
+        name: z.string(),
+        role: z.string(),
+        slug: z.string(),
+      }),
+      bio: z.string().nullish(),
+      createdAt: z.number(),
+      email: z.string(),
+      emailVerified: z.boolean(),
+      firstName: z.string().nullish(),
+      github: z.string().nullish(),
+      image: z.string().nullish(),
+      isAdmin: z.boolean(),
+      lastName: z.string().nullish(),
+      lastActiveOrganizationId: zid('organization').nullish(),
+      linkedin: z.string().nullish(),
+      location: z.string().nullish(),
+      name: z.string(),
+      personalOrganizationId: zid('organization').nullish(),
+      plan: z.enum(['premium', 'team']).optional(),
+      role: z.string().nullish(),
+      banned: z.boolean().nullish(),
+      banReason: z.string().nullish(),
+      banExpires: z.number().nullish(),
+      session: z.object({
+        id: zid('session'),
+        activeOrganizationId: zid('organization').nullish(),
+        createdAt: z.number(),
+        expiresAt: z.number(),
+        impersonatedBy: z.string().nullish(),
+        ipAddress: z.string().nullish(),
+        token: z.string(),
+        updatedAt: z.number(),
+        userAgent: z.string().nullish(),
+        userId: zid('user'),
+      }),
+      updatedAt: z.number(),
+      username: z.string().nullish(),
+      website: z.string().nullish(),
+      x: z.string().nullish(),
+    }),
+    z.null(),
+  ]),
   handler: async ({ user: userEnt }) => {
     if (!userEnt) {
       return null;
@@ -42,6 +95,7 @@ export const getCurrentUser = createPublicQuery()({
       image: z.string().nullish(),
       isAdmin: z.boolean(),
       name: z.string().optional(),
+      personalOrganizationId: z.string().optional(),
       session: z.object({
         activeOrganizationId: z.string().nullable().optional(),
         impersonatedBy: z.string().nullable().optional(),
@@ -58,7 +112,15 @@ export const getCurrentUser = createPublicQuery()({
       return null;
     }
 
-    const { id, activeOrganization, image, isAdmin, name, session } = userEnt;
+    const {
+      id,
+      activeOrganization,
+      image,
+      isAdmin,
+      name,
+      personalOrganizationId,
+      session,
+    } = userEnt;
 
     return {
       id,
@@ -66,6 +128,7 @@ export const getCurrentUser = createPublicQuery()({
       image,
       isAdmin,
       name,
+      personalOrganizationId,
       session: {
         activeOrganizationId: session.activeOrganizationId,
         impersonatedBy: session.impersonatedBy,

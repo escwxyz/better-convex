@@ -13,7 +13,6 @@ import { stream } from 'convex-helpers/server/stream';
 import { mergedStream } from 'convex-helpers/server/stream';
 import { stripIndent } from 'common-tags';
 import { BetterAuthDbSchema } from 'better-auth/db';
-import { Schema } from '../shared/types';
 
 export const adapterWhereValidator = v.object({
   field: v.string(),
@@ -25,6 +24,7 @@ export const adapterWhereValidator = v.object({
       v.literal('gte'),
       v.literal('eq'),
       v.literal('in'),
+      v.literal('not_in'),
       v.literal('ne'),
       v.literal('contains'),
       v.literal('starts_with'),
@@ -85,7 +85,7 @@ export const hasUniqueFields = (
 };
 
 const findIndex = (
-  schema: Schema,
+  schema: SchemaDefinition<any, any>,
   args: {
     model: string;
     where?: {
@@ -93,6 +93,7 @@ const findIndex = (
       operator?:
         | 'lt'
         | 'lte'
+        | 'not_in'
         | 'gt'
         | 'gte'
         | 'eq'
@@ -121,7 +122,9 @@ const findIndex = (
   const where = args.where?.filter((w) => {
     return (
       (!w.operator ||
-        ['lt', 'lte', 'gt', 'gte', 'eq', 'in'].includes(w.operator)) &&
+        ['lt', 'lte', 'not_in', 'gt', 'gte', 'eq', 'in'].includes(
+          w.operator
+        )) &&
       w.field !== 'id'
     );
   });
@@ -346,6 +349,9 @@ const filterByWhere = <
         case 'in': {
           return Array.isArray(w.value) && (w.value as any[]).includes(value);
         }
+        case 'not_in': {
+          return Array.isArray(w.value) && !(w.value as any[]).includes(value);
+        }
         case 'lt': {
           return isLessThan(value, w.value);
         }
@@ -444,7 +450,9 @@ const generateQuery = (
       // incompatible with Convex statically.
       (w) =>
         w.operator &&
-        ['contains', 'starts_with', 'ends_with', 'ne'].includes(w.operator)
+        ['contains', 'starts_with', 'ends_with', 'ne', 'not_in'].includes(
+          w.operator
+        )
     );
   });
   return filteredQuery;
@@ -475,11 +483,13 @@ export const paginate = async <
   if (
     args.where?.some(
       (w) =>
-        w.field === 'id' && w.operator && !['eq', 'in'].includes(w.operator)
+        w.field === 'id' &&
+        w.operator &&
+        !['eq', 'in', 'not_in', 'ne'].includes(w.operator)
     )
   ) {
     throw new Error(
-      `id can only be used with eq or in operator: ${JSON.stringify(args.where)}`
+      `id can only be used with eq, in, not_in, or ne operator: ${JSON.stringify(args.where)}`
     );
   }
   // If any where clause is "eq" (or missing operator) on a unique field,
@@ -594,6 +604,29 @@ export const paginate = async <
     return {
       ...result,
       page: await asyncMap(result.page, (doc) =>
+        selectFields(doc, args.select)
+      ),
+    };
+  }
+
+  // Handle not_in operator separately as it requires filtering out documents
+  const notInWhere = args.where?.find((w) => w.operator === 'not_in');
+  if (notInWhere) {
+    if (!Array.isArray(notInWhere.value)) {
+      throw new Error('not_in clause value must be an array');
+    }
+    // For not_in with IDs, we need to query all and filter out the excluded ones
+    const query = generateQuery(ctx, schema, {
+      ...args,
+      where: args.where?.filter((w) => w !== notInWhere),
+    });
+    const result = await query.paginate(paginationOpts);
+    const filteredPage = result.page.filter((doc) =>
+      filterByWhere(doc, [notInWhere])
+    );
+    return {
+      ...result,
+      page: await asyncMap(filteredPage, (doc) =>
         selectFields(doc, args.select)
       ),
     };
