@@ -36,7 +36,6 @@ import { OrganizationSwitcher } from '@/components/organization/organization-swi
 export function BreadcrumbNav() {
   const pathname = usePathname();
   const user = useCurrentUser();
-  const resetAppData = useAuthMutation(api.reset.resetAppData);
   const generateSamplesAction = useAuthAction(api.seed.generateSamples);
 
   // Check if there's any data (projects)
@@ -175,31 +174,7 @@ export function BreadcrumbNav() {
             {user && user.id ? (
               <>
                 <OrganizationSwitcher />
-                {hasData ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (
-                        confirm(
-                          'Are you sure you want to reset all app data? This will delete all projects, todos, tags, and comments. User accounts will be preserved.'
-                        )
-                      ) {
-                        toast.promise(resetAppData.mutateAsync({}), {
-                          loading: 'Resetting app data...',
-                          success: (result) =>
-                            `Reset complete! Deleted ${result.totalDeleted} items from ${Object.keys(result.deletedCounts).length} tables`,
-                          error: (e) =>
-                            e.data?.message ?? 'Failed to reset data',
-                        });
-                      }
-                    }}
-                    disabled={resetAppData.isPending}
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                    Reset Data
-                  </Button>
-                ) : (
+                {hasData ? null : (
                   <Button
                     variant="outline"
                     size="sm"

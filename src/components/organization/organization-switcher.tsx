@@ -38,6 +38,7 @@ import {
 import { api } from '@convex/_generated/api';
 import { toast } from 'sonner';
 import { WithSkeleton } from '@/components/ui/skeleton';
+import { Id } from '@convex/_generated/dataModel';
 
 export function OrganizationSwitcher() {
   const [open, setOpen] = useState(false);
@@ -116,7 +117,10 @@ export function OrganizationSwitcher() {
   const currentOrg = user.activeOrganization;
   if (!currentOrg) return null;
 
-  const handleSelectOrganization = (organizationId: string, slug: string) => {
+  const handleSelectOrganization = (
+    organizationId: Id<'organization'>,
+    slug: string
+  ) => {
     if (organizationId === currentOrg.id) {
       setOpen(false);
       return;
@@ -189,7 +193,9 @@ export function OrganizationSwitcher() {
                     <CommandItem
                       key={org.id}
                       value={org.slug}
-                      onSelect={() => handleSelectOrganization(org.id, org.slug)}
+                      onSelect={() =>
+                        handleSelectOrganization(org.id, org.slug)
+                      }
                     >
                       <div className="flex w-full flex-1 items-center gap-2">
                         {org.isPersonal ? (

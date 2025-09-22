@@ -7,11 +7,11 @@ import type {
 
 import { getToken } from '@convex-dev/better-auth/nextjs';
 import { api } from '@convex/_generated/api';
-import { createAuth } from '@convex/auth';
+import { getAuth } from '@convex/auth';
 import { fetchMutation, fetchQuery } from 'convex/nextjs';
 
 export const getSessionToken = async (): Promise<string | undefined> => {
-  const token = await getToken(createAuth);
+  const token = await getToken(getAuth);
 
   return token;
 };

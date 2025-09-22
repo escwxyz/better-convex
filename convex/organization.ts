@@ -1,8 +1,7 @@
 import { ConvexError } from 'convex/values';
 import { z } from 'zod';
 import { zid } from 'convex-helpers/server/zod';
-
-import { getHeaders } from './betterAuth/helpers';
+import { getHeaders } from 'better-auth-convex';
 import {
   AuthMutationCtx,
   createAuthMutation,
@@ -28,7 +27,7 @@ export const listOrganizations = createAuthQuery()({
     canCreateOrganization: z.boolean(),
     organizations: z.array(
       z.object({
-        id: z.string(),
+        id: zid('organization'),
         createdAt: z.number(),
         isPersonal: z.boolean(),
         logo: z.string().nullish(),
@@ -51,7 +50,7 @@ export const listOrganizations = createAuthQuery()({
       };
     }
 
-    const activeOrgId = ctx.user.session.activeOrganizationId;
+    const activeOrgId = ctx.user.activeOrganization?.id;
 
     // Simple check: can always create organizations (up to Better Auth's limit)
     const canCreateOrganization = true;
@@ -61,7 +60,7 @@ export const listOrganizations = createAuthQuery()({
 
     // Map organizations
     const enrichedOrgs = filteredOrgs.map((org) => ({
-      id: org.id,
+      id: org.id as Id<'organization'>,
       createdAt: org.createdAt as any,
       isPersonal: org.id === ctx.user.personalOrganizationId,
       logo: org.logo || null,
@@ -157,7 +156,7 @@ export const updateOrganization = createAuthMutation({
   },
   returns: z.null(),
   handler: async (ctx, args) => {
-    if (ctx.user.activeOrganization.role !== 'owner') {
+    if (ctx.user.activeOrganization?.role !== 'owner') {
       throw new ConvexError({
         code: 'FORBIDDEN',
         message: 'Only owners can update organization details',
@@ -168,7 +167,7 @@ export const updateOrganization = createAuthMutation({
 
     // If slug is provided, validate it
     if (args.slug) {
-      if (ctx.user.activeOrganization.id === ctx.user.personalOrganizationId) {
+      if (ctx.user.activeOrganization?.id === ctx.user.personalOrganizationId) {
         slug = undefined;
       } else {
         slugSchema.parse(args.slug);
@@ -176,7 +175,10 @@ export const updateOrganization = createAuthMutation({
         // Check if slug is taken
         const existingOrg = await ctx.table('organization').get('slug', slug!);
 
-        if (existingOrg && existingOrg._id !== ctx.user.activeOrganization.id) {
+        if (
+          existingOrg &&
+          existingOrg._id !== ctx.user.activeOrganization?.id
+        ) {
           throw new ConvexError({
             code: 'BAD_REQUEST',
             message: 'This slug is already taken',
@@ -200,7 +202,7 @@ export const updateOrganization = createAuthMutation({
               logo: args.logo,
               name: args.name,
             },
-        organizationId: ctx.user.activeOrganization.id,
+        organizationId: ctx.user.activeOrganization?.id,
       },
       headers,
     });
@@ -327,11 +329,11 @@ export const removeMember = createAuthMutation({
   rateLimit: 'organization/removeMember',
 })({
   args: {
-    memberId: zid('member'),
+    memberId: zid('user'),
   },
   returns: z.null(),
   handler: async (ctx, args) => {
-    if (ctx.user.activeOrganization.role !== 'owner') {
+    if (ctx.user.activeOrganization?.role !== 'owner') {
       throw new ConvexError({
         code: 'FORBIDDEN',
         message: 'Only owners and admins can remove members',
@@ -344,7 +346,7 @@ export const removeMember = createAuthMutation({
     await auth.api.removeMember({
       body: {
         memberIdOrEmail: args.memberId,
-        organizationId: ctx.user.activeOrganization.id,
+        organizationId: ctx.user.activeOrganization?.id,
       },
       headers,
     });
@@ -361,7 +363,7 @@ export const leaveOrganization = createAuthMutation({
   returns: z.null(),
   handler: async (ctx) => {
     // Get current member info to check role
-    if (ctx.user.activeOrganization.role !== 'owner') {
+    if (ctx.user.activeOrganization?.role !== 'owner') {
       throw new ConvexError({
         code: 'FORBIDDEN',
         message: 'Only owners can update member roles',
@@ -373,7 +375,7 @@ export const leaveOrganization = createAuthMutation({
 
     // Prevent leaving personal organizations (similar to personal org deletion protection)
     // Personal organizations typically have a specific naming pattern or metadata
-    if (ctx.user.activeOrganization.id === ctx.user.personalOrganizationId) {
+    if (ctx.user.activeOrganization?.id === ctx.user.personalOrganizationId) {
       throw new ConvexError({
         code: 'BAD_REQUEST',
         message:
@@ -382,7 +384,7 @@ export const leaveOrganization = createAuthMutation({
     }
 
     await auth.api.leaveOrganization({
-      body: { organizationId: ctx.user.activeOrganization.id },
+      body: { organizationId: ctx.user.activeOrganization?.id },
       headers,
     });
 
@@ -400,13 +402,13 @@ export const updateMemberRole = createAuthMutation({
   rateLimit: 'organization/updateRole',
 })({
   args: {
-    memberId: zid('member'),
+    memberId: zid('user'),
     role: z.enum(['owner', 'member']),
   },
   returns: z.null(),
   handler: async (ctx, args) => {
     // Only owners can update roles
-    if (ctx.user.activeOrganization.role !== 'owner') {
+    if (ctx.user.activeOrganization?.role !== 'owner') {
       throw new ConvexError({
         code: 'FORBIDDEN',
         message: 'Only owners can update member roles',
@@ -434,7 +436,7 @@ export const deleteOrganization = createAuthMutation({})({
   returns: z.null(),
   handler: async (ctx) => {
     // Check if user is owner
-    if (ctx.user.activeOrganization.role !== 'owner') {
+    if (ctx.user.activeOrganization?.role !== 'owner') {
       throw new ConvexError({
         code: 'FORBIDDEN',
         message: 'Only owners can update member roles',
@@ -444,7 +446,7 @@ export const deleteOrganization = createAuthMutation({})({
     const auth = getAuth(ctx);
     const headers = await getHeaders(ctx);
 
-    const organizationId = ctx.user.activeOrganization.id;
+    const organizationId = ctx.user.activeOrganization?.id;
 
     // Prevent deletion of personal organizations
     if (organizationId === ctx.user.personalOrganizationId) {
@@ -461,6 +463,11 @@ export const deleteOrganization = createAuthMutation({})({
       headers,
     });
 
+    // Automatically switch to personal organization after deletion
+    await setActiveOrganizationHandler(ctx, {
+      organizationId: ctx.user.personalOrganizationId!,
+    });
+
     return null;
   },
 });
@@ -472,7 +479,7 @@ export const getOrganization = createAuthQuery()({
   },
   returns: z
     .object({
-      id: z.string(),
+      id: zid('organization'),
       createdAt: z.number(),
       isActive: z.boolean(),
       isPersonal: z.boolean(),
@@ -506,7 +513,7 @@ export const getOrganization = createAuthQuery()({
     return {
       id: org._id,
       createdAt: org.createdAt as any,
-      isActive: org._id === ctx.user.session.activeOrganizationId,
+      isActive: org._id === ctx.user.activeOrganization?.id,
       isPersonal: org._id === ctx.user.personalOrganizationId,
       logo: org.logo || null,
       membersCount: fullOrg.members?.length || 1,
@@ -561,11 +568,11 @@ export const getOrganizationOverview = createAuthQuery()({
     const organizationData = {
       id: org._id,
       createdAt: org.createdAt,
-      isActive: ctx.user.session.activeOrganizationId === org._id,
+      isActive: ctx.user.activeOrganization?.id === org._id,
       isPersonal: org._id === ctx.user.personalOrganizationId,
       logo: org.logo,
       name: org.name,
-      role: ctx.user.activeOrganization.role,
+      role: ctx.user.activeOrganization?.role,
       slug: org.slug,
     };
 
@@ -634,17 +641,17 @@ export const listMembers = createAuthQuery()({
     isPersonal: z.boolean(),
     members: z.array(
       z.object({
-        id: z.string(),
+        id: zid('member'),
         createdAt: z.number(),
-        organizationId: z.string(),
+        organizationId: zid('organization'),
         role: z.string().optional(),
         user: z.object({
-          id: z.string(),
+          id: zid('user'),
           email: z.string(),
           image: z.string().nullish(),
           name: z.string().nullish(),
         }),
-        userId: z.string(),
+        userId: zid('user'),
       })
     ),
   }),
@@ -667,7 +674,8 @@ export const listMembers = createAuthQuery()({
         members: [],
       };
     }
-    if (ctx.user.activeOrganization.id !== org._id) {
+
+    if (ctx.user.activeOrganization?.id !== org._id) {
       throw new ConvexError({
         code: 'FORBIDDEN',
         message: 'You are not a member of this organization',
@@ -694,22 +702,22 @@ export const listMembers = createAuthQuery()({
     // Enrich with user data
     const enrichedMembersList = response.members.map((member) => {
       return {
-        id: member.id,
+        id: member.id as Id<'member'>,
         createdAt: member.createdAt as any,
-        organizationId: org._id,
+        organizationId: org._id as Id<'organization'>,
         role: member.role,
         user: {
-          id: member.user.id,
+          id: member.user.id as Id<'user'>,
           email: member.user.email,
           image: member.user.image,
           name: member.user.name,
         },
-        userId: member.userId,
+        userId: member.userId as Id<'user'>,
       };
     });
 
     return {
-      currentUserRole: ctx.user.activeOrganization.role,
+      currentUserRole: ctx.user.activeOrganization?.role,
       isPersonal: org._id === ctx.user.personalOrganizationId,
       members: enrichedMembersList,
     };
@@ -729,14 +737,14 @@ export const inviteMember = createAuthMutation({
     const auth = getAuth(ctx);
     const headers = await getHeaders(ctx);
 
-    if (ctx.user.activeOrganization.role !== 'owner') {
+    if (ctx.user.activeOrganization?.role !== 'owner') {
       throw new ConvexError({
         code: 'FORBIDDEN',
         message: 'Only owners and admins can invite members',
       });
     }
 
-    const orgId = ctx.user.activeOrganization.id;
+    const orgId = ctx.user.activeOrganization?.id;
 
     // Simple member count check
     const fullOrg = await auth.api.getFullOrganization({
@@ -827,8 +835,8 @@ export const cancelInvitation = createAuthMutation({
     const invitation = await ctx.table('invitation').get(args.invitationId);
 
     if (
-      ctx.user.activeOrganization.role !== 'owner' ||
-      ctx.user.activeOrganization.id !== invitation?.organizationId
+      ctx.user.activeOrganization?.role !== 'owner' ||
+      ctx.user.activeOrganization?.id !== invitation?.organizationId
     ) {
       throw new ConvexError({
         code: 'FORBIDDEN',
@@ -870,11 +878,11 @@ export const listPendingInvitations = createAuthQuery()({
   },
   returns: z.array(
     z.object({
-      id: z.string(),
+      id: zid('invitation'),
       createdAt: z.number(),
       email: z.string(),
       expiresAt: z.number(),
-      organizationId: z.string(),
+      organizationId: zid('organization'),
       role: z.string(),
       status: z.string(),
     })
@@ -890,8 +898,8 @@ export const listPendingInvitations = createAuthQuery()({
 
     // Check if user is owner of this organization
     if (
-      ctx.user.activeOrganization.role !== 'owner' ||
-      ctx.user.activeOrganization.id !== org._id
+      ctx.user.activeOrganization?.role !== 'owner' ||
+      ctx.user.activeOrganization?.id !== org._id
     ) {
       return [];
     }
@@ -907,12 +915,12 @@ export const listPendingInvitations = createAuthQuery()({
     const pendingInvitations = response
       .filter((invitation) => invitation.status === 'pending')
       .map((invitation) => ({
-        id: invitation.id,
+        id: invitation.id as Id<'invitation'>,
         createdAt:
           new Date(invitation.expiresAt).getTime() - 7 * 24 * 60 * 60 * 1000, // Calculate from expiry (7 days ago)
         email: invitation.email,
         expiresAt: new Date(invitation.expiresAt).getTime(),
-        organizationId: invitation.organizationId,
+        organizationId: invitation.organizationId as Id<'organization'>,
         role: invitation.role,
         status: invitation.status,
       }));

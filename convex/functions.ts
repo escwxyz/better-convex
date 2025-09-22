@@ -13,7 +13,6 @@ import { paginationOptsValidator } from 'convex/server';
 import { ConvexError } from 'convex/values';
 
 import type { MutationCtx, QueryCtx } from './_generated/server';
-import type { SessionUser } from './authShared';
 
 import { api } from './_generated/api';
 import {
@@ -24,7 +23,12 @@ import {
   internalQuery,
   query,
 } from './_generated/server';
-import { getSessionUser, getSessionUserWriter } from './authHelpers';
+import { Id } from './_generated/dataModel';
+import {
+  getSessionUser,
+  getSessionUserWriter,
+  SessionUser,
+} from './authHelpers';
 import { getEnv } from './helpers/getEnv';
 import { rateLimitGuard } from './helpers/rateLimiter';
 import { roleGuard } from './helpers/roleGuard';
@@ -270,7 +274,7 @@ export const createAuthAction = ({
     customCtx(async (ctx) => {
       checkDevOnly(devOnly);
 
-      const user = await ctx.runQuery(api.user.getSessionUser, {});
+      const user: any = await ctx.runQuery(api.user.getSessionUser, {});
 
       if (!user) {
         throw new ConvexError({
@@ -290,8 +294,9 @@ export const createAuthAction = ({
       }
 
       return {
-        user: user,
-        userId: user.id,
+        ...ctx,
+        user: user as SessionUser,
+        userId: user.id as Id<'user'>,
       };
     })
   );

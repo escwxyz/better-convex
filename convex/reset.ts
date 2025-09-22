@@ -106,18 +106,15 @@ export const deleteAuthPage = createInternalMutation({
     tableName: z.string(),
   },
   handler: async (ctx, args) => {
-    const result: any = await ctx.runMutation(
-      internal.betterAuth.adapter.deleteMany,
-      {
-        input: {
-          model: args.tableName as any,
-        },
-        paginationOpts: {
-          cursor: args.cursor,
-          numItems: DELETE_BATCH_SIZE,
-        },
-      }
-    );
+    const result: any = await ctx.runMutation(internal.auth.deleteMany, {
+      input: {
+        model: args.tableName as any,
+      },
+      paginationOpts: {
+        cursor: args.cursor,
+        numItems: DELETE_BATCH_SIZE,
+      },
+    });
 
     if (!result.isDone && result.continueCursor) {
       await ctx.scheduler.runAfter(0, internal.reset.deleteAuthPage, {

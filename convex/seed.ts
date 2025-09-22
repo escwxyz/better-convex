@@ -6,7 +6,7 @@ import type { Id } from './_generated/dataModel';
 import { internal } from './_generated/api';
 import { createInternalMutation, createAuthAction } from './functions';
 import { getEnv } from './helpers/getEnv';
-import { createUser } from '@convex/authHelpers';
+import { createUser } from './authHelpers';
 
 // Admin configuration - moved inside functions to avoid module-level execution
 const getAdminConfig = () => {
@@ -173,7 +173,7 @@ export const generateSamples = createAuthAction()({
         internal.seed.generateSamplesBatch,
         {
           count: batchCount,
-          userId: ctx.user._id,
+          userId: ctx.user.id,
           batchIndex: i,
         }
       );

@@ -34,14 +34,15 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Id } from '@convex/_generated/dataModel';
 
 interface OrganizationOverviewProps {
-  organization: {
-    id: string;
+  organization?: {
+    id: Id<'organization'>;
     createdAt: number;
     isActive: boolean;
     isPersonal: boolean;
-    logo: string | null;
+    logo?: string | null;
     membersCount: number;
     name: string;
     role?: string;
@@ -49,7 +50,9 @@ interface OrganizationOverviewProps {
   } | null;
 }
 
-export function OrganizationOverview({ organization }: OrganizationOverviewProps) {
+export function OrganizationOverview({
+  organization,
+}: OrganizationOverviewProps) {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editData, setEditData] = useState({
@@ -58,26 +61,32 @@ export function OrganizationOverview({ organization }: OrganizationOverviewProps
     logo: '',
   });
 
-  const updateOrganization = useAuthMutation(api.organization.updateOrganization, {
-    onSuccess: () => {
-      setShowEditDialog(false);
-      toast.success('Organization updated successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.data?.message ?? 'Failed to update organization');
-    },
-  });
+  const updateOrganization = useAuthMutation(
+    api.organization.updateOrganization,
+    {
+      onSuccess: () => {
+        setShowEditDialog(false);
+        toast.success('Organization updated successfully');
+      },
+      onError: (error: any) => {
+        toast.error(error.data?.message ?? 'Failed to update organization');
+      },
+    }
+  );
 
-  const deleteOrganization = useAuthMutation(api.organization.deleteOrganization, {
-    onSuccess: () => {
-      setShowDeleteDialog(false);
-      toast.success('Organization deleted successfully');
-      // Redirect handled by the mutation
-    },
-    onError: (error: any) => {
-      toast.error(error.data?.message ?? 'Failed to delete organization');
-    },
-  });
+  const deleteOrganization = useAuthMutation(
+    api.organization.deleteOrganization,
+    {
+      onSuccess: () => {
+        setShowDeleteDialog(false);
+        toast.success('Organization deleted successfully');
+        // Redirect handled by the mutation
+      },
+      onError: (error: any) => {
+        toast.error(error.data?.message ?? 'Failed to delete organization');
+      },
+    }
+  );
 
   if (!organization) {
     return null;
@@ -140,7 +149,11 @@ export function OrganizationOverview({ organization }: OrganizationOverviewProps
               </CardDescription>
             </div>
             {canEdit && (
-              <Button variant="outline" size="sm" onClick={handleEditOrganization}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleEditOrganization}
+              >
                 <Edit3 className="h-4 w-4" />
                 Edit
               </Button>
@@ -159,17 +172,21 @@ export function OrganizationOverview({ organization }: OrganizationOverviewProps
               <Label className="text-sm font-medium text-muted-foreground">
                 Slug
               </Label>
-              <p className="text-sm font-mono">{organization.slug}</p>
+              <p className="font-mono text-sm">{organization.slug}</p>
             </div>
             <div>
               <Label className="text-sm font-medium text-muted-foreground">
                 Type
               </Label>
               <div className="flex items-center gap-2">
-                <Badge variant={organization.isPersonal ? 'secondary' : 'default'}>
+                <Badge
+                  variant={organization.isPersonal ? 'secondary' : 'default'}
+                >
                   {organization.isPersonal ? 'Personal' : 'Team'}
                 </Badge>
-                {organization.isActive && <Badge variant="outline">Active</Badge>}
+                {organization.isActive && (
+                  <Badge variant="outline">Active</Badge>
+                )}
               </div>
             </div>
             <div>
@@ -206,7 +223,9 @@ export function OrganizationOverview({ organization }: OrganizationOverviewProps
                 <Users className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{organization.membersCount}</p>
+                <p className="text-2xl font-bold">
+                  {organization.membersCount}
+                </p>
                 <p className="text-sm text-muted-foreground">
                   Member{organization.membersCount !== 1 ? 's' : ''}
                 </p>
@@ -218,7 +237,9 @@ export function OrganizationOverview({ organization }: OrganizationOverviewProps
                 <Crown className="h-4 w-4 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold capitalize">{organization.role || 'Member'}</p>
+                <p className="text-2xl font-bold capitalize">
+                  {organization.role || 'Member'}
+                </p>
                 <p className="text-sm text-muted-foreground">Your Role</p>
               </div>
             </div>
@@ -229,7 +250,10 @@ export function OrganizationOverview({ organization }: OrganizationOverviewProps
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {Math.floor((Date.now() - organization.createdAt) / (1000 * 60 * 60 * 24))}
+                  {Math.floor(
+                    (Date.now() - organization.createdAt) /
+                      (1000 * 60 * 60 * 24)
+                  )}
                 </p>
                 <p className="text-sm text-muted-foreground">Days Active</p>
               </div>
@@ -242,9 +266,7 @@ export function OrganizationOverview({ organization }: OrganizationOverviewProps
       <Card>
         <CardHeader>
           <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>
-            Common tasks for this organization
-          </CardDescription>
+          <CardDescription>Common tasks for this organization</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -357,7 +379,10 @@ export function OrganizationOverview({ organization }: OrganizationOverviewProps
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+            >
               Cancel
             </Button>
             <Button

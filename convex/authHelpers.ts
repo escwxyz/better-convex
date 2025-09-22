@@ -1,12 +1,22 @@
 import type { MutationCtx, QueryCtx } from '@convex/_generated/server';
-import type { SessionUser } from '@convex/authShared';
-import type { CtxWithTable, Ent, EntWriter } from '@convex/shared/types';
-
-import { getAuthUserId } from '@convex/betterAuth/helpers';
+import type { CtxWithTable, Ent } from '@convex/shared/types';
+import { getAuthUserId, getSession } from 'better-auth-convex';
 import { getProduct, productToPlan } from '@convex/polar/product';
-import { Id } from '@convex/_generated/dataModel';
+import { Doc, Id } from '@convex/_generated/dataModel';
 
-import { type InternalMutationCtx } from '@convex/functions';
+import type { InternalMutationCtx } from '@convex/functions';
+
+export type SessionUser = Omit<Doc<'user'>, '_id' | '_creationTime'> & {
+  id: Id<'user'>;
+  activeOrganization:
+    | (Omit<Doc<'organization'>, '_id'> & {
+        id: Id<'organization'>;
+        role: Doc<'member'>['role'];
+      })
+    | null;
+  isAdmin: boolean;
+  plan?: 'premium';
+};
 
 const getSessionData = async (ctx: CtxWithTable<MutationCtx>) => {
   const userId = await getAuthUserId(ctx);
@@ -16,27 +26,19 @@ const getSessionData = async (ctx: CtxWithTable<MutationCtx>) => {
   }
 
   console.time('getSession');
-  const [_session, user] = await Promise.all([
-    ctx.table('session').get('userId', userId),
-    ctx.table('user').get(userId),
-  ]);
-
+  const sessionResult = await getSession(ctx);
   console.timeEnd('getSession');
 
-  if (!_session || !user) {
+  if (!sessionResult) {
     return null;
   }
 
-  const session = {
-    ..._session,
-    activeOrganizationId:
-      (_session.activeOrganizationId as Id<'organization'>) ?? null,
-  };
-
-  const activeOrganizationId = session.activeOrganizationId;
+  const activeOrganizationId =
+    sessionResult.activeOrganizationId as Id<'organization'> | null;
 
   console.time('table.users.get');
-  const [subscription] = await Promise.all([
+  const [user, subscription] = await Promise.all([
+    ctx.table('user').get(userId),
     (async () => {
       if (!activeOrganizationId) {
         return null;
@@ -59,6 +61,7 @@ const getSessionData = async (ctx: CtxWithTable<MutationCtx>) => {
       };
     })(),
   ]);
+
   console.timeEnd('table.users.get');
 
   if (!user) {
@@ -67,7 +70,7 @@ const getSessionData = async (ctx: CtxWithTable<MutationCtx>) => {
 
   const activeOrganization = await (async () => {
     if (!activeOrganizationId) {
-      return {} as never;
+      return null;
     }
 
     const [activeOrg, currentMember] = await Promise.all([
@@ -88,7 +91,6 @@ const getSessionData = async (ctx: CtxWithTable<MutationCtx>) => {
     user,
     activeOrganization,
     plan: productToPlan(subscription?.productId) as 'premium' | undefined,
-    session,
     isAdmin: user.role === 'admin',
   };
 };
@@ -97,7 +99,7 @@ const getSessionData = async (ctx: CtxWithTable<MutationCtx>) => {
 export const getSessionUser = async (
   ctx: CtxWithTable<QueryCtx>
 ): Promise<(Ent<'user'> & SessionUser) | null> => {
-  const { user, activeOrganization, plan, session, isAdmin } =
+  const { user, activeOrganization, plan, isAdmin } =
     (await getSessionData(ctx as any)) ?? ({} as never);
 
   if (!user) {
@@ -113,17 +115,13 @@ export const getSessionUser = async (
     edgeX: user.edgeX,
     isAdmin,
     plan,
-    session: {
-      id: session._id,
-      ...session,
-    },
   };
 };
 
 export const getSessionUserWriter = async (
   ctx: CtxWithTable<MutationCtx>
-): Promise<(EntWriter<'user'> & SessionUser) | null> => {
-  const { user, activeOrganization, plan, session, isAdmin } =
+): Promise<any> => {
+  const { user, activeOrganization, plan, isAdmin } =
     (await getSessionData(ctx)) ?? ({} as never);
 
   if (!user) {
@@ -139,10 +137,6 @@ export const getSessionUserWriter = async (
     edgeX: user.edgeX,
     isAdmin,
     plan,
-    session: {
-      id: session._id,
-      ...session,
-    },
     delete: user.delete,
     patch: user.patch,
     replace: user.replace,

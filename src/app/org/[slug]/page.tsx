@@ -5,10 +5,7 @@ import { useParams } from 'next/navigation';
 import { useAuthQuery } from '@/lib/convex/hooks';
 import { api } from '@convex/_generated/api';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -18,7 +15,7 @@ import {
   Building2,
   Calendar,
   Crown,
-  LogOut
+  LogOut,
 } from 'lucide-react';
 import { WithSkeleton } from '@/components/ui/skeleton';
 import { OrganizationOverview } from '@/components/organization/organization-overview';
@@ -34,7 +31,7 @@ export default function OrganizationPage() {
     { slug },
     {
       placeholderData: {
-        id: '1',
+        id: '1' as any,
         createdAt: Date.now(),
         isActive: false,
         isPersonal: false,
@@ -56,30 +53,30 @@ export default function OrganizationPage() {
         isPersonal: false,
         members: [
           {
-            id: '1',
+            id: '1' as any,
             createdAt: Date.now(),
-            organizationId: '1',
+            organizationId: '1' as any,
             role: 'owner',
             user: {
-              id: '1',
+              id: '1' as any,
               email: 'owner@example.com',
               image: null,
               name: 'Organization Owner',
             },
-            userId: '1',
+            userId: '1' as any,
           },
           {
-            id: '2',
+            id: '2' as any,
             createdAt: Date.now(),
-            organizationId: '1',
+            organizationId: '1' as any,
             role: 'member',
             user: {
-              id: '2',
+              id: '2' as any,
               email: 'member@example.com',
               image: null,
               name: 'Team Member',
             },
-            userId: '2',
+            userId: '2' as any,
           },
         ],
       },
@@ -166,7 +163,11 @@ export default function OrganizationPage() {
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="space-y-4"
+        >
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="members">Members</TabsTrigger>

@@ -60,39 +60,30 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { WithSkeleton } from '@/components/ui/skeleton';
+import { Id } from '@convex/_generated/dataModel';
 
 interface Member {
-  id: string;
+  id: Id<'member'>;
   createdAt: number;
-  organizationId: string;
+  organizationId: Id<'organization'>;
   role?: string;
   user: {
-    id: string;
+    id: Id<'user'>;
     email: string;
     image?: string | null;
     name?: string | null;
   };
-  userId: string;
-}
-
-interface PendingInvitation {
-  id: string;
-  createdAt: number;
-  email: string;
-  expiresAt: number;
-  organizationId: string;
-  role: string;
-  status: string;
+  userId: Id<'user'>;
 }
 
 interface OrganizationMembersProps {
-  organization: {
-    id: string;
+  organization?: {
+    id: Id<'organization'>;
     isPersonal: boolean;
     role?: string;
     slug: string;
   } | null;
-  members: {
+  members?: {
     currentUserRole?: string;
     isPersonal: boolean;
     members: Member[];
@@ -111,6 +102,8 @@ export function OrganizationMembers({
     role: 'member',
   });
 
+  const a = api;
+
   const { data: pendingInvitations, isLoading: invitationsLoading } =
     useAuthQuery(
       api.organization.listPendingInvitations,
@@ -118,11 +111,11 @@ export function OrganizationMembers({
       {
         placeholderData: [
           {
-            id: '1',
+            id: '1' as any,
             createdAt: Date.now(),
             email: 'pending@example.com',
             expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
-            organizationId: '1',
+            organizationId: '1' as any,
             role: 'member',
             status: 'pending',
           },
@@ -184,15 +177,15 @@ export function OrganizationMembers({
     });
   };
 
-  const handleRemoveMember = (memberId: string) => {
+  const handleRemoveMember = (memberId: Id<'user'>) => {
     removeMember.mutate({ memberId });
   };
 
-  const handleUpdateRole = (memberId: string, role: 'owner' | 'member') => {
+  const handleUpdateRole = (memberId: Id<'user'>, role: 'owner' | 'member') => {
     updateMemberRole.mutate({ memberId, role });
   };
 
-  const handleCancelInvitation = (invitationId: string) => {
+  const handleCancelInvitation = (invitationId: Id<'invitation'>) => {
     cancelInvitation.mutate({ invitationId });
   };
 

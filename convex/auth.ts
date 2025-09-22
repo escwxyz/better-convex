@@ -1,23 +1,30 @@
 import { convex } from '@convex-dev/better-auth/plugins';
-import { betterAuth, BetterAuthOptions } from 'better-auth';
+import { betterAuth } from 'better-auth';
 import { admin, organization } from 'better-auth/plugins';
+import {
+  type AuthFunctions,
+  createClient,
+  createApi,
+} from 'better-auth-convex';
 
-import { type AuthFunctions, createClient } from './betterAuth/client';
 import { api, internal } from './_generated/api';
-import { ActionCtx, type GenericCtx } from './_generated/server';
+import {
+  ActionCtx,
+  MutationCtx,
+  QueryCtx,
+  type GenericCtx,
+} from './_generated/server';
 import { entsTableFactory } from 'convex-ents';
 import schema, { entDefinitions } from './schema';
 import { createPersonalOrganization } from './organizationHelpers';
 import { getEnv } from './helpers/getEnv';
-import { dbAdapter } from './betterAuth/adapter';
-import { getStaticAuth } from './betterAuth/registerRoutes';
-import { createApi } from './betterAuth/api';
 import { DataModel } from '@convex/_generated/dataModel';
 
 const authFunctions: AuthFunctions = internal.auth;
 
 export const authClient = createClient<DataModel, typeof schema>({
   authFunctions,
+  schema,
   triggers: {
     user: {
       onCreate: async (ctx, user) => {
@@ -67,11 +74,13 @@ export const authClient = createClient<DataModel, typeof schema>({
   },
 });
 
-export const getAuthOptions = (genericCtx?: GenericCtx) => {
-  const ctx = genericCtx as ActionCtx;
+export const createAuth = (
+  ctx: GenericCtx,
+  { optionsOnly } = { optionsOnly: false }
+) => {
   const baseURL = process.env.NEXT_PUBLIC_SITE_URL!;
 
-  return {
+  return betterAuth({
     account: {
       accountLinking: {
         enabled: true,
@@ -79,8 +88,7 @@ export const getAuthOptions = (genericCtx?: GenericCtx) => {
       },
     },
     baseURL,
-    database: authClient.adapter(ctx),
-    logger: { disabled: true },
+    logger: { disabled: optionsOnly },
     plugins: [
       admin(),
       organization({
@@ -101,7 +109,7 @@ export const getAuthOptions = (genericCtx?: GenericCtx) => {
         },
         sendInvitationEmail: async (data) => {
           // Send invitation email via Resend
-          await ctx.scheduler.runAfter(
+          await (ctx as ActionCtx).scheduler.runAfter(
             0,
             api.emails.sendOrganizationInviteEmail,
             {
@@ -206,23 +214,18 @@ export const getAuthOptions = (genericCtx?: GenericCtx) => {
         enabled: false,
       },
     },
-  } satisfies BetterAuthOptions;
-};
-
-export const createAuth = <Ctx extends GenericCtx = ActionCtx>(ctx: Ctx) => {
-  return betterAuth(getAuthOptions(ctx));
-};
-
-export const getAuth = <Ctx extends GenericCtx>(ctx: Ctx) => {
-  const options = getAuthOptions(ctx);
-
-  return betterAuth({
-    ...options,
-    database: dbAdapter(ctx, schema, options, authClient),
+    database: authClient.httpAdapter(ctx),
   });
 };
 
-export const auth = getStaticAuth(createAuth);
+export const auth = createAuth({} as any, { optionsOnly: true });
+
+export const getAuth = <Ctx extends QueryCtx | MutationCtx>(ctx: Ctx) => {
+  return betterAuth({
+    ...auth.options,
+    database: authClient.adapter(ctx, auth.options),
+  });
+};
 
 export const {
   create,
@@ -232,6 +235,6 @@ export const {
   findOne,
   updateMany,
   updateOne,
-} = createApi(schema, getAuthOptions());
+} = createApi(schema, auth.options);
 
 export const { onCreate, onDelete, onUpdate } = authClient.triggersApi();
