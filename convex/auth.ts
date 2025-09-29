@@ -27,17 +27,22 @@ export const authClient = createClient<DataModel, typeof schema>({
   schema,
   triggers: {
     user: {
-      onCreate: async (ctx, user) => {
-        const table = entsTableFactory(ctx, entDefinitions);
-
+      beforeCreate: async (ctx, data: any) => {
         const env = getEnv();
         const adminEmails = env.ADMIN;
 
-        // Check if this user email is in the admin list
-        if (user.role !== 'admin' && adminEmails?.includes(user.email)) {
-          await table('user').getX(user._id).patch({ role: 'admin' });
-        }
+        // Check if this user email is in the admin list and update role
+        const role =
+          data.role !== 'admin' && adminEmails?.includes(data.email)
+            ? 'admin'
+            : data.role;
 
+        return {
+          ...data,
+          role,
+        };
+      },
+      onCreate: async (ctx, user) => {
         // Create personal organization for the new user
         await createPersonalOrganization(ctx, {
           email: user.email,
@@ -235,4 +240,4 @@ export const {
   updateOne,
 } = createApi(schema, auth.options);
 
-export const { onCreate, onDelete, onUpdate } = authClient.triggersApi();
+export const { beforeCreate, beforeDelete, beforeUpdate, onCreate, onDelete, onUpdate } = authClient.triggersApi();
