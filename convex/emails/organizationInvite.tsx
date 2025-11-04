@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import {
   Body,
   Button,
@@ -13,7 +11,7 @@ import {
   Text,
 } from '@react-email/components';
 
-interface OrganizationInviteEmailProps {
+type OrganizationInviteEmailProps = {
   acceptUrl: string;
   invitationId: string;
   inviterEmail: string;
@@ -21,7 +19,7 @@ interface OrganizationInviteEmailProps {
   organizationName: string;
   role?: string;
   to: string;
-}
+};
 
 export default function OrganizationInviteEmail({
   acceptUrl = 'http://localhost:3005/invite?id=example',
@@ -63,14 +61,14 @@ export default function OrganizationInviteEmail({
               </Text>
 
               <Section style={buttonContainer}>
-                <Button style={button} href={acceptUrl}>
+                <Button href={acceptUrl} style={button}>
                   Join {organizationName}
                 </Button>
               </Section>
 
               <Text style={noteText}>
                 <strong>Note:</strong> This invitation was intended for{' '}
-                <Link style={link} href={`mailto:${to}`}>
+                <Link href={`mailto:${to}`} style={link}>
                   <strong>{to}</strong>
                 </Link>
                 . If you were not expecting this invitation, you can ignore this
@@ -80,7 +78,7 @@ export default function OrganizationInviteEmail({
               <Text style={noteText}>
                 Button not working? Paste the following link into your browser:
                 <br />
-                <Link style={link} href={acceptUrl}>
+                <Link href={acceptUrl} style={link}>
                   {acceptUrl}
                 </Link>
               </Text>
@@ -91,21 +89,21 @@ export default function OrganizationInviteEmail({
           <Section style={footerSection}>
             <Text style={footerLinks}>
               <Link
-                style={footerLink}
                 href={`${siteUrl}/unsubscribe?invitationId=${invitationId}`}
+                style={footerLink}
               >
                 Unsubscribe from invitations
               </Link>{' '}
               •{' '}
-              <Link style={footerLink} href={`${siteUrl}/terms`}>
+              <Link href={`${siteUrl}/terms`} style={footerLink}>
                 Terms
               </Link>{' '}
               •{' '}
-              <Link style={footerLink} href={`${siteUrl}/privacy`}>
+              <Link href={`${siteUrl}/privacy`} style={footerLink}>
                 Privacy
               </Link>{' '}
               •{' '}
-              <Link style={footerLink} href={`${siteUrl}/login`}>
+              <Link href={`${siteUrl}/login`} style={footerLink}>
                 Sign in to {appName}
               </Link>
             </Text>

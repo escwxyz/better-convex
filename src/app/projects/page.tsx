@@ -1,13 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import {
-  usePublicPaginatedQuery,
-  useAuthMutation,
-  useIsAuth,
-} from '@/lib/convex/hooks';
 import { api } from '@convex/_generated/api';
-import { Id } from '@convex/_generated/dataModel';
+import type { Id } from '@convex/_generated/dataModel';
+import { Archive, CheckSquare, Plus, Square, Users } from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -16,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -27,12 +26,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Archive, Users, CheckSquare, Square } from 'lucide-react';
-import { toast } from 'sonner';
 import { WithSkeleton } from '@/components/ui/skeleton';
-import Link from 'next/link';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  useAuthMutation,
+  useIsAuth,
+  usePublicPaginatedQuery,
+} from '@/lib/convex/hooks';
 
 export default function ProjectsPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -97,9 +97,9 @@ export default function ProjectsPage() {
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Projects</h1>
+        <h1 className="font-bold text-3xl">Projects</h1>
         {isAuth && (
-          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <Dialog onOpenChange={setShowCreateDialog} open={showCreateDialog}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4" />
@@ -118,18 +118,17 @@ export default function ProjectsPage() {
                   <Label htmlFor="name">Name</Label>
                   <Input
                     id="name"
-                    value={newProject.name}
                     onChange={(e) =>
                       setNewProject({ ...newProject, name: e.target.value })
                     }
                     placeholder="My Awesome Project"
+                    value={newProject.name}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
                   <Textarea
                     id="description"
-                    value={newProject.description}
                     onChange={(e) =>
                       setNewProject({
                         ...newProject,
@@ -138,12 +137,13 @@ export default function ProjectsPage() {
                     }
                     placeholder="Brief description of your project"
                     rows={3}
+                    value={newProject.description}
                   />
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox
-                    id="isPublic"
                     checked={newProject.isPublic}
+                    id="isPublic"
                     onCheckedChange={(checked) =>
                       setNewProject({
                         ...newProject,
@@ -151,21 +151,21 @@ export default function ProjectsPage() {
                       })
                     }
                   />
-                  <Label htmlFor="isPublic" className="text-sm font-normal">
+                  <Label className="font-normal text-sm" htmlFor="isPublic">
                     Make this project public
                   </Label>
                 </div>
               </div>
               <DialogFooter>
                 <Button
-                  variant="outline"
                   onClick={() => setShowCreateDialog(false)}
+                  variant="outline"
                 >
                   Cancel
                 </Button>
                 <Button
-                  onClick={handleCreateProject}
                   disabled={createProject.isPending}
+                  onClick={handleCreateProject}
                 >
                   Create
                 </Button>
@@ -178,13 +178,13 @@ export default function ProjectsPage() {
       {isAuth && (
         <div className="mb-4 flex items-center space-x-2">
           <Checkbox
-            id="includeArchived"
             checked={includeArchived}
+            id="includeArchived"
             onCheckedChange={(checked) =>
               setIncludeArchived(checked as boolean)
             }
           />
-          <Label htmlFor="includeArchived" className="text-sm font-normal">
+          <Label className="font-normal text-sm" htmlFor="includeArchived">
             Show only archived projects
           </Label>
         </div>
@@ -193,9 +193,9 @@ export default function ProjectsPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {projects.map((project, index) => (
           <WithSkeleton
-            key={project._id || index}
-            isLoading={isLoading}
             className="w-full"
+            isLoading={isLoading}
+            key={project._id || index}
           >
             <Card className={project.archived ? 'opacity-60' : ''}>
               <CardHeader>
@@ -209,7 +209,7 @@ export default function ProjectsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2 text-sm text-muted-foreground">
+                <div className="space-y-2 text-muted-foreground text-sm">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <Users className="h-4 w-4" />
@@ -232,12 +232,12 @@ export default function ProjectsPage() {
                     </span>
                     {project.isOwner && (
                       <Button
-                        variant="ghost"
-                        size="sm"
+                        className="h-7 px-2"
                         onClick={() =>
                           handleArchiveToggle(project._id, project.archived)
                         }
-                        className="h-7 px-2"
+                        size="sm"
+                        variant="ghost"
                       >
                         <Archive className="mr-1 h-3 w-3" />
                         {project.archived ? 'Restore' : 'Archive'}
@@ -254,11 +254,11 @@ export default function ProjectsPage() {
       {projects.length === 0 && !isLoading && (
         <div className="py-12 text-center">
           <p className="mb-4 text-muted-foreground">
-            {!isAuth
-              ? 'No public projects available'
-              : includeArchived
+            {isAuth
+              ? includeArchived
                 ? 'No archived projects found'
-                : 'No active projects found'}
+                : 'No active projects found'
+              : 'No public projects available'}
           </p>
           {isAuth && (
             <Button onClick={() => setShowCreateDialog(true)}>
@@ -272,9 +272,9 @@ export default function ProjectsPage() {
       {hasNextPage && (
         <div className="mt-6 text-center">
           <Button
-            variant="outline"
-            onClick={() => fetchNextPage()}
             disabled={isFetchingNextPage}
+            onClick={() => fetchNextPage()}
+            variant="outline"
           >
             {isFetchingNextPage ? 'Loading...' : 'Load more'}
           </Button>

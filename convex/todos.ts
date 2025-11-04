@@ -1,12 +1,11 @@
-import { z } from 'zod';
+import { ConvexError } from 'convex/values';
 import { zid } from 'convex-helpers/server/zod';
+import { z } from 'zod';
 import {
-  createAuthQuery,
   createAuthMutation,
-  createAuthPaginatedQuery,
+  createAuthQuery,
   createPublicPaginatedQuery,
 } from './functions';
-import { ConvexError } from 'convex/values';
 
 // List todos - shows user's todos when authenticated, public project todos when not
 export const list = createPublicPaginatedQuery()({
@@ -37,7 +36,7 @@ export const list = createPublicPaginatedQuery()({
           )
           .first();
 
-        if (!isOwner && !isMember) {
+        if (!(isOwner || isMember)) {
           throw new ConvexError({
             code: 'FORBIDDEN',
             message: 'You do not have access to this project',
@@ -144,7 +143,7 @@ export const search = createPublicPaginatedQuery()({
           )
           .first();
 
-        if (!isOwner && !isMember) {
+        if (!(isOwner || isMember)) {
           throw new ConvexError({
             code: 'FORBIDDEN',
             message: 'You do not have access to this project',
@@ -265,7 +264,7 @@ export const get = createAuthQuery()({
       project: todo.projectId
         ? await ctx.table('projects').get(todo.projectId)
         : null,
-      user: (await todo.edge('user'))!.doc(),
+      user: (await todo.edge('user'))?.doc(),
     };
   },
 });
@@ -292,7 +291,7 @@ export const create = createAuthMutation({
       const isOwner = project.ownerId === ctx.userId;
       const isMember = await project.edge('members').has(ctx.userId);
 
-      if (!isOwner && !isMember) {
+      if (!(isOwner || isMember)) {
         throw new ConvexError({
           code: 'FORBIDDEN',
           message: "You don't have access to this project",
@@ -358,11 +357,18 @@ export const update = createAuthMutation({
     // Build update object
     const updates: any = {};
 
-    if (args.title !== undefined) updates.title = args.title;
-    if (args.description !== undefined) updates.description = args.description;
-    if (args.priority !== undefined)
+    if (args.title !== undefined) {
+      updates.title = args.title;
+    }
+    if (args.description !== undefined) {
+      updates.description = args.description;
+    }
+    if (args.priority !== undefined) {
       updates.priority = args.priority || undefined;
-    if (args.dueDate !== undefined) updates.dueDate = args.dueDate || undefined;
+    }
+    if (args.dueDate !== undefined) {
+      updates.dueDate = args.dueDate || undefined;
+    }
 
     // Handle project update
     if (args.projectId !== undefined) {
@@ -372,7 +378,7 @@ export const update = createAuthMutation({
         const isOwner = project.ownerId === ctx.userId;
         const isMember = await project.edge('members').has(ctx.userId);
 
-        if (!isOwner && !isMember) {
+        if (!(isOwner || isMember)) {
           throw new ConvexError({
             code: 'FORBIDDEN',
             message: "You don't have access to this project",
@@ -516,7 +522,7 @@ export const bulkDelete = createAuthMutation({
         } else {
           errors.push(`Todo ${id} not found or unauthorized`);
         }
-      } catch (error) {
+      } catch (_error) {
         errors.push(`Failed to delete todo ${id}`);
       }
     }

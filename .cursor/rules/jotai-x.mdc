@@ -1,18 +1,18 @@
 ---
-description: 
-globs: *.tsx
+description: Jotai X state management with atomic stores and type-safe hooks. Use for global state, derived atoms, scoped providers, and state hydration. Always use when using Jotai.
 alwaysApply: false
 ---
+
 # Jotai X State Management
 
-<version>1.0.0</version>
-
 ## Context
+
 - When implementing state management with Jotai
 - When creating or modifying atom stores
 - When accessing state in React components
 
 ## Requirements
+
 - Use `createAtomStore` to define state with type-safe hooks
 - Follow the naming convention `use<StoreName>Value`, `use<StoreName>Store`, etc.
 - Use the appropriate hook for each use case:
@@ -24,6 +24,7 @@ alwaysApply: false
 - Use `initialValues` for hydration and dynamic values for controlled state
 
 ## Examples
+
 <example>
 // Creating a store with type-safe hooks
 const { useAppStore, useAppValue, useAppSet, useAppState, AppProvider } =
@@ -59,6 +60,7 @@ const setStars = useSetAtom(starsAtom);
 </example>
 
 ## Derived Atoms
+
 <example>
 // Using extend for derived atoms
 const { useUserValue } = createAtomStore(
@@ -78,6 +80,7 @@ const intro = useUserValue('intro');
 </example>
 
 ## Provider Usage
+
 <example>
 // Using the provider with initial values and controlled state
 <UserProvider
@@ -95,11 +98,13 @@ const intro = useUserValue('intro');
 # Global App Store Usage
 
 ## Context
+
 - When state needs to be shared across multiple pages (AppProvider is rendered at layout level)
 - When state needs to persist between sessions
 - When prop drilling would make component hierarchy complex
 
 ## Requirements
+
 - Import `useAppStore` from the app provider
 - Use the appropriate hook method for each use case:
   - `useAppStore().use<Key>Value()` for reading values
@@ -109,6 +114,7 @@ const intro = useUserValue('intro');
 - Use `atomWithCookie` for values that should persist between sessions
 
 ## Examples
+
 <example>
 // Importing the app store hook
 import { useAppStore } from '@/components/providers/app-provider';
@@ -130,13 +136,14 @@ const [count, setCount] = useState(0);
 
 // Don't pass shared state through multiple levels of props
 <Parent count={count} setCount={setCount}>
-  <Child count={count} setCount={setCount}>
-    <GrandChild count={count} setCount={setCount} />
-  </Child>
+<Child count={count} setCount={setCount}>
+<GrandChild count={count} setCount={setCount} />
+</Child>
 </Parent>
 </example>
 
 ## Adding New Values
+
 <example>
 // Adding new values to the store
 export const { AppProvider, useAppStore } = createAtomStore(
@@ -154,6 +161,7 @@ export const { AppProvider, useAppStore } = createAtomStore(
 </example>
 
 ## Provider Usage
+
 <example>
 // Wrapping the application with the provider
 function App() {

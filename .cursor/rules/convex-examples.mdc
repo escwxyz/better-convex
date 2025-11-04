@@ -38,38 +38,38 @@ This example demonstrates building a real-time chat application backend with AI 
 
 ```typescript
 // convex/schema.ts
-import { defineEnt, defineEntSchema, getEntDefinitions } from 'convex-ents';
-import { v } from 'convex/values';
+import { defineEnt, defineEntSchema, getEntDefinitions } from "convex-ents";
+import { v } from "convex/values";
 
 const schema = defineEntSchema({
   channels: defineEnt({
     name: v.string(),
-    createdBy: v.id('user'),
+    createdBy: v.id("user"),
   }),
 
-  users: defineEnt({
+  user: defineEnt({
     name: v.string(),
     username: v.string(),
     email: v.optional(v.string()),
-    role: v.optional(v.union(v.literal('user'), v.literal('admin'))),
-  }).index('username', ['username']),
+    role: v.optional(v.union(v.literal("user"), v.literal("admin"))),
+  }).index("username", ["username"]),
 
   messages: defineEnt({
-    channelId: v.id('channels'),
-    authorId: v.optional(v.id('user')),
+    channelId: v.id("channels"),
+    authorId: v.optional(v.id("user")),
     content: v.string(),
   })
-    .index('channel', ['channelId'])
-    .index('author_channel', ['authorId', 'channelId']),
+    .index("channel", ["channelId"])
+    .index("author_channel", ["authorId", "channelId"]),
 
   channelMembers: defineEnt({
-    channelId: v.id('channels'),
-    userId: v.id('user'),
+    channelId: v.id("channels"),
+    userId: v.id("user"),
     joinedAt: v.number(),
   })
-    .index('channel', ['channelId'])
-    .index('user', ['userId'])
-    .index('channel_user', ['channelId', 'userId']),
+    .index("channel", ["channelId"])
+    .index("user", ["userId"])
+    .index("channel_user", ["channelId", "userId"]),
 });
 
 export default schema;
@@ -80,12 +80,12 @@ export const entDefinitions = getEntDefinitions(schema);
 
 ```typescript
 // convex/chat.ts
-import { z } from 'zod';
-import { zid } from 'convex-helpers/server/zod';
-import { asyncMap } from 'convex-helpers';
-import { ConvexError } from 'convex/values';
-import OpenAI from 'openai';
-import { internal } from './_generated/api';
+import { z } from "zod";
+import { zid } from "convex-helpers/server/zod";
+import { asyncMap } from "convex-helpers";
+import { ConvexError } from "convex/values";
+import OpenAI from "openai";
+import { internal } from "./_generated/api";
 import {
   createAuthQuery,
   createPublicQuery,
@@ -94,16 +94,16 @@ import {
   createInternalQuery,
   createInternalMutation,
   createInternalAction,
-} from './functions';
+} from "./functions";
 
 /** Create a user with a given name. */
 export const createUser = createPublicMutation()({
   args: {
     name: z.string(),
   },
-  returns: zid('user'),
+  returns: zid("user"),
   handler: async (ctx, args) => {
-    return await ctx.table('user').insert({
+    return await ctx.table("user").insert({
       name: args.name,
     });
   },
@@ -111,14 +111,14 @@ export const createUser = createPublicMutation()({
 
 /** Create a channel with a given name. */
 export const createChannel = createAuthMutation({
-  rateLimit: 'channel/create',
+  rateLimit: "channel/create",
 })({
   args: {
     name: z.string(),
   },
-  returns: zid('channels'),
+  returns: zid("channels"),
   handler: async (ctx, args) => {
-    return await ctx.table('channels').insert({
+    return await ctx.table("channels").insert({
       name: args.name,
       createdBy: ctx.userId,
     });
@@ -128,18 +128,18 @@ export const createChannel = createAuthMutation({
 /** List messages with author details using relationship helpers. */
 export const listMessages = createPublicQuery()({
   args: {
-    channelId: zid('channels'),
+    channelId: zid("channels"),
   },
   returns: z.array(
     z.object({
-      _id: zid('messages'),
+      _id: zid("messages"),
       _creationTime: z.number(),
-      channelId: zid('channels'),
-      authorId: z.union([zid('user'), z.null()]).optional(),
+      channelId: zid("channels"),
+      authorId: z.union([zid("user"), z.null()]).optional(),
       author: z
         .union([
           z.object({
-            _id: zid('user'),
+            _id: zid("user"),
             name: z.string(),
           }),
           z.null(),
@@ -150,7 +150,7 @@ export const listMessages = createPublicQuery()({
   ),
   handler: async (ctx, args) => {
     const messages = await ctx
-      .table('messages', 'channel', (q) => q.eq('channelId', args.channelId))
+      .table("messages", "channel", (q) => q.eq("channelId", args.channelId))
       .take(10);
 
     // Get unique author IDs
@@ -159,7 +159,7 @@ export const listMessages = createPublicQuery()({
     ];
 
     // Fetch all authors at once
-    const authors = await ctx.table('user').getMany(authorIds);
+    const authors = await ctx.table("user").getMany(authorIds);
     const authorMap = new Map(authors.map((a) => a && [a._id, a]));
 
     // Combine messages with authors
@@ -172,17 +172,17 @@ export const listMessages = createPublicQuery()({
 
 /** Send a message to a channel and schedule a response from the AI. */
 export const sendMessage = createAuthMutation({
-  rateLimit: 'ai',
+  rateLimit: "ai",
 })({
   args: {
-    channelId: zid('channels'),
+    channelId: zid("channels"),
     content: z.string(),
   },
   returns: z.null(),
   handler: async (ctx, args) => {
-    const channel = await ctx.table('channels').getX(args.channelId);
+    const channel = await ctx.table("channels").getX(args.channelId);
 
-    await ctx.table('messages').insert({
+    await ctx.table("messages").insert({
       channelId: args.channelId,
       authorId: ctx.userId,
       content: args.content,
@@ -199,31 +199,31 @@ const openai = new OpenAI();
 
 /** Get channel members - example of many-to-many with asyncMap */
 export const getChannelMembers = createPublicQuery()({
-  args: { channelId: zid('channels') },
+  args: { channelId: zid("channels") },
   returns: z.array(
     z.object({
-      _id: zid('user'),
+      _id: zid("user"),
       name: z.string(),
       lastSeen: z.number().optional(),
     })
   ),
   handler: async (ctx, args) => {
     // Get channel members via join table
-    const members = await ctx.table('channelMembers', 'channel', (q) =>
-      q.eq('channelId', args.channelId)
+    const members = await ctx.table("channelMembers", "channel", (q) =>
+      q.eq("channelId", args.channelId)
     );
 
     // Fetch user details and last activity in parallel
     return await asyncMap(members, async (member) => {
-      const user = await ctx.table('user').get(member.userId);
+      const user = await ctx.table("user").get(member.userId);
       if (!user) return null;
 
       // Get last message timestamp
       const lastMessage = await ctx
-        .table('messages', 'author_channel', (q) =>
-          q.eq('authorId', user._id).eq('channelId', args.channelId)
+        .table("messages", "author_channel", (q) =>
+          q.eq("authorId", user._id).eq("channelId", args.channelId)
         )
-        .order('desc')
+        .order("desc")
         .first();
 
       return {
@@ -237,7 +237,7 @@ export const getChannelMembers = createPublicQuery()({
 
 export const generateResponse = createInternalAction()({
   args: {
-    channelId: zid('channels'),
+    channelId: zid("channels"),
   },
   returns: z.null(),
   handler: async (ctx, args) => {
@@ -245,14 +245,14 @@ export const generateResponse = createInternalAction()({
       channelId: args.channelId,
     });
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: "gpt-4o",
       messages: context,
     });
     const content = response.choices[0].message.content;
     if (!content) {
       throw new ConvexError({
-        code: 'INTERNAL_ERROR',
-        message: 'No content in response',
+        code: "INTERNAL_ERROR",
+        message: "No content in response",
       });
     }
     await ctx.runMutation(internal.chat.writeAgentResponse, {
@@ -265,31 +265,31 @@ export const generateResponse = createInternalAction()({
 
 export const loadContext = createInternalQuery()({
   args: {
-    channelId: zid('channels'),
+    channelId: zid("channels"),
   },
   returns: z.array(
     z.object({
-      role: z.union([z.literal('user'), z.literal('assistant')]),
+      role: z.union([z.literal("user"), z.literal("assistant")]),
       content: z.string(),
     })
   ),
   handler: async (ctx, args) => {
-    const channel = await ctx.table('channels').getX(args.channelId);
+    const channel = await ctx.table("channels").getX(args.channelId);
     const messages = await ctx
-      .table('messages', 'channel', (q) => q.eq('channelId', args.channelId))
-      .order('desc')
+      .table("messages", "channel", (q) => q.eq("channelId", args.channelId))
+      .order("desc")
       .take(10);
 
     const result = [];
     for (const message of messages) {
       if (message.authorId) {
-        const user = await ctx.table('user').getX(message.authorId);
+        const user = await ctx.table("user").getX(message.authorId);
         result.push({
-          role: 'user' as const,
+          role: "user" as const,
           content: `${user.name}: ${message.content}`,
         });
       } else {
-        result.push({ role: 'assistant' as const, content: message.content });
+        result.push({ role: "assistant" as const, content: message.content });
       }
     }
     return result;
@@ -298,12 +298,12 @@ export const loadContext = createInternalQuery()({
 
 export const writeAgentResponse = createInternalMutation()({
   args: {
-    channelId: zid('channels'),
+    channelId: zid("channels"),
     content: z.string(),
   },
   returns: z.null(),
   handler: async (ctx, args) => {
-    await ctx.table('messages').insert({
+    await ctx.table("messages").insert({
       channelId: args.channelId,
       content: args.content,
     });
@@ -316,10 +316,10 @@ export const writeAgentResponse = createInternalMutation()({
 
 ```tsx
 // src/components/chat.tsx
-import { useAuthQuery, useAuthMutation } from '@/lib/convex/hooks';
-import { api } from '@convex/_generated/api';
+import { useAuthQuery, useAuthMutation } from "@/lib/convex/hooks";
+import { api } from "@convex/_generated/api";
 
-export function Chat({ channelId }: { channelId: Id<'channels'> }) {
+export function Chat({ channelId }: { channelId: Id<"channels"> }) {
   const { data: messages } = useAuthQuery(api.chat.listMessages, { channelId });
   const sendMessage = useAuthMutation(api.chat.sendMessage);
 
@@ -331,7 +331,7 @@ export function Chat({ channelId }: { channelId: Id<'channels'> }) {
     <div>
       {messages?.map((msg) => (
         <div key={msg._id}>
-          <strong>{msg.author?.name || 'AI'}:</strong> {msg.content}
+          <strong>{msg.author?.name || "AI"}:</strong> {msg.content}
         </div>
       ))}
       {/* Add input form here */}
@@ -361,25 +361,25 @@ follows: defineEnt({
 // convex/follows.ts
 export const follow = createAuthMutation()({
   args: {
-    userToFollowId: zid('user'),
+    userToFollowId: zid("user"),
   },
   returns: z.boolean(),
   handler: async (ctx, args) => {
     // Check if already following
     const existing = await ctx
-      .table('follows', 'follower_following', (q) =>
-        q.eq('followerId', ctx.userId).eq('followingId', args.userToFollowId)
+      .table("follows", "follower_following", (q) =>
+        q.eq("followerId", ctx.userId).eq("followingId", args.userToFollowId)
       )
       .unique();
 
     if (existing) {
       throw new ConvexError({
-        code: 'ALREADY_EXISTS',
-        message: 'Already following this user',
+        code: "ALREADY_EXISTS",
+        message: "Already following this user",
       });
     }
 
-    await ctx.table('follows').insert({
+    await ctx.table("follows").insert({
       followerId: ctx.userId,
       followingId: args.userToFollowId,
     });
@@ -390,24 +390,24 @@ export const follow = createAuthMutation()({
 
 export const getFollowers = createPublicQuery()({
   args: {
-    userId: zid('user'),
+    userId: zid("user"),
   },
   returns: z.array(
     z.object({
-      _id: zid('user'),
+      _id: zid("user"),
       name: z.string(),
       username: z.string(),
     })
   ),
   handler: async (ctx, args) => {
     // Get all follower relationships
-    const follows = await ctx.table('follows', 'following', (q) =>
-      q.eq('followingId', args.userId)
+    const follows = await ctx.table("follows", "following", (q) =>
+      q.eq("followingId", args.userId)
     );
 
     // Get user details
     const followerIds = follows.map((f) => f.followerId);
-    const users = await ctx.table('user').getMany(followerIds);
+    const users = await ctx.table("user").getMany(followerIds);
 
     return users.filter((u) => u !== null) as any;
   },
@@ -445,27 +445,27 @@ upvotes: defineEnt({
 // convex/comments.ts
 export const addComment = createAuthMutation()({
   args: {
-    documentId: zid('documents'),
+    documentId: zid("documents"),
     content: z.string().min(1).max(1000),
-    parentId: zid('comments').optional(),
+    parentId: zid("comments").optional(),
   },
-  returns: zid('comments'),
+  returns: zid("comments"),
   handler: async (ctx, args) => {
     // Verify document exists
-    const doc = await ctx.table('documents').getX(args.documentId);
+    const doc = await ctx.table("documents").getX(args.documentId);
 
     // Verify parent comment if provided
     if (args.parentId) {
-      const parent = await ctx.table('comments').get(args.parentId);
+      const parent = await ctx.table("comments").get(args.parentId);
       if (!parent || parent.documentId !== args.documentId) {
         throw new ConvexError({
-          code: 'INVALID_PARENT',
-          message: 'Invalid parent comment',
+          code: "INVALID_PARENT",
+          message: "Invalid parent comment",
         });
       }
     }
 
-    return await ctx.table('comments').insert({
+    return await ctx.table("comments").insert({
       documentId: args.documentId,
       userId: ctx.userId,
       content: args.content,
@@ -476,14 +476,14 @@ export const addComment = createAuthMutation()({
 
 export const getCommentsWithUpvotes = createPublicQuery()({
   args: {
-    documentId: zid('documents'),
+    documentId: zid("documents"),
   },
   returns: z.array(
     z.object({
-      _id: zid('comments'),
+      _id: zid("comments"),
       content: z.string(),
       user: z.object({
-        _id: zid('user'),
+        _id: zid("user"),
         name: z.string(),
       }),
       upvoteCount: z.number(),
@@ -493,25 +493,25 @@ export const getCommentsWithUpvotes = createPublicQuery()({
   ),
   handler: async (ctx, args) => {
     // Get all comments for document
-    const comments = await ctx.table('comments', 'document', (q) =>
-      q.eq('documentId', args.documentId)
+    const comments = await ctx.table("comments", "document", (q) =>
+      q.eq("documentId", args.documentId)
     );
 
     // Get users
     const userIds = [...new Set(comments.map((c) => c.userId))];
-    const users = await ctx.table('user').getMany(userIds);
+    const users = await ctx.table("user").getMany(userIds);
     const userMap = new Map(users.map((u) => u && [u._id, u]));
 
     // Get upvotes
     const commentIds = comments.map((c) => c._id);
     const upvotes = await ctx
-      .table('upvotes')
+      .table("upvotes")
       .filter((q) =>
-        q.or(...commentIds.map((id) => q.eq(q.field('commentId'), id)))
+        q.or(...commentIds.map((id) => q.eq(q.field("commentId"), id)))
       );
 
     // Build comment tree
-    const commentMap = new Map<Id<'comments'>, any>();
+    const commentMap = new Map<Id<"comments">, any>();
     const rootComments: any[] = [];
 
     // First pass: create all comments
@@ -579,7 +579,7 @@ progress: defineEnt({
 // convex/progress.ts
 export const updateProgress = createAuthMutation()({
   args: {
-    skillId: zid('skills'),
+    skillId: zid("skills"),
     level: z.number().min(0).max(100),
   },
   returns: z.object({
@@ -589,8 +589,8 @@ export const updateProgress = createAuthMutation()({
   handler: async (ctx, args) => {
     // Get or create progress
     const existing = await ctx
-      .table('progress', 'user_skill', (q) =>
-        q.eq('userId', ctx.userId).eq('skillId', args.skillId)
+      .table("progress", "user_skill", (q) =>
+        q.eq("userId", ctx.userId).eq("skillId", args.skillId)
       )
       .unique();
 
@@ -604,7 +604,7 @@ export const updateProgress = createAuthMutation()({
           isNowCompleted && !wasCompleted ? Date.now() : existing.completedAt,
       });
     } else {
-      await ctx.table('progress').insert({
+      await ctx.table("progress").insert({
         userId: ctx.userId,
         skillId: args.skillId,
         level: args.level,
@@ -624,7 +624,7 @@ export const getUserProgress = createAuthQuery()({
   returns: z.array(
     z.object({
       skill: z.object({
-        _id: zid('skills'),
+        _id: zid("skills"),
         name: z.string(),
         category: z.string(),
       }),
@@ -634,13 +634,13 @@ export const getUserProgress = createAuthQuery()({
   ),
   handler: async (ctx) => {
     // Get all progress for user
-    const progressRecords = await ctx.table('progress', 'user', (q) =>
-      q.eq('userId', ctx.userId)
+    const progressRecords = await ctx.table("progress", "user", (q) =>
+      q.eq("userId", ctx.userId)
     );
 
     // Get skill details
     const skillIds = progressRecords.map((p) => p.skillId);
-    const skills = await ctx.table('skills').getMany(skillIds);
+    const skills = await ctx.table("skills").getMany(skillIds);
 
     return progressRecords
       .map((progress) => {

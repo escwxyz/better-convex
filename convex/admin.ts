@@ -1,8 +1,6 @@
-import { zid } from 'convex-helpers/server/zod';
 import { ConvexError } from 'convex/values';
+import { zid } from 'convex-helpers/server/zod';
 import { z } from 'zod';
-
-import type { Id } from './_generated/dataModel';
 
 import { aggregateUsers } from './aggregates';
 import {
@@ -127,8 +125,10 @@ export const getAllUsers = createAuthPaginatedQuery()({
 
           // Check if any field matches search
           if (
-            !user.name?.toLowerCase().includes(searchLower) &&
-            !email.toLowerCase().includes(searchLower)
+            !(
+              user.name?.toLowerCase().includes(searchLower) ||
+              email.toLowerCase().includes(searchLower)
+            )
           ) {
             return null;
           }
@@ -137,8 +137,8 @@ export const getAllUsers = createAuthPaginatedQuery()({
             ...user.doc(),
             banExpiresAt: user?.banExpires,
             banReason: user?.banReason,
-            email: email,
-            isBanned: user?.banned || false,
+            email,
+            isBanned: user?.banned,
             role: user?.role || 'user',
           };
         })
@@ -160,7 +160,7 @@ export const getAllUsers = createAuthPaginatedQuery()({
           banExpiresAt: user?.banExpires,
           banReason: user?.banReason,
           email: user?.email || '',
-          isBanned: user?.banned || false,
+          isBanned: user?.banned,
           role: user?.role || 'user',
         };
 

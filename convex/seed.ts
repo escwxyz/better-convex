@@ -1,12 +1,10 @@
 import { zid } from 'convex-helpers/server/zod';
 import { z } from 'zod';
-
-import type { Id } from './_generated/dataModel';
-
 import { internal } from './_generated/api';
-import { createInternalMutation, createAuthAction } from './functions';
-import { getEnv } from './helpers/getEnv';
+import type { Id } from './_generated/dataModel';
 import { createUser } from './authHelpers';
+import { createAuthAction, createInternalMutation } from './functions';
+import { getEnv } from './helpers/getEnv';
 
 // Admin configuration - moved inside functions to avoid module-level execution
 const getAdminConfig = () => {
@@ -52,20 +50,11 @@ export const seed = createInternalMutation()({
   args: {},
   returns: z.null(),
   handler: async (ctx) => {
-    console.info('🌱 Starting seeding...');
+    // Step 1: Clean up existing seed data
+    await ctx.runMutation(internal.seed.cleanupSeedData, {});
 
-    try {
-      // Step 1: Clean up existing seed data
-      await ctx.runMutation(internal.seed.cleanupSeedData, {});
-
-      // Step 2: Seed users
-      await ctx.runMutation(internal.seed.seedUsers, {});
-
-      console.info('✅ Seeding finished');
-    } catch (error) {
-      console.error('❌ Error while seeding:', error);
-      throw error;
-    }
+    // Step 2: Seed users
+    await ctx.runMutation(internal.seed.seedUsers, {});
 
     return null;
   },
@@ -75,15 +64,7 @@ export const seed = createInternalMutation()({
 export const cleanupSeedData = createInternalMutation()({
   args: {},
   returns: z.null(),
-  handler: async (ctx) => {
-    console.info(
-      '🧹 Starting cleanup of seed data (preserving users and sessions)...'
-    );
-
-    console.info('🧹 Cleanup finished');
-
-    return null;
-  },
+  handler: async (_ctx) => null,
 });
 
 // Seed users
@@ -91,8 +72,6 @@ export const seedUsers = createInternalMutation()({
   args: {},
   returns: z.array(zid('user')),
   handler: async (ctx) => {
-    console.info('👤 Creating users...');
-
     const userIds: Id<'user'>[] = [];
 
     // First, get the admin user if it exists
@@ -101,7 +80,6 @@ export const seedUsers = createInternalMutation()({
 
     if (adminUser) {
       userIds.push(adminUser._id);
-      console.info(`  ✅ Found admin user: ${adminEmail}`);
     }
 
     const usersData = getUsersData();
@@ -128,7 +106,6 @@ export const seedUsers = createInternalMutation()({
 
         await ctx.table('user').getX(existing._id).patch(updateData);
         userIds.push(existing._id);
-        console.info(`  ✅ Updated user: ${userData.name}`);
       } else {
         const userId = await createUser(ctx, {
           bio: userData.bio,
@@ -138,11 +115,8 @@ export const seedUsers = createInternalMutation()({
         });
 
         userIds.push(userId);
-        console.info(`  ✅ Created user: ${userData.name}`);
       }
     }
-
-    console.info('👤 Created/updated users');
 
     return userIds;
   },
@@ -340,7 +314,9 @@ export const generateSamplesBatch = createInternalMutation()({
     // Pre-compute tag IDs for efficient selection
     const tagIds = tags.map((t) => t._id);
     const getRandomTags = (maxCount: number) => {
-      if (tagIds.length === 0) return [];
+      if (tagIds.length === 0) {
+        return [];
+      }
       const count = Math.min(
         Math.floor(Math.random() * (maxCount + 1)),
         tagIds.length

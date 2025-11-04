@@ -1,12 +1,3 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
-import type {
-  FunctionArgs,
-  FunctionReference,
-  FunctionReturnType,
-} from 'convex/server';
-import type { DeepPartial } from 'ts-essentials';
-
 import { useConvexAction, useConvexMutation } from '@convex-dev/react-query';
 import {
   type DefaultError,
@@ -14,7 +5,6 @@ import {
   type UseMutationOptions,
   useMutation,
 } from '@tanstack/react-query';
-import { makeUseQueryWithStatus } from 'convex-helpers/react';
 import {
   type OptionalRestArgsOrSkip,
   type PaginatedQueryArgs,
@@ -25,13 +15,32 @@ import {
   useQueries,
   useQuery,
 } from 'convex/react';
+import type {
+  FunctionArgs,
+  FunctionReference,
+  FunctionReturnType,
+} from 'convex/server';
+import { makeUseQueryWithStatus } from 'convex-helpers/react';
+import { useMemo, useRef, useSyncExternalStore } from 'react';
 import { toast } from 'sonner';
+import type { DeepPartial } from 'ts-essentials';
 
 import { useAuthValue } from '@/lib/convex/components/convex-provider';
 
 export const useAuthStatus = () => {
+  // During SSR/prerendering, return loading state
+  if (typeof window === 'undefined') {
+    return {
+      hasSession: false,
+      isAuthenticated: false,
+      isLoading: true,
+    };
+  }
+
   // Token is ready to be used only after convex client auth is loaded
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const { isAuthenticated, isLoading } = useConvexAuth();
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const token = useAuthValue('token');
 
   return {
@@ -68,16 +77,15 @@ export function useStableQuery<Query extends FunctionReference<'query'>>(
 export const useAuthGuard = () => {
   const isAuth = useIsAuth();
 
-  return useCallback(
-    (callback?: () => Promise<void> | void) => {
-      if (!isAuth) {
-        return true;
-      }
+  return (callback?: () => Promise<void> | void) => {
+    if (!isAuth) {
+      // push modal to login
 
-      return callback ? void callback() : false;
-    },
-    [isAuth]
-  );
+      return true;
+    }
+
+    return callback ? void callback() : false;
+  };
 };
 
 const useQueryWithStatus = makeUseQueryWithStatus(useQueries);
@@ -193,7 +201,7 @@ export const usePublicPaginatedQuery = <Query extends PaginatedQueryReference>(
   // Some public queries have auth logic, so we need to skip when auth is loading
   const { isLoading: isAuthLoading } = useAuthStatus();
   const mounted = useMounted();
-  args = isAuthLoading ? 'skip' : args;
+  const queryArgs = isAuthLoading ? 'skip' : args;
 
   // If not authenticated, always skip
   const {
@@ -201,11 +209,11 @@ export const usePublicPaginatedQuery = <Query extends PaginatedQueryReference>(
     loadMore,
     results,
     status,
-  } = usePaginatedQuery(query, args, options);
+  } = usePaginatedQuery(query, queryArgs, options);
 
-  const fetchNextPage = useCallback(() => {
+  const fetchNextPage = () => {
     loadMore(options.initialNumItems);
-  }, [loadMore, options.initialNumItems]);
+  };
 
   const isLoading = isAuthLoading || (args !== 'skip' && _isLoading);
   const showPlaceholder =
@@ -309,7 +317,7 @@ export const useAuthMutation: typeof usePublicMutation = (
           return;
         }
 
-        return convexMutation(...args);
+        return convexMutation(...(args as any));
       },
       ...options,
     },
@@ -360,7 +368,7 @@ export const useAuthAction: typeof usePublicAction = (
           return;
         }
 
-        return convexAction(...args);
+        return convexAction(...(args as any));
       },
       ...options,
     },
@@ -368,16 +376,14 @@ export const useAuthAction: typeof usePublicAction = (
   );
 };
 
-// Helper hook for mounted state
-const useMounted = () => {
-  const [mounted, setMounted] = useState(false);
+const subscribe = () => () => {};
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  return mounted;
-};
+const useMounted = () =>
+  useSyncExternalStore(
+    subscribe,
+    () => true,
+    () => false
+  );
 
 // Upload file hook for R2
 export const useUploadFile = <

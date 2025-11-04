@@ -2,9 +2,9 @@ import type { Id } from '@convex/_generated/dataModel';
 
 import { hasPermission } from '@convex/authHelpers';
 import { listUserOrganizations } from '@convex/organizationHelpers';
+import { ConvexError } from 'convex/values';
 import { asyncMap } from 'convex-helpers';
 import { zid } from 'convex-helpers/server/zod';
-import { ConvexError } from 'convex/values';
 import { z } from 'zod';
 
 import {
@@ -175,10 +175,7 @@ export const updateOrganization = createAuthMutation({
         // Check if slug is taken
         const existingOrg = await ctx.table('organization').get('slug', slug!);
 
-        if (
-          existingOrg &&
-          existingOrg._id !== ctx.user.activeOrganization.id
-        ) {
+        if (existingOrg && existingOrg._id !== ctx.user.activeOrganization.id) {
           throw new ConvexError({
             code: 'BAD_REQUEST',
             message: 'This slug is already taken',
@@ -229,9 +226,7 @@ export const setActiveOrganization = createAuthMutation({
     organizationId: zid('organization'),
   },
   returns: z.null(),
-  handler: async (ctx, args) => {
-    return setActiveOrganizationHandler(ctx, args);
-  },
+  handler: async (ctx, args) => setActiveOrganizationHandler(ctx, args),
 });
 
 // Accept invitation
@@ -417,7 +412,7 @@ export const deleteOrganization = createAuthMutation({})({
     // Permission: organization delete
     await hasPermission(ctx, { permissions: { organization: ['delete'] } });
 
-    const organizationId = ctx.user.activeOrganization!.id;
+    const organizationId = ctx.user.activeOrganization?.id;
 
     // Prevent deletion of personal organizations
     if (organizationId === ctx.user.personalOrganizationId) {
@@ -434,7 +429,7 @@ export const deleteOrganization = createAuthMutation({})({
 
     // Delete organization via Better Auth
     await ctx.auth.api.deleteOrganization({
-      body: { organizationId },
+      body: { organizationId: organizationId! },
       headers: ctx.auth.headers,
     });
 
@@ -465,7 +460,9 @@ export const getOrganization = createAuthQuery()({
     // Get organization by slug using index
     const org = await ctx.table('organization').get('slug', args.slug);
 
-    if (!org) return null;
+    if (!org) {
+      return null;
+    }
 
     // Get all members for this organization
     const members = await ctx
@@ -706,7 +703,9 @@ export const listPendingInvitations = createAuthQuery()({
     // Get organization by slug using index
     const org = await ctx.table('organization').get('slug', args.slug);
 
-    if (!org) return [];
+    if (!org) {
+      return [];
+    }
 
     // Permission: invitation management (use create permission as a proxy for managing invites)
     const canManageInvites = await hasPermission(

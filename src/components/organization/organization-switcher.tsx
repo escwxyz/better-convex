@@ -1,9 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { api } from '@convex/_generated/api';
+import type { Id } from '@convex/_generated/dataModel';
+import { Building2, Check, ChevronsUpDown, Plus, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { Check, ChevronsUpDown, Plus, Building2, User } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Command,
@@ -15,11 +18,6 @@ import {
   CommandSeparator,
 } from '@/components/ui/command';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -29,16 +27,18 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import {
-  useAuthQuery,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { WithSkeleton } from '@/components/ui/skeleton';
+import {
   useAuthMutation,
+  useAuthQuery,
   useCurrentUser,
 } from '@/lib/convex/hooks';
-import { api } from '@convex/_generated/api';
-import { toast } from 'sonner';
-import { WithSkeleton } from '@/components/ui/skeleton';
-import { Id } from '@convex/_generated/dataModel';
+import { cn } from '@/lib/utils';
 
 export function OrganizationSwitcher() {
   const [open, setOpen] = useState(false);
@@ -57,7 +57,7 @@ export function OrganizationSwitcher() {
         organizations: [
           {
             id: '1' as any,
-            createdAt: Date.now(),
+            createdAt: new Date('2025-11-04').getTime(),
             isPersonal: true,
             logo: null,
             name: 'Personal',
@@ -65,7 +65,7 @@ export function OrganizationSwitcher() {
           },
           {
             id: '2' as any,
-            createdAt: Date.now(),
+            createdAt: new Date('2025-11-04').getTime(),
             isPersonal: false,
             logo: null,
             name: 'Team Organization',
@@ -112,10 +112,14 @@ export function OrganizationSwitcher() {
     }
   );
 
-  if (!user) return null;
+  if (!user) {
+    return null;
+  }
 
   const currentOrg = user.activeOrganization;
-  if (!currentOrg) return null;
+  if (!currentOrg) {
+    return null;
+  }
 
   const handleSelectOrganization = (
     organizationId: Id<'organization'>,
@@ -157,14 +161,14 @@ export function OrganizationSwitcher() {
 
   return (
     <>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover onOpenChange={setOpen} open={open}>
         <PopoverTrigger asChild>
           <Button
-            variant="outline"
-            role="combobox"
             aria-expanded={open}
             className="w-[240px] justify-between"
+            role="combobox"
             size="sm"
+            variant="outline"
           >
             <div className="flex items-center gap-2 truncate">
               {currentOrg.id === user.personalOrganizationId ? (
@@ -174,7 +178,7 @@ export function OrganizationSwitcher() {
               )}
               <span className="truncate">{currentOrg.name}</span>
               {currentOrg.id === user.personalOrganizationId && (
-                <Badge variant="secondary" className="ml-1">
+                <Badge className="ml-1" variant="secondary">
                   Personal
                 </Badge>
               )}
@@ -192,10 +196,10 @@ export function OrganizationSwitcher() {
                   {uniqueOrganizations.map((org) => (
                     <CommandItem
                       key={org.id}
-                      value={org.slug}
                       onSelect={() =>
                         handleSelectOrganization(org.id, org.slug)
                       }
+                      value={org.slug}
                     >
                       <div className="flex w-full flex-1 items-center gap-2">
                         {org.isPersonal ? (
@@ -206,8 +210,8 @@ export function OrganizationSwitcher() {
                         <span className="truncate">{org.name}</span>
                         {org.isPersonal && org.id !== currentOrg.id && (
                           <Badge
-                            variant="secondary"
                             className="ml-auto shrink-0"
+                            variant="secondary"
                           >
                             Personal
                           </Badge>
@@ -245,7 +249,7 @@ export function OrganizationSwitcher() {
       </Popover>
 
       {/* Create Organization Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+      <Dialog onOpenChange={setShowCreateDialog} open={showCreateDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create New Organization</DialogTitle>
@@ -258,30 +262,30 @@ export function OrganizationSwitcher() {
               <Label htmlFor="org-name">Organization Name</Label>
               <Input
                 id="org-name"
-                value={orgName}
                 onChange={(e) => setOrgName(e.target.value)}
-                placeholder="My Team"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     handleCreateOrganization();
                   }
                 }}
+                placeholder="My Team"
+                value={orgName}
               />
             </div>
           </div>
           <DialogFooter>
             <Button
-              variant="outline"
               onClick={() => {
                 setShowCreateDialog(false);
                 setOrgName('');
               }}
+              variant="outline"
             >
               Cancel
             </Button>
             <Button
-              onClick={handleCreateOrganization}
               disabled={createOrganization.isPending || !orgName.trim()}
+              onClick={handleCreateOrganization}
             >
               Create
             </Button>

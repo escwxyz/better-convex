@@ -1,25 +1,25 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams } from 'next/navigation';
-import { useAuthQuery } from '@/lib/convex/hooks';
 import { api } from '@convex/_generated/api';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
-  Settings,
-  Users,
   Building2,
   Calendar,
   Crown,
   LogOut,
+  Settings,
+  Users,
 } from 'lucide-react';
-import { WithSkeleton } from '@/components/ui/skeleton';
-import { OrganizationOverview } from '@/components/organization/organization-overview';
+import { useParams } from 'next/navigation';
+import { useState } from 'react';
 import { OrganizationMembers } from '@/components/organization/organization-members';
+import { OrganizationOverview } from '@/components/organization/organization-overview';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { WithSkeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuthQuery } from '@/lib/convex/hooks';
 
 export default function OrganizationPage() {
   const params = useParams();
@@ -32,14 +32,14 @@ export default function OrganizationPage() {
     {
       placeholderData: {
         id: '1' as any,
-        createdAt: Date.now(),
+        createdAt: new Date('2025-11-04').getTime(),
         isActive: false,
         isPersonal: false,
         logo: null,
         membersCount: 3,
         name: 'Loading Organization',
         role: 'member',
-        slug: slug,
+        slug,
       },
     }
   );
@@ -54,7 +54,7 @@ export default function OrganizationPage() {
         members: [
           {
             id: '1' as any,
-            createdAt: Date.now(),
+            createdAt: new Date('2025-11-04').getTime(),
             organizationId: '1' as any,
             role: 'owner',
             user: {
@@ -67,7 +67,7 @@ export default function OrganizationPage() {
           },
           {
             id: '2' as any,
-            createdAt: Date.now(),
+            createdAt: new Date('2025-11-04').getTime(),
             organizationId: '1' as any,
             role: 'member',
             user: {
@@ -83,7 +83,7 @@ export default function OrganizationPage() {
     }
   );
 
-  if (!organization && !isLoading) {
+  if (!(organization || isLoading)) {
     return (
       <div className="container mx-auto px-4 py-6">
         <Card>
@@ -101,7 +101,7 @@ export default function OrganizationPage() {
 
   return (
     <div className="container mx-auto px-4 py-6">
-      <WithSkeleton isLoading={isLoading} className="w-full">
+      <WithSkeleton className="w-full" isLoading={isLoading}>
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-start justify-between">
@@ -114,7 +114,7 @@ export default function OrganizationPage() {
               </Avatar>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-3xl font-bold">{organization?.name}</h1>
+                  <h1 className="font-bold text-3xl">{organization?.name}</h1>
                   {organization?.isPersonal && (
                     <Badge variant="secondary">Personal</Badge>
                   )}
@@ -122,7 +122,7 @@ export default function OrganizationPage() {
                     <Badge variant="default">Active</Badge>
                   )}
                 </div>
-                <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="mt-2 flex items-center gap-4 text-muted-foreground text-sm">
                   <div className="flex items-center gap-1">
                     <Users className="h-4 w-4" />
                     <span>{organization?.membersCount} members</span>
@@ -147,13 +147,13 @@ export default function OrganizationPage() {
             </div>
             <div className="flex gap-2">
               {isOwner && (
-                <Button variant="outline" size="sm">
+                <Button size="sm" variant="outline">
                   <Settings className="h-4 w-4" />
                   Settings
                 </Button>
               )}
-              {!organization?.isPersonal && !isOwner && (
-                <Button variant="outline" size="sm">
+              {!(organization?.isPersonal || isOwner) && (
+                <Button size="sm" variant="outline">
                   <LogOut className="h-4 w-4" />
                   Leave
                 </Button>
@@ -164,24 +164,24 @@ export default function OrganizationPage() {
 
         {/* Tabs */}
         <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
           className="space-y-4"
+          onValueChange={setActiveTab}
+          value={activeTab}
         >
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="members">Members</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-4">
+          <TabsContent className="space-y-4" value="overview">
             <OrganizationOverview organization={organization} />
           </TabsContent>
 
-          <TabsContent value="members" className="space-y-4">
+          <TabsContent className="space-y-4" value="members">
             <OrganizationMembers
-              organization={organization}
-              members={members}
               isLoading={membersLoading}
+              members={members}
+              organization={organization}
             />
           </TabsContent>
         </Tabs>

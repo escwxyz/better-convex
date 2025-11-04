@@ -1,6 +1,6 @@
 # Better Convex
 
-A modern Next.js starter template featuring **Convex** backend with **Better Auth** integration, showcasing type-safe backend patterns and custom authentication helpers.
+A modern Next.js starter template featuring **Convex** backend with **Better Auth** integration, showcasing type-safe backend patterns and custom authentication helpers. Includes React Compiler for automatic optimizations.
 
 ## Key Features
 
@@ -15,14 +15,15 @@ A modern Next.js starter template featuring **Convex** backend with **Better Aut
 
 ## Tech Stack
 
-- **Framework**: Next.js 15.5 with App Router & React 19
+- **Framework**: Next.js 16 with App Router & React 19.2 (React Compiler enabled)
 - **Backend**: Convex with Ents (entity relationships)
 - **Authentication**: Better Auth with better-auth-convex package & organization plugin
 - **Payments**: Polar integration (subscriptions & credits)
 - **Styling**: Tailwind CSS v4 with CSS-first configuration
 - **State**: Jotai-x for client state, React Query for server state
 - **Forms**: React Hook Form + Zod validation
-- **UI**: shadcn/ui components with Radix primitives
+- **UI**: shadcn/ui components with Radix UI primitives
+- **Code Quality**: Ultracite (Biome preset) for linting/formatting, Lefthook for git hooks
 
 ## Getting Started
 
@@ -107,23 +108,23 @@ Instead of using raw Convex `query`/`mutation`/`action`, this template provides 
 ```typescript
 // Public query - auth optional
 export const example = createPublicQuery()({
-  args: { id: zid('items') }, // Always use zid() for IDs
+  args: { id: zid("items") }, // Always use zid() for IDs
   returns: z.object({ name: z.string() }).nullable(),
   handler: async (ctx, args) => {
-    return await ctx.table('items').get(args.id);
+    return await ctx.table("items").get(args.id);
   },
 });
 
 // Protected mutation with rate limiting
 export const createItem = createAuthMutation({
-  rateLimit: 'item/create', // Auto tier limits
-  role: 'admin', // Optional role check (lowercase)
+  rateLimit: "item/create", // Auto tier limits
+  role: "admin", // Optional role check (lowercase)
 })({
   args: { name: z.string().min(1).max(100) },
-  returns: zid('items'),
+  returns: zid("items"),
   handler: async (ctx, args) => {
     // ctx.user is pre-loaded SessionUser with ent methods
-    return await ctx.table('items').insert({
+    return await ctx.table("items").insert({
       name: args.name,
       userId: ctx.user._id,
     });
@@ -152,16 +153,16 @@ const { data } = useAuthQuery(api.user.getProfile, {}); // Skips if not auth
 
 // Mutations with toast integration
 const updateSettings = useAuthMutation(api.user.updateSettings);
-toast.promise(updateSettings.mutateAsync({ name: 'New' }), {
-  loading: 'Updating...',
-  success: 'Updated!',
-  error: (e) => e.data?.message ?? 'Failed',
+toast.promise(updateSettings.mutateAsync({ name: "New" }), {
+  loading: "Updating...",
+  success: "Updated!",
+  error: (e) => e.data?.message ?? "Failed",
 });
 
 // Paginated queries
 const { data, hasNextPage, fetchNextPage } = usePublicPaginatedQuery(
   api.messages.list,
-  { author: 'alice' },
+  { author: "alice" },
   { initialNumItems: 10 }
 );
 ```
@@ -188,28 +189,28 @@ The template includes two schemas working together:
 ```typescript
 // convex/schema.ts - Application data with relationships
 const schema = defineEntSchema({
-  users: defineEnt({
+  user: defineEnt({
     name: v.optional(v.string()),
     bio: v.optional(v.string()),
     personalOrganizationId: v.string(), // Every user has a personal org
   })
-    .field('email', v.string(), { unique: true })
-    .edges('subscriptions', { ref: 'userId' }) // Polar subscriptions
-    .edges('todos', { ref: true })
-    .edges('ownedProjects', { to: 'projects', ref: 'ownerId' }),
+    .field("email", v.string(), { unique: true })
+    .edges("subscriptions", { ref: "userId" }) // Polar subscriptions
+    .edges("todos", { ref: true })
+    .edges("ownedProjects", { to: "projects", ref: "ownerId" }),
 
   todos: defineEnt({
     title: v.string(),
     description: v.optional(v.string()),
   })
-    .field('completed', v.boolean(), { index: true })
-    .deletion('soft') // Soft delete support
-    .edge('user')
-    .edge('project', { optional: true })
-    .edges('tags') // Many-to-many
-    .searchIndex('search_title_description', {
-      searchField: 'title',
-      filterFields: ['userId', 'completed'],
+    .field("completed", v.boolean(), { index: true })
+    .deletion("soft") // Soft delete support
+    .edge("user")
+    .edge("project", { optional: true })
+    .edges("tags") // Many-to-many
+    .searchIndex("search_title_description", {
+      searchField: "title",
+      filterFields: ["userId", "completed"],
     }),
 });
 ```
@@ -231,7 +232,7 @@ In authenticated functions, `ctx.user` is a pre-loaded `SessionUser` with full e
 ```typescript
 handler: async (ctx, args) => {
   // ❌ Don't refetch the user
-  const user = await ctx.table('user').get(ctx.user._id);
+  const user = await ctx.table("user").get(ctx.user._id);
 
   // ✅ Use pre-loaded user
   await ctx.user.patch({ credits: ctx.user.credits - 1 });
@@ -250,17 +251,6 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
 
 // Auto-selects tier based on user plan (free/premium)
 createAuthMutation({ rateLimit: 'comment/create' })({...});
-```
-
-### Error Handling
-
-Always throw `ConvexError` with proper codes:
-
-```typescript
-throw new ConvexError({
-  code: 'UNAUTHENTICATED',
-  message: 'Not authenticated',
-});
 ```
 
 ### Validators
@@ -286,7 +276,9 @@ args: {
 ```bash
 pnpm dev          # Start dev servers
 pnpm typecheck    # Run TypeScript checks
-pnpm lint:fix     # Fix linting issues
+pnpm lint         # Check code with Ultracite/Biome
+pnpm lint:fix     # Fix linting and formatting issues
+pnpm check        # Run all checks (lint, ESLint, TypeScript)
 pnpm seed         # Seed database
 pnpm reset        # Reset database
 pnpm studio       # Open Convex dashboard
@@ -324,17 +316,6 @@ src/lib/convex/
 
 This template includes specialized AI agents and coding rules to enhance your development experience:
 
-### Claude Agents (`.claude/agents/`)
-
-- **convex-reviewer** - Reviews Convex queries/mutations for performance and best practices
-- **debug-detective** - Systematically investigates bugs and unexpected behavior
-- **perf-optimizer** - Identifies and fixes performance bottlenecks
-- **security-researcher** - Analyzes security vulnerabilities and authentication flows
-- **tech-researcher** - Evaluates technology choices and framework comparisons
-- **architect** - Designs and optimizes system architectures
-- **ux-designer** - Improves user experience and interface design
-- **learner** - Analyzes errors to improve documentation
-
 ### Cursor Rules (`.cursor/rules/`)
 
 #### Core Convex Rules
@@ -355,10 +336,9 @@ This template includes specialized AI agents and coding rules to enhance your de
 
 - **react.mdc** - React component patterns
 - **nextjs.mdc** - Next.js routing and RSC patterns
-- **tailwind-v4.mdc** - Tailwind CSS v4 features
-- **global-css.mdc** - CSS configuration
 - **jotai-x.mdc** - State management patterns
 - **toast.mdc** - Notification patterns
+- **ultracite.mdc** - Code quality standards and formatting rules
 
 ## Start from Scratch
 
@@ -437,7 +417,7 @@ Remove these tables and their edges from the schema:
 Update the `users` table to remove edges:
 
 ```typescript
-users: defineEnt({
+user: defineEnt({
   // Keep profile fields
   name: v.optional(v.string()),
   bio: v.optional(v.string()),
@@ -445,8 +425,8 @@ users: defineEnt({
   role: v.optional(v.string()),
   deletedAt: v.optional(v.number()),
 })
-  .field('emailVerified', v.boolean(), { default: false })
-  .field('email', v.string(), { unique: true });
+  .field("emailVerified", v.boolean(), { default: false })
+  .field("email", v.string(), { unique: true });
 // Remove all todo/project related edges
 ```
 
@@ -471,7 +451,7 @@ Remove aggregate registrations:
 
 ```typescript
 // Keep only:
-app.use(aggregate, { name: 'aggregateUsers' });
+app.use(aggregate, { name: "aggregateUsers" });
 
 // Remove all todo/project/tag related aggregates
 ```

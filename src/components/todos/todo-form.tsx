@@ -1,12 +1,20 @@
 'use client';
 
-import { useState } from 'react';
-import { useAuthMutation, useAuthQuery } from '@/lib/convex/hooks';
 import { api } from '@convex/_generated/api';
-import { Id } from '@convex/_generated/dataModel';
+import type { Id } from '@convex/_generated/dataModel';
+import { format } from 'date-fns';
+import { CalendarIcon, Plus } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -14,17 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { CalendarIcon, Plus } from 'lucide-react';
-import { format } from 'date-fns';
-import { Calendar } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { Textarea } from '@/components/ui/textarea';
+import { useAuthMutation, useAuthQuery } from '@/lib/convex/hooks';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 import { TagPicker } from './tag-picker';
 
 export function TodoForm({
@@ -94,23 +94,23 @@ export function TodoForm({
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover onOpenChange={setIsOpen} open={isOpen}>
       <PopoverTrigger asChild>
         <Button size="sm">
           <Plus className="h-4 w-4" />
           Add Todo
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[500px] p-0" align="end">
-        <form onSubmit={handleSubmit} className="space-y-4 p-4">
+      <PopoverContent align="end" className="w-[500px] p-0">
+        <form className="space-y-4 p-4" onSubmit={handleSubmit}>
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input
+              autoFocus
               id="title"
+              onChange={(e) => setTitle(e.target.value)}
               placeholder="What needs to be done?"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              autoFocus
             />
           </div>
 
@@ -118,22 +118,22 @@ export function TodoForm({
             <Label htmlFor="description">Description (optional)</Label>
             <Textarea
               id="description"
-              placeholder="Add more details..."
-              value={description}
               onChange={(e) => setDescription(e.target.value)}
+              placeholder="Add more details..."
               rows={3}
+              value={description}
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="project">Project (optional)</Label>
             <Select
-              value={projectId || 'no-project'}
               onValueChange={(v) =>
                 setProjectId(
                   v === 'no-project' ? undefined : (v as Id<'projects'>)
                 )
               }
+              value={projectId || 'no-project'}
             >
               <SelectTrigger id="project">
                 <SelectValue placeholder="Select a project" />
@@ -153,8 +153,8 @@ export function TodoForm({
             <div className="space-y-2">
               <Label htmlFor="priority">Priority</Label>
               <Select
-                value={priority}
                 onValueChange={(v) => setPriority(v as any)}
+                value={priority}
               >
                 <SelectTrigger id="priority">
                   <SelectValue placeholder="Select priority" />
@@ -172,12 +172,12 @@ export function TodoForm({
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
-                    id="dueDate"
-                    variant="outline"
                     className={cn(
                       'w-full justify-start text-left font-normal',
                       !dueDate && 'text-muted-foreground'
                     )}
+                    id="dueDate"
+                    variant="outline"
                   >
                     <CalendarIcon className="h-4 w-4" />
                     {dueDate ? format(dueDate, 'PPP') : 'Pick a date'}
@@ -186,8 +186,8 @@ export function TodoForm({
                 <PopoverContent className="w-auto p-0">
                   <Calendar
                     mode="single"
-                    selected={dueDate}
                     onSelect={setDueDate}
+                    selected={dueDate}
                   />
                 </PopoverContent>
               </Popover>
@@ -197,25 +197,25 @@ export function TodoForm({
           <div className="space-y-2">
             <Label>Tags (optional)</Label>
             <TagPicker
-              selectedTagIds={selectedTagIds}
-              onTagsChange={setSelectedTagIds}
               disabled={createTodo.isPending}
+              onTagsChange={setSelectedTagIds}
+              selectedTagIds={selectedTagIds}
             />
           </div>
 
           <div className="flex justify-end gap-2 border-t pt-2">
             <Button
-              type="button"
-              variant="outline"
+              disabled={createTodo.isPending}
               onClick={() => {
                 resetForm();
                 setIsOpen(false);
               }}
-              disabled={createTodo.isPending}
+              type="button"
+              variant="outline"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={createTodo.isPending}>
+            <Button disabled={createTodo.isPending} type="submit">
               Create Todo
             </Button>
           </div>

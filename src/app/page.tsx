@@ -1,4 +1,4 @@
-import { TodoList } from '@/components/todos';
+import { TodoList } from '@/components/todos/todo-list';
 
 export default async function HomePage() {
   return (

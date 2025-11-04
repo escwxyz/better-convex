@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { useAuthMutation } from '@/lib/convex/hooks';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
+import { format } from 'date-fns';
+import { Calendar, Edit, MoreHorizontal, RotateCcw, Trash } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,12 +16,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Calendar, Edit, MoreHorizontal, Trash, RotateCcw } from 'lucide-react';
-import { format } from 'date-fns';
+import { useAuthMutation } from '@/lib/convex/hooks';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 
-interface TodoItemProps {
+type TodoItemProps = {
   todo: {
     _id: Id<'todos'>;
     _creationTime: number;
@@ -40,7 +40,7 @@ interface TodoItemProps {
     } | null;
   };
   onEdit?: () => void;
-}
+};
 
 export function TodoItem({ todo, onEdit }: TodoItemProps) {
   const [isUpdating, setIsUpdating] = useState(false);
@@ -53,7 +53,7 @@ export function TodoItem({ todo, onEdit }: TodoItemProps) {
     setIsUpdating(true);
     try {
       await toggleComplete.mutateAsync({ id: todo._id });
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to update todo');
     } finally {
       setIsUpdating(false);
@@ -97,9 +97,9 @@ export function TodoItem({ todo, onEdit }: TodoItemProps) {
     >
       <Checkbox
         checked={todo.completed}
-        onCheckedChange={handleToggleComplete}
-        disabled={isUpdating || isDeleted}
         className="mt-0.5"
+        disabled={isUpdating || isDeleted}
+        onCheckedChange={handleToggleComplete}
       />
 
       <div className="flex-1 space-y-1">
@@ -116,7 +116,7 @@ export function TodoItem({ todo, onEdit }: TodoItemProps) {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Button className="h-8 w-8" size="icon" variant="ghost">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -134,8 +134,8 @@ export function TodoItem({ todo, onEdit }: TodoItemProps) {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    onClick={handleDelete}
                     className="text-destructive"
+                    onClick={handleDelete}
                   >
                     <Trash className="h-4 w-4" />
                     Delete
@@ -147,14 +147,14 @@ export function TodoItem({ todo, onEdit }: TodoItemProps) {
         </div>
 
         {todo.description && (
-          <p className="text-sm text-muted-foreground">{todo.description}</p>
+          <p className="text-muted-foreground text-sm">{todo.description}</p>
         )}
 
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {todo.priority && (
             <Badge
-              variant="secondary"
               className={cn('text-xs', priorityColors[todo.priority])}
+              variant="secondary"
             >
               {todo.priority}
             </Badge>
@@ -162,11 +162,11 @@ export function TodoItem({ todo, onEdit }: TodoItemProps) {
 
           {todo.dueDate && (
             <Badge
-              variant="outline"
               className={cn(
                 'text-xs',
                 isOverdue && 'border-red-500 text-red-600'
               )}
+              variant="outline"
             >
               <Calendar className="mr-1 h-3 w-3" />
               {format(todo.dueDate, 'MMM d, yyyy')}
@@ -174,28 +174,28 @@ export function TodoItem({ todo, onEdit }: TodoItemProps) {
           )}
 
           {todo.project && (
-            <Badge variant="outline" className="text-xs">
+            <Badge className="text-xs" variant="outline">
               {todo.project.name}
             </Badge>
           )}
 
           {todo.tags?.map((tag) => (
             <Badge
-              key={tag._id}
-              variant="outline"
               className="text-xs"
+              key={tag._id}
               style={{
                 backgroundColor: `${tag.color}20`,
                 borderColor: tag.color,
                 color: tag.color,
               }}
+              variant="outline"
             >
               {tag.name}
             </Badge>
           ))}
 
           {isDeleted && (
-            <Badge variant="destructive" className="text-xs">
+            <Badge className="text-xs" variant="destructive">
               Deleted
             </Badge>
           )}

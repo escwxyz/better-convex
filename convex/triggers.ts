@@ -2,13 +2,13 @@ import { Triggers } from 'convex-helpers/server/triggers';
 
 import type { DataModel } from './_generated/dataModel';
 import {
-  aggregateUsers,
-  aggregateTodosByUser,
+  aggregateCommentsByTodo,
+  aggregateProjectMembers,
+  aggregateTagUsage,
   aggregateTodosByProject,
   aggregateTodosByStatus,
-  aggregateTagUsage,
-  aggregateProjectMembers,
-  aggregateCommentsByTodo,
+  aggregateTodosByUser,
+  aggregateUsers,
 } from './aggregates';
 
 // Initialize triggers with DataModel type

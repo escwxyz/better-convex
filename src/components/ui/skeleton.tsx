@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 
 import { useMounted } from '@/hooks/use-mounted';
 import { cn } from '@/lib/utils';

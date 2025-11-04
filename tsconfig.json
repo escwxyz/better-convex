@@ -12,16 +12,12 @@
     "noUncheckedIndexedAccess": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-
     "isolatedModules": true,
-
     "allowJs": true,
     "checkJs": false,
-
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-
     "lib": ["dom", "dom.iterable", "esnext"],
     "module": "esnext",
     "target": "es2022",
@@ -36,8 +32,7 @@
     "sourceMap": true,
     "pretty": true,
     "preserveWatchOutput": true,
-
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "plugins": [
       {
         "name": "next"
@@ -49,6 +44,12 @@
       "@convex/*": ["./convex/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
   "exclude": ["node_modules", "better-auth/"]
 }

@@ -1,15 +1,14 @@
+import type { MutationCtx, QueryCtx } from '@convex/_generated/server';
+import type { getCtxWithTable } from '@convex/functions';
+import type { WithoutSystemFields } from 'convex/server';
 import type {
   GenericEnt,
   GenericEntWriter,
   PromiseTableWriter,
 } from 'convex-ents';
-import type { WithoutSystemFields } from 'convex/server';
-
 import type { Doc, TableNames } from '../_generated/dataModel';
-import type { entDefinitions } from '../schema';
 import type schema from '../schema';
-import type { getCtxWithTable } from '@convex/functions';
-import { MutationCtx, QueryCtx } from '@convex/_generated/server';
+import type { entDefinitions } from '../schema';
 
 export type Schema = typeof schema;
 

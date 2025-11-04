@@ -1,16 +1,15 @@
-import { z } from 'zod';
-import { zid } from 'convex-helpers/server/zod';
 import { ConvexError } from 'convex/values';
 import { asyncMap } from 'convex-helpers';
 import { stream } from 'convex-helpers/server/stream';
+import { zid } from 'convex-helpers/server/zod';
+import { z } from 'zod';
+import { aggregateTodosByProject } from './aggregates';
 import {
   createAuthMutation,
-  createAuthPaginatedQuery,
   createAuthQuery,
-  createPublicQuery,
   createPublicPaginatedQuery,
+  createPublicQuery,
 } from './functions';
-import { aggregateTodosByProject } from './aggregates';
 import schema from './schema';
 
 // List projects - shows user's projects when authenticated, public projects when not
@@ -75,7 +74,7 @@ export const list = createPublicPaginatedQuery()({
         const isOwner = project.ownerId === user._id;
         const isMember = memberProjectIds.includes(project._id);
 
-        if (!isOwner && !isMember) {
+        if (!(isOwner || isMember)) {
           return false;
         }
 
@@ -83,10 +82,9 @@ export const list = createPublicPaginatedQuery()({
         if (args.includeArchived) {
           // When includeArchived is true, show ONLY archived projects
           return project.archived;
-        } else {
-          // When includeArchived is false/undefined, show ONLY non-archived projects
-          return !project.archived;
         }
+        // When includeArchived is false/undefined, show ONLY non-archived projects
+        return !project.archived;
       })
       .paginate(args.paginationOpts);
 
@@ -148,14 +146,16 @@ export const get = createPublicQuery()({
     .nullable(),
   handler: async (ctx, args) => {
     const project = await ctx.table('projects').get(args.projectId);
-    if (!project) return null;
+    if (!project) {
+      return null;
+    }
 
     // Check access
     const userId = ctx.userId;
     const isOwner = userId === project.ownerId;
 
     // For private projects, check membership
-    if (!project.isPublic && !isOwner) {
+    if (!(project.isPublic || isOwner)) {
       if (!userId) {
         throw new ConvexError({
           code: 'FORBIDDEN',
@@ -260,9 +260,15 @@ export const update = createAuthMutation({
     }
 
     const updates: any = {};
-    if (args.name !== undefined) updates.name = args.name;
-    if (args.description !== undefined) updates.description = args.description;
-    if (args.isPublic !== undefined) updates.isPublic = args.isPublic;
+    if (args.name !== undefined) {
+      updates.name = args.name;
+    }
+    if (args.description !== undefined) {
+      updates.description = args.description;
+    }
+    if (args.isPublic !== undefined) {
+      updates.isPublic = args.isPublic;
+    }
 
     if (Object.keys(updates).length > 0) {
       await ctx.table('projects').getX(args.projectId).patch(updates);
@@ -504,7 +510,9 @@ export const listForDropdown = createAuthQuery()({
       .table('projectMembers', 'userId', (q) => q.eq('userId', user._id))
       .map(async (member) => {
         const project = await ctx.table('projects').get(member.projectId);
-        if (!project || project.archived) return null;
+        if (!project || project.archived) {
+          return null;
+        }
         return {
           _id: project._id,
           name: project.name,

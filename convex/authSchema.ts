@@ -3,8 +3,8 @@
 // To regenerate the schema, run:
 // `npx @better-auth/cli generate --output authSchema.ts -y`
 
-import { defineSchema, defineTable } from "convex/server";
-import { v } from "convex/values";
+import { defineSchema, defineTable } from 'convex/server';
+import { v } from 'convex/values';
 
 export const tables = {
   user: defineTable({
@@ -29,9 +29,9 @@ export const tables = {
     website: v.optional(v.union(v.null(), v.string())),
     x: v.optional(v.union(v.null(), v.string())),
   })
-    .index("email_name", ["email","name"])
-    .index("name", ["name"])
-    .index("userId", ["userId"]),
+    .index('email_name', ['email', 'name'])
+    .index('name', ['name'])
+    .index('userId', ['userId']),
   session: defineTable({
     expiresAt: v.number(),
     token: v.string(),
@@ -43,10 +43,10 @@ export const tables = {
     impersonatedBy: v.optional(v.union(v.null(), v.string())),
     activeOrganizationId: v.optional(v.union(v.null(), v.string())),
   })
-    .index("expiresAt", ["expiresAt"])
-    .index("expiresAt_userId", ["expiresAt","userId"])
-    .index("token", ["token"])
-    .index("userId", ["userId"]),
+    .index('expiresAt', ['expiresAt'])
+    .index('expiresAt_userId', ['expiresAt', 'userId'])
+    .index('token', ['token'])
+    .index('userId', ['userId']),
   account: defineTable({
     accountId: v.string(),
     providerId: v.string(),
@@ -61,10 +61,10 @@ export const tables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("accountId", ["accountId"])
-    .index("accountId_providerId", ["accountId","providerId"])
-    .index("providerId_userId", ["providerId","userId"])
-    .index("userId", ["userId"]),
+    .index('accountId', ['accountId'])
+    .index('accountId_providerId', ['accountId', 'providerId'])
+    .index('providerId_userId', ['providerId', 'userId'])
+    .index('userId', ['userId']),
   verification: defineTable({
     identifier: v.string(),
     value: v.string(),
@@ -72,8 +72,8 @@ export const tables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("expiresAt", ["expiresAt"])
-    .index("identifier", ["identifier"]),
+    .index('expiresAt', ['expiresAt'])
+    .index('identifier', ['identifier']),
   organization: defineTable({
     name: v.string(),
     slug: v.optional(v.union(v.null(), v.string())),
@@ -82,17 +82,17 @@ export const tables = {
     metadata: v.optional(v.union(v.null(), v.string())),
     monthlyCredits: v.number(),
   })
-    .index("name", ["name"])
-    .index("slug", ["slug"]),
+    .index('name', ['name'])
+    .index('slug', ['slug']),
   member: defineTable({
     organizationId: v.string(),
     userId: v.string(),
     role: v.string(),
     createdAt: v.number(),
   })
-    .index("organizationId_userId", ["organizationId","userId"])
-    .index("userId", ["userId"])
-    .index("role", ["role"]),
+    .index('organizationId_userId', ['organizationId', 'userId'])
+    .index('userId', ['userId'])
+    .index('role', ['role']),
   invitation: defineTable({
     organizationId: v.string(),
     email: v.string(),
@@ -101,11 +101,11 @@ export const tables = {
     expiresAt: v.number(),
     inviterId: v.string(),
   })
-    .index("email_organizationId_status", ["email","organizationId","status"])
-    .index("organizationId_status", ["organizationId","status"])
-    .index("role", ["role"])
-    .index("status", ["status"])
-    .index("inviterId", ["inviterId"]),
+    .index('email_organizationId_status', ['email', 'organizationId', 'status'])
+    .index('organizationId_status', ['organizationId', 'status'])
+    .index('role', ['role'])
+    .index('status', ['status'])
+    .index('inviterId', ['inviterId']),
   jwks: defineTable({
     publicKey: v.string(),
     privateKey: v.string(),

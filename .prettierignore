@@ -1,8 +1,0 @@
-dist
-node_modules
-.next
-build
-bun.lockb
-pnpm-lock.yaml
-prisma/kysely
-public

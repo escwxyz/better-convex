@@ -17,7 +17,7 @@ alwaysApply: false
 ```typescript
 // ALL Better Auth admin APIs available server-side via auth.api
 export const adminOperation = createAuthMutation({
-  role: 'admin',
+  role: "admin",
 })({
   handler: async (ctx, args) => {
     const auth = createAuth(ctx);
@@ -52,7 +52,7 @@ export const ensureAdminUser = createInternalMutation({
     for (const email of getEnv().ADMIN) {
       const userId = await createUserCalled(ctx, { email });
       await ctx.runMutation(components.betterAuth.adapter.create, {
-        input: { model: 'user', data: { email, role: 'admin', userId } },
+        input: { model: "user", data: { email, role: "admin", userId } },
       });
     }
   },
@@ -88,8 +88,8 @@ await auth.api.createUser({
 export const getAllUsers = createAuthPaginatedQuery()({
   handler: async (ctx, args) => {
     const users = await ctx
-      .table('user')
-      .search('search_username_name', (q) => q.search('name', args.search))
+      .table("user")
+      .search("search_username_name", (q) => q.search("name", args.search))
       .paginate(args.paginationOpts);
 
     // Enrich with Better Auth data
@@ -129,13 +129,13 @@ await auth.api.removeUser({ body: { userId }, headers });
 ```typescript
 // Check permissions
 const hasPermission = await auth.api.hasPermission({
-  body: { userId, permissions: { user: ['delete'], session: ['revoke'] } },
+  body: { userId, permissions: { user: ["delete"], session: ["revoke"] } },
   headers,
 });
 
 // Admin check shorthand
 if (!ctx.user.isAdmin) {
-  throw new ConvexError({ code: 'FORBIDDEN', message: 'Admin required' });
+  throw new ConvexError({ code: "FORBIDDEN", message: "Admin required" });
 }
 ```
 
@@ -143,18 +143,18 @@ if (!ctx.user.isAdmin) {
 
 ```typescript
 // Dashboard stats with aggregates (O(log n))
-export const getDashboardStats = createAuthQuery({ role: 'admin' })({
+export const getDashboardStats = createAuthQuery({ role: "admin" })({
   handler: async (ctx) => {
     const [totalUsers, totalCharacters] = await Promise.all([
-      aggregateTotalUsers.count(ctx, { namespace: 'global', bounds: {} }),
-      aggregateTotalCharacters.count(ctx, { namespace: 'global', bounds: {} }),
+      aggregateTotalUsers.count(ctx, { namespace: "global", bounds: {} }),
+      aggregateTotalCharacters.count(ctx, { namespace: "global", bounds: {} }),
     ]);
     return { totalUsers, totalCharacters };
   },
 });
 
 // Grant admin by email
-export const grantAdminByEmail = createAuthMutation({ role: 'admin' })({
+export const grantAdminByEmail = createAuthMutation({ role: "admin" })({
   args: { email: z.string().email() },
   handler: async (ctx, args) => {
     const betterAuthUser = await getBetterAuthUserByEmail(ctx, args.email);
@@ -162,9 +162,9 @@ export const grantAdminByEmail = createAuthMutation({ role: 'admin' })({
 
     await ctx.runMutation(components.betterAuth.adapter.updateOne, {
       input: {
-        model: 'user',
-        where: [{ field: 'id', value: betterAuthUser.id }],
-        update: { role: 'admin' },
+        model: "user",
+        where: [{ field: "id", value: betterAuthUser.id }],
+        update: { role: "admin" },
       },
     });
     return { success: true, userId: betterAuthUser.userId };
@@ -177,7 +177,7 @@ export const grantAdminByEmail = createAuthMutation({ role: 'admin' })({
 **Edit:** `src/lib/auth-client.ts`
 
 ```typescript
-import { adminClient } from 'better-auth/client/plugins';
+import { adminClient } from "better-auth/client/plugins";
 
 export const authClient = createAuthClient({
   plugins: [adminClient({ ac, roles: { admin, user } })],
@@ -237,7 +237,7 @@ Your application's `users` table manages profile data that Better Auth doesn't h
 
 ```typescript
 // convex/schema.ts
-users: defineEnt({
+user: defineEnt({
   // Profile fields (managed by app, not Better Auth)
   name: v.optional(v.string()), // User's display name
   image: v.optional(v.string()), // Profile image URL
@@ -250,9 +250,9 @@ users: defineEnt({
   // ... other app-specific fields
 
   // The userId field links to Better Auth user.id automatically
-}).searchIndex('search_username_name', {
-  searchField: 'name',
-  filterFields: ['username'],
+}).searchIndex("search_username_name", {
+  searchField: "name",
+  filterFields: ["username"],
 });
 ```
 
@@ -264,17 +264,17 @@ To work with admin data, sync between Better Auth and app tables:
 
 ```typescript
 // Get user with admin status
-const getUserWithRole = async (ctx, userId: Id<'user'>) => {
+const getUserWithRole = async (ctx, userId: Id<"user">) => {
   const [appUser, betterAuthUser] = await Promise.all([
-    ctx.table('user').get(userId),
+    ctx.table("user").get(userId),
     getBetterAuthUser(ctx, userId),
   ]);
 
   return {
     ...appUser,
-    role: betterAuthUser?.role || 'user',
+    role: betterAuthUser?.role || "user",
     banned: betterAuthUser?.banned || false,
-    isAdmin: betterAuthUser?.role === 'admin',
+    isAdmin: betterAuthUser?.role === "admin",
   };
 };
 ```
@@ -283,9 +283,9 @@ const getUserWithRole = async (ctx, userId: Id<'user'>) => {
 
 ```typescript
 // Sync user data from both tables
-const syncUserData = async (ctx, userId: Id<'user'>) => {
+const syncUserData = async (ctx, userId: Id<"user">) => {
   const [appUser, betterAuthUser] = await Promise.all([
-    ctx.table('user').get(userId),
+    ctx.table("user").get(userId),
     getBetterAuthUser(ctx, userId),
   ]);
   return {

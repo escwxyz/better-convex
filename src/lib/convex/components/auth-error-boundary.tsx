@@ -1,19 +1,19 @@
 'use client';
 
+import { ConvexError } from 'convex/values';
 import React from 'react';
 
-import { ConvexError } from 'convex/values';
-
 import { Button } from '@/components/ui/button';
-interface Props {
-  children: React.ReactNode;
-}
 
-interface State {
+type Props = {
+  children: React.ReactNode;
+};
+
+type State = {
   error: Error | null;
   hasError: boolean;
   isReloading: boolean;
-}
+};
 
 export class AuthErrorBoundary extends React.Component<Props, State> {
   constructor(props: Props) {
@@ -56,19 +56,19 @@ export class AuthErrorBoundary extends React.Component<Props, State> {
       // Redirecting
       return (
         <div className="flex min-h-svh flex-col items-center justify-center gap-4 text-center">
-          <h2 className="text-6xl font-bold tracking-tight text-foreground">
+          <h2 className="font-bold text-6xl text-foreground tracking-tight">
             Error
           </h2>
 
-          <p className="text-subtle-foreground text-balance">
+          <p className="text-balance text-subtle-foreground">
             Please try refreshing the page or return to the homepage.
           </p>
 
           <Button
-            variant="outline"
             onClick={() => {
               window.location.href = '/';
             }}
+            variant="outline"
           >
             Back to home
           </Button>

@@ -1,10 +1,8 @@
 import { HOUR, MINUTE, RateLimiter, SECOND } from '@convex-dev/rate-limiter';
 import { ConvexError } from 'convex/values';
-
+import { components } from '../_generated/api';
 import type { ActionCtx, MutationCtx } from '../_generated/server';
 import type { SessionUser } from '../authHelpers';
-
-import { components } from '../_generated/api';
 
 // Define rate limits matching the existing Upstash configuration
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
@@ -154,9 +152,15 @@ export function getRateLimitKey(
 export function getUserTier(
   user: { isAdmin?: boolean; plan?: SessionUser['plan'] } | null
 ): 'free' | 'premium' | 'public' {
-  if (!user) return 'public';
-  if (user.isAdmin) return 'premium'; // Admins bypass rate limits by getting premium tier
-  if (user.plan) return 'premium';
+  if (!user) {
+    return 'public';
+  }
+  if (user.isAdmin) {
+    return 'premium'; // Admins bypass rate limits by getting premium tier
+  }
+  if (user.plan) {
+    return 'premium';
+  }
 
   return 'free';
 }
