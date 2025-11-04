@@ -5,8 +5,8 @@ import { getProduct, productToPlan } from '@convex/polar/product';
 import { Doc, Id } from '@convex/_generated/dataModel';
 
 import type { AuthCtx } from '@convex/functions';
-import { getAuth } from '@convex/auth';
 import { ConvexError } from 'convex/values';
+import { internal } from '@convex/_generated/api';
 
 export type SessionUser = Omit<Doc<'user'>, '_creationTime' | '_id'> & {
   id: Id<'user'>;
@@ -143,7 +143,7 @@ export const getSessionUserWriter = async (
 };
 
 export const createUser = async (
-  ctx: MutationCtx,
+  ctx: CtxWithTable<MutationCtx>,
   args: {
     email: string;
     name: string;
@@ -154,21 +154,46 @@ export const createUser = async (
     role?: 'admin' | 'user';
   }
 ) => {
-  const { user } = await getAuth(ctx).api.createUser({
-    body: {
+  // WARNING: This bypasses Better Auth hooks including:
+  const now = new Date();
+
+  const beforeCreateData = await ctx.runMutation(internal.auth.beforeCreate, {
+    data: {
+      bio: args.bio ?? undefined,
+      createdAt: now.getTime(),
       email: args.email,
+      emailVerified: false,
+      github: args.github ?? undefined,
+      image: args.image ?? undefined,
+      location: args.location ?? undefined,
+      monthlyCreditsPeriodCount: 0,
       name: args.name,
-      password: Math.random().toString(36).slice(-12),
-      role: args.role,
-      data: {
-        bio: args.bio,
-        image: args.image,
-        location: args.location,
-      },
+      role: args.role ?? 'user',
+      updatedAt: now.getTime(),
     },
+    model: 'user',
   });
 
-  return user.id as Id<'user'>;
+  const userId = await ctx.table('user').insert(beforeCreateData);
+
+  const user = await ctx.table('user').getX(userId);
+
+  await ctx.runMutation(internal.auth.onCreate, {
+    doc: user.doc(),
+    model: 'user',
+  });
+
+  // Create account record for credential provider
+  await ctx.table('account').insert({
+    accountId: userId,
+    createdAt: now.getTime(),
+    password: Math.random().toString(36).slice(-12), // Random password
+    providerId: 'credential',
+    updatedAt: now.getTime(),
+    userId,
+  });
+
+  return userId;
 };
 
 export const hasPermission = async (

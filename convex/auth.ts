@@ -20,12 +20,14 @@ import schema, { entDefinitions } from './schema';
 import { createPersonalOrganization } from './organizationHelpers';
 import { getEnv } from './helpers/getEnv';
 import { DataModel } from '@convex/_generated/dataModel';
+import { internalMutation } from './functions';
 
 const authFunctions: AuthFunctions = internal.auth;
 
 export const authClient = createClient<DataModel, typeof schema>({
   authFunctions,
   schema,
+  internalMutation,
   triggers: {
     user: {
       beforeCreate: async (ctx, data: any) => {
@@ -241,6 +243,13 @@ export const {
   findOne,
   updateMany,
   updateOne,
-} = createApi(schema, auth.options);
+} = createApi(schema, { ...auth.options, internalMutation });
 
-export const { beforeCreate, beforeDelete, beforeUpdate, onCreate, onDelete, onUpdate } = authClient.triggersApi();
+export const {
+  beforeCreate,
+  beforeDelete,
+  beforeUpdate,
+  onCreate,
+  onDelete,
+  onUpdate,
+} = authClient.triggersApi();

@@ -1,4 +1,3 @@
- 
 import { getAuth } from '@convex/auth';
 import { getHeaders } from 'better-auth-convex';
 import { entsTableFactory } from 'convex-ents';
@@ -68,7 +67,7 @@ const mutation = customMutation(
     db: triggers.wrapDB(ctx).db,
   }))
 );
-const internalMutation = customMutation(
+export const internalMutation = customMutation(
   baseInternalMutation,
   customCtx(async (ctx) => ({
     db: triggers.wrapDB(ctx).db,
