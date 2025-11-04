@@ -1,9 +1,6 @@
 import { TableAggregate } from '@convex-dev/aggregate';
-
-import type { DataModel } from './_generated/dataModel';
-import type { Id } from './_generated/dataModel';
-
 import { components } from './_generated/api';
+import type { DataModel, Id } from './_generated/dataModel';
 
 // Aggregate for users
 export const aggregateUsers = new TableAggregate<{
@@ -58,7 +55,7 @@ export const aggregateTodosByStatus = new TableAggregate<{
     return [
       doc.completed,
       doc.priority ?? 'none',
-      doc.dueDate ?? Infinity,
+      doc.dueDate ?? Number.POSITIVE_INFINITY,
       isDeleted,
     ];
   },

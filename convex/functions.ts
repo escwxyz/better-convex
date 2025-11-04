@@ -1,5 +1,8 @@
 import { getAuth } from '@convex/auth';
+import { registerTriggers } from '@convex/triggers';
 import { getHeaders } from 'better-auth-convex';
+import { type Auth, paginationOptsValidator } from 'convex/server';
+import { ConvexError } from 'convex/values';
 import { entsTableFactory } from 'convex-ents';
 import {
   customCtx,
@@ -10,14 +13,9 @@ import {
   zCustomMutation,
   zCustomQuery,
 } from 'convex-helpers/server/zod';
-import { type Auth, paginationOptsValidator } from 'convex/server';
-import { ConvexError } from 'convex/values';
-
+import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { ActionCtx, MutationCtx, QueryCtx } from './_generated/server';
-import type { Ent, EntWriter } from './shared/types';
-
-import { api } from './_generated/api';
 import {
   action,
   internalMutation as baseInternalMutation,
@@ -27,15 +25,18 @@ import {
   query,
 } from './_generated/server';
 import {
-  type SessionUser,
   getSessionUser,
   getSessionUserWriter,
+  type SessionUser,
 } from './authHelpers';
 import { getEnv } from './helpers/getEnv';
 import { rateLimitGuard } from './helpers/rateLimiter';
 import { roleGuard } from './helpers/roleGuard';
 import { entDefinitions } from './schema';
-import { triggers } from './triggers';
+import type { Ent, EntWriter } from './shared/types';
+
+// Initialize triggers
+const triggers = registerTriggers();
 
 export type CtxWithTable<Ctx extends MutationCtx | QueryCtx = QueryCtx> =
   ReturnType<typeof getCtxWithTable<Ctx>>;
@@ -87,6 +88,8 @@ function checkDevOnly(devOnly?: boolean) {
 export const getCtxWithTable = <Ctx extends MutationCtx | QueryCtx>(
   ctx: Ctx
 ) => {
+  // Use the db from ctx (which may already be wrapped by triggers)
+  // entsTableFactory will use ctx.db internally, preserving trigger wrapping
   return {
     ...ctx,
     table: entsTableFactory(ctx, entDefinitions),
@@ -171,7 +174,10 @@ async function applyRateLimit(
 export const createAuthQuery = ({
   devOnly,
   role,
-}: { devOnly?: boolean; role?: 'admin' } = {}) =>
+}: {
+  devOnly?: boolean;
+  role?: 'admin';
+} = {}) =>
   zCustomQuery(
     query,
     customCtx(async (_ctx) => {
@@ -191,7 +197,10 @@ export const createAuthQuery = ({
 export const createAuthPaginatedQuery = ({
   devOnly,
   role,
-}: { devOnly?: boolean; role?: 'admin' } = {}) =>
+}: {
+  devOnly?: boolean;
+  role?: 'admin';
+} = {}) =>
   zCustomQuery(query, {
     args: { paginationOpts: paginationOptsValidator },
     input: async (_ctx, args) => {
@@ -271,7 +280,10 @@ export const createInternalQuery = ({ devOnly }: { devOnly?: boolean } = {}) =>
 export const createAuthInternalQuery = ({
   devOnly,
   role,
-}: { devOnly?: boolean; role?: 'admin' } = {}) =>
+}: {
+  devOnly?: boolean;
+  role?: 'admin';
+} = {}) =>
   zCustomQuery(
     internalQuery,
     customCtx(async (_ctx) => {
@@ -341,7 +353,9 @@ export const createInternalAction = ({ devOnly }: { devOnly?: boolean } = {}) =>
 
 export const createInternalMutation = ({
   devOnly,
-}: { devOnly?: boolean } = {}) =>
+}: {
+  devOnly?: boolean;
+} = {}) =>
   zCustomMutation(
     internalMutation,
     customCtx(async (ctx) => {
@@ -388,7 +402,10 @@ export const createAuthMutation = ({
 export const createPublicMutation = ({
   devOnly,
   rateLimit,
-}: { devOnly?: boolean; rateLimit?: string | null } = {}) =>
+}: {
+  devOnly?: boolean;
+  rateLimit?: string | null;
+} = {}) =>
   zCustomMutation(
     mutation,
     customCtx(async (_ctx) => {

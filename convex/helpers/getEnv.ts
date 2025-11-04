@@ -15,10 +15,10 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional(),
 
   // Polar (new payment provider)
-  POLAR_ACCESS_TOKEN: z.string(),
-  POLAR_PRODUCT_CREDITS: z.string(),
-  POLAR_PRODUCT_PREMIUM: z.string(),
-  POLAR_WEBHOOK_SECRET: z.string(),
+  POLAR_ACCESS_TOKEN: z.string().optional(),
+  POLAR_PRODUCT_CREDITS: z.string().optional(),
+  POLAR_PRODUCT_PREMIUM: z.string().optional(),
+  POLAR_WEBHOOK_SECRET: z.string().optional(),
 
   // Superadmin emails
   ADMIN: z
@@ -32,11 +32,6 @@ export const getEnv = () => {
   const parsed = envSchema.safeParse(process.env);
 
   if (!parsed.success) {
-    console.error(
-      'L Invalid environment variables:',
-      parsed.error.flatten().fieldErrors
-    );
-
     throw new Error('Invalid environment variables');
   }
 

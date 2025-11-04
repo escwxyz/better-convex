@@ -1,9 +1,8 @@
+import { createUser } from '@convex/authHelpers';
 import { z } from 'zod';
-
 import { internal } from './_generated/api';
 import { createInternalMutation } from './functions';
 import { getEnv } from './helpers/getEnv';
-import { createUser } from '@convex/authHelpers';
 
 /**
  * Initialize the database on startup. This function runs automatically when
@@ -31,18 +30,14 @@ export default createInternalMutation({
       const existingUser = await ctx.table('user').get('email', adminEmail);
 
       if (existingUser) {
-        console.info(`  ✅ Admin user exists: ${adminEmail}`);
         isFirstInit = false;
       } else {
         // Better Auth will link to this when they sign in
-        const userId = await createUser(ctx, {
+        const _userId = await createUser(ctx, {
           email: adminEmail,
           name: 'Admin',
           role: 'admin',
         });
-        console.info(
-          `  ✅ Created admin user in app: ${adminEmail} (ID: ${userId})`
-        );
       }
     }
 

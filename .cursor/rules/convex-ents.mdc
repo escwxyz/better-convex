@@ -38,16 +38,16 @@ template built out using Convex Ents.
 
 ```ts filename="convex/teams.ts"
 export const listTeamInvites = query({
-  args: { teamId: v.id('teams') },
+  args: { teamId: v.id("teams") },
   async handler(ctx, { teamId }) {
     return await ctx
-      .table('teams')
+      .table("teams")
       .getX(teamId)
-      .edge('invites')
+      .edge("invites")
       .map(async (invite) => ({
         _id: invite._id,
         email: invite.email,
-        role: (await invite.edge('role')).name,
+        role: (await invite.edge("role")).name,
       })); // `{ _id: Id<"invites">, email: string, role: string }[]`
   },
 });
@@ -58,16 +58,16 @@ export const listTeamInvites = query({
 
 ```ts filename="convex/teams.ts"
 export const acceptInvite = mutation({
-  args: { inviteId: v.id('invites') },
+  args: { inviteId: v.id("invites") },
   async handler(ctx, { inviteId }) {
-    const invite = await ctx.table('invites').getX(inviteId);
-    await ctx.table('member').insert({
+    const invite = await ctx.table("invites").getX(inviteId);
+    await ctx.table("member").insert({
       teamId: invite.teamId,
       userId: ctx.viewerId,
       roleId: invite.roleId,
     });
     await invite.delete();
-    return (await invite.edge('team')).slug;
+    return (await invite.edge("team")).slug;
   },
 });
 ```
@@ -80,24 +80,24 @@ const schema = defineEntSchema({
   teams: defineEnt({
     name: v.string(),
   })
-    .field('slug', v.string(), { unique: true })
-    .edges('member', { ref: true })
-    .edges('invites', { ref: true }),
+    .field("slug", v.string(), { unique: true })
+    .edges("member", { ref: true })
+    .edges("invites", { ref: true }),
 
-  members: defineEnt({}).edge('team').edge('user').edge('role'),
+  members: defineEnt({}).edge("team").edge("user").edge("role"),
 
   invites: defineEnt({})
-    .field('email', v.string(), { unique: true })
-    .edge('team')
-    .edge('role'),
+    .field("email", v.string(), { unique: true })
+    .edge("team")
+    .edge("role"),
 
   roles: defineEnt({
     isDefault: v.boolean(),
-  }).field('name', v.union(v.literal('Admin'), v.literal('Member')), {
+  }).field("name", v.union(v.literal("Admin"), v.literal("Member")), {
     unique: true,
   }),
 
-  users: defineEnt({}).edges('member', { ref: true }),
+  user: defineEnt({}).edges("member", { ref: true }),
 });
 ```
 
@@ -117,23 +117,23 @@ If you're sold, head over to [Setup](/setup) to get started.
 Create your schema file, for example:
 
 ```ts filename="convex/schema.ts"
-import { v } from 'convex/values';
-import { defineEnt, defineEntSchema, getEntDefinitions } from 'convex-ents';
+import { v } from "convex/values";
+import { defineEnt, defineEntSchema, getEntDefinitions } from "convex-ents";
 
 const schema = defineEntSchema({
   messages: defineEnt({
     text: v.string(),
   })
-    .edge('user')
-    .edges('tags'),
+    .edge("user")
+    .edges("tags"),
 
-  users: defineEnt({
+  user: defineEnt({
     name: v.string(),
-  }).edges('messages', { ref: true }),
+  }).edges("messages", { ref: true }),
 
   tags: defineEnt({
     name: v.string(),
-  }).edges('messages'),
+  }).edges("messages"),
 });
 
 export default schema;
@@ -164,7 +164,7 @@ import { v } from "convex/values";
     text: v.string(),
   }),
 -  users: defineTable({
-+  users: defineEnt({
++  user: defineEnt({
     name: v.string(),
   }),
 });
@@ -183,11 +183,11 @@ Add a `types.ts` file with the following contents:
 <Aside title="Click to show">
 
 ```ts filename="convex/types.ts"
-import { GenericEnt, GenericEntWriter } from 'convex-ents';
-import { CustomCtx } from 'convex-helpers/server/customFunctions';
-import { TableNames } from './_generated/dataModel';
-import { mutation, query } from './functions';
-import { entDefinitions } from './schema';
+import { GenericEnt, GenericEntWriter } from "convex-ents";
+import { CustomCtx } from "convex-helpers/server/customFunctions";
+import { TableNames } from "./_generated/dataModel";
+import { mutation, query } from "./functions";
+import { entDefinitions } from "./schema";
 
 export type QueryCtx = CustomCtx<typeof query>;
 export type MutationCtx = CustomCtx<typeof mutation>;
@@ -247,17 +247,17 @@ Unlike bare documents, ents require a schema. Here's a minimal example of the
 `convex/schema.ts` file using Ents:
 
 ```ts filename="convex/schema.ts"
-import { v } from 'convex/values';
-import { defineEnt, defineEntSchema, getEntDefinitions } from 'convex-ents';
+import { v } from "convex/values";
+import { defineEnt, defineEntSchema, getEntDefinitions } from "convex-ents";
 
 const schema = defineEntSchema({
   messages: defineEnt({
     text: v.string(),
-  }).edge('user'),
+  }).edge("user"),
 
-  users: defineEnt({
+  user: defineEnt({
     name: v.string(),
-  }).edges('messages', { ref: true }),
+  }).edges("messages", { ref: true }),
 });
 
 export default schema;
@@ -288,7 +288,7 @@ of the results by the indexed field. The following schema:
 
 ```ts
 defineEntSchema({
-  users: defineEnt({}).field('email', v.string(), { index: true }),
+  user: defineEnt({}).field("email", v.string(), { index: true }),
 });
 ```
 
@@ -298,9 +298,9 @@ following schema:
 
 ```ts
 defineEntSchema({
-  users: defineEnt({
+  user: defineEnt({
     email: v.string(),
-  }).index('email', ['email']),
+  }).index("email", ["email"]),
 });
 ```
 
@@ -313,7 +313,7 @@ is also an indexed field (as the index is used for an efficient lookup).
 
 ```ts
 defineEntSchema({
-  users: defineEnt({}).field('email', v.string(), { unique: true }),
+  user: defineEnt({}).field("email", v.string(), { unique: true }),
 });
 ```
 
@@ -331,9 +331,9 @@ The following schema:
 ```ts
 defineEntSchema({
   posts: defineEnt({}).field(
-    'contentType',
-    v.union(v.literal('text'), v.literal('video')),
-    { default: 'text' }
+    "contentType",
+    v.union(v.literal("text"), v.literal("video")),
+    { default: "text" }
   ),
 });
 ```
@@ -346,7 +346,7 @@ specifying the default value, the schema could look like:
 ```ts
 defineEntSchema({
   posts: defineEnt({
-    contentType: v.optional(v.union(v.literal('text'), v.literal('video'))),
+    contentType: v.optional(v.union(v.literal("text"), v.literal("video"))),
   }),
 });
 ```
@@ -364,15 +364,15 @@ defineEntSchema({
   posts: defineEnt(
     v.union(
       v.object({
-        type: v.literal('text'),
+        type: v.literal("text"),
         content: v.string(),
       }),
       v.object({
-        type: v.literal('video'),
+        type: v.literal("video"),
         link: v.string(),
       })
     )
-  ).field('author', v.id('user')),
+  ).field("author", v.id("user")),
 });
 ```
 
@@ -413,12 +413,12 @@ the example of users authoring messages:
 
 ```ts
 defineEntSchema({
-  users: defineEnt({
+  user: defineEnt({
     name: v.string(),
-  }).edges('messages', { ref: true }),
+  }).edges("messages", { ref: true }),
   messages: defineEnt({
     text: v.string(),
-  }).edge('user'),
+  }).edge("user"),
 });
 ```
 
@@ -453,12 +453,12 @@ Here's a basic example of a 1:1 edge, defined for each ent using the `edge`
 
 ```ts
 defineEntSchema({
-  users: defineEnt({
+  user: defineEnt({
     name: v.string(),
-  }).edge('profile', { ref: true }),
+  }).edge("profile", { ref: true }),
   profiles: defineEnt({
     bio: v.string(),
-  }).edge('user'),
+  }).edge("user"),
 });
 ```
 
@@ -472,12 +472,12 @@ The syntax shown is actually a shortcut for the following declaration:
 
 ```ts
 defineEntSchema({
-  users: defineEnt({
+  user: defineEnt({
     name: v.string(),
-  }).edge('profile', { to: 'profiles', ref: 'userId' }),
+  }).edge("profile", { to: "profiles", ref: "userId" }),
   profiles: defineEnt({
     bio: v.string(),
-  }).edge('user', { to: 'user', field: 'userId' }),
+  }).edge("user", { to: "user", field: "userId" }),
 });
 ```
 
@@ -504,12 +504,12 @@ Shortcut syntax:
 
 ```ts
 defineEntSchema({
-  users: defineEnt({
+  user: defineEnt({
     name: v.string(),
-  }).edge('profile', { ref: true }),
+  }).edge("profile", { ref: true }),
   profiles: defineEnt({
     bio: v.string(),
-  }).edge('user', { field: 'userId', optional: true }),
+  }).edge("user", { field: "userId", optional: true }),
 });
 ```
 
@@ -519,12 +519,12 @@ Fully specified:
 
 ```ts
 defineEntSchema({
-  users: defineEnt({
+  user: defineEnt({
     name: v.string(),
-  }).edge('profile', { to: 'profiles', ref: 'userId' }),
+  }).edge("profile", { to: "profiles", ref: "userId" }),
   profiles: defineEnt({
     bio: v.string(),
-  }).edge('user', { to: 'user', field: 'userId', optional: true }),
+  }).edge("user", { to: "user", field: "userId", optional: true }),
 });
 ```
 
@@ -544,12 +544,12 @@ example, where the edge is defined via the `edge` (singular) and `edges`
 
 ```ts
 defineEntSchema({
-  users: defineEnt({
+  user: defineEnt({
     name: v.string(),
-  }).edges('messages', { ref: true }),
+  }).edges("messages", { ref: true }),
   messages: defineEnt({
     text: v.string(),
-  }).edge('user'),
+  }).edge("user"),
 });
 ```
 
@@ -564,12 +564,12 @@ The syntax shown is actually a shortcut for the following declaration:
 
 ```ts
 defineEntSchema({
-  users: defineEnt({
+  user: defineEnt({
     name: v.string(),
-  }).edges('messages', { to: 'messages', ref: 'userId' }),
+  }).edges("messages", { to: "messages", ref: "userId" }),
   messages: defineEnt({
     text: v.string(),
-  }).edge('user', { to: 'user', field: 'userId' }),
+  }).edge("user", { to: "user", field: "userId" }),
 });
 ```
 
@@ -596,12 +596,12 @@ Shortcut syntax:
 
 ```ts
 defineEntSchema({
-  users: defineEnt({
+  user: defineEnt({
     name: v.string(),
-  }).edges('messages', { ref: true }),
+  }).edges("messages", { ref: true }),
   messages: defineEnt({
     text: v.string(),
-  }).edge('user', { field: 'userId', optional: true }),
+  }).edge("user", { field: "userId", optional: true }),
 });
 ```
 
@@ -611,12 +611,12 @@ Fully specified:
 
 ```ts
 defineEntSchema({
-  users: defineEnt({
+  user: defineEnt({
     name: v.string(),
-  }).edges('messages', { to: 'messages', ref: 'userId' }),
+  }).edges("messages", { to: "messages", ref: "userId" }),
   messages: defineEnt({
     text: v.string(),
-  }).edge('user', { to: 'user', field: 'userId', optional: true }),
+  }).edge("user", { to: "user", field: "userId", optional: true }),
 });
 ```
 
@@ -631,10 +631,10 @@ use the `edges` (plural) method:
 defineEntSchema({
   messages: defineEnt({
     name: v.string(),
-  }).edges('tags'),
+  }).edges("tags"),
   tags: defineEnt({
     text: v.string(),
-  }).edges('messages'),
+  }).edges("messages"),
 });
 ```
 
@@ -649,17 +649,17 @@ The syntax shown is actually a shortcut for the following declaration:
 defineEntSchema({
   messages: defineEnt({
     name: v.string(),
-  }).edges('tags', {
-    to: 'tags',
-    table: 'tags_to_messages',
-    field: 'tagsId',
+  }).edges("tags", {
+    to: "tags",
+    table: "tags_to_messages",
+    field: "tagsId",
   }),
   tags: defineEnt({
     text: v.string(),
-  }).edges('messages', {
-    to: 'messages',
-    table: 'tags_to_messages',
-    field: 'messagesId',
+  }).edges("messages", {
+    to: "messages",
+    table: "tags_to_messages",
+    field: "messagesId",
   }),
 });
 ```
@@ -686,9 +686,9 @@ table.
 
 ```ts
 defineEntSchema({
-  users: defineEnt({
+  user: defineEnt({
     name: v.string(),
-  }).edges('followers', { to: 'user', inverse: 'followees' }),
+  }).edges("followers", { to: "user", inverse: "followees" }),
 });
 ```
 
@@ -714,9 +714,9 @@ table, but additionally they "double-write" the edge for both directions:
 
 ```ts
 defineEntSchema({
-  users: defineEnt({
+  user: defineEnt({
     name: v.string(),
-  }).edges('friends', { to: 'user' }),
+  }).edges("friends", { to: "user" }),
 });
 ```
 
@@ -749,10 +749,10 @@ IDs and ents around.
 Use the built-in `Id` type:
 
 ```ts filename=convex/myFunctions.ts
-import { Id } from './_generated/dataModel';
+import { Id } from "./_generated/dataModel";
 
 // Note that a `MutationCtx` also satisfies the `QueryCtx` interface
-export function myReadHelper(ctx: QueryCtx, id: Id<'tasks'>) {
+export function myReadHelper(ctx: QueryCtx, id: Id<"tasks">) {
   /* ... */
 }
 ```
@@ -760,15 +760,15 @@ export function myReadHelper(ctx: QueryCtx, id: Id<'tasks'>) {
 ## Ent types & `ctx` types
 
 ```ts filename=convex/myFunctions.ts
-import { Ent, EntWriter } from './shared/types';
+import { Ent, EntWriter } from "./shared/types";
 
-export function myReadHelper(ctx: PublicQueryCtx, task: Ent<'tasks'>) {
+export function myReadHelper(ctx: PublicQueryCtx, task: Ent<"tasks">) {
   /* ... */
 }
 
 export function myWriteHelper(
   ctx: PublicMutationCtx,
-  task: EntWriter<'tasks'>
+  task: EntWriter<"tasks">
 ) {
   /* ... */
 }
@@ -838,12 +838,12 @@ edge declaration:
 
 ```ts
 defineEntSchema({
-  users: defineEnt({
+  user: defineEnt({
     name: v.string(),
-  }).edge('profile', { optional: true }),
+  }).edge("profile", { optional: true }),
   profiles: defineEnt({
     bio: v.string(),
-  }).edge('user', { deletion: 'hard' }),
+  }).edge("user", { deletion: "hard" }),
 });
 ```
 
@@ -858,9 +858,9 @@ You can configure an ent to use the `"soft"` deletion behavior with the
 
 ```ts
 defineEntSchema({
-  users: defineEnt({
+  user: defineEnt({
     name: v.string(),
-  }).deletion('soft'),
+  }).deletion("soft"),
 });
 ```
 
@@ -877,8 +877,8 @@ You can include or exclude soft deleted ents from results by filtering:
 
 ```ts
 const notDeletedUsers = await ctx
-  .table('user')
-  .filter((q) => q.eq(q.field('deletionTime'), undefined));
+  .table("user")
+  .filter((q) => q.eq(q.field("deletionTime"), undefined));
 ```
 
 ### Undeleting soft deleted ents
@@ -886,7 +886,7 @@ const notDeletedUsers = await ctx
 The ents can be "undeleted" by unsetting the `deletionTime` field, for example:
 
 ```ts
-await ctx.table('user').getX(userId).patch({ deletionTime: undefined });
+await ctx.table("user").getX(userId).patch({ deletionTime: undefined });
 ```
 
 ### Soft edge deletion
@@ -899,17 +899,17 @@ on edge declarations:
 
 ```ts
 defineEntSchema({
-  users: defineEnt({
+  user: defineEnt({
     email: v.string(),
   })
-    .deletion('soft')
-    .edges('profiles', { ref: true, deletion: 'soft' }),
+    .deletion("soft")
+    .edges("profiles", { ref: true, deletion: "soft" }),
 
   profiles: defineEnt({
     name: v.string(),
   })
-    .deletion('soft')
-    .edge('user'),
+    .deletion("soft")
+    .edge("user"),
 });
 ```
 
@@ -945,7 +945,7 @@ To enable scheduled ent deletion you need to add two lines of code to your
 
 ```ts
 // Add this import
-import { scheduledDeleteFactory } from 'convex-ents';
+import { scheduledDeleteFactory } from "convex-ents";
 
 // Add this export
 export const scheduledDelete = scheduledDeleteFactory(entDefinitions);
@@ -960,8 +960,8 @@ Expose the mutation somewhere in your `convex` folder, and its reference to the
 factory function:
 
 ```ts filename="convex/someFileName.ts"
-import { scheduledDeleteFactory } from 'convex-ents';
-import { entDefinitions } from './schema';
+import { scheduledDeleteFactory } from "convex-ents";
+import { entDefinitions } from "./schema";
 
 export const myNameForScheduledDelete = scheduledDeleteFactory(entDefinitions, {
   scheduledDelete: internal.someFileName.myNameForScheduledDelete,
@@ -1004,15 +1004,15 @@ You can configure an ent to use the `"scheduled"` deletion behavior with the
 
 ```ts
 defineEntSchema({
-  users: defineEnt({
+  user: defineEnt({
     email: v.string(),
   })
-    .deletion('scheduled')
-    .edges('profiles', { ref: true }),
+    .deletion("scheduled")
+    .edges("profiles", { ref: true }),
 
   profiles: defineEnt({
     name: v.string(),
-  }).edge('user'),
+  }).edge("user"),
 });
 ```
 
@@ -1029,15 +1029,15 @@ The hard deletion can be delayed into the future with the `delayMs` option:
 
 ```ts
 defineEntSchema({
-  users: defineEnt({
+  user: defineEnt({
     email: v.string(),
   })
-    .deletion('scheduled', { delayMs: 24 * 60 * 60 * 1000 })
-    .edges('profiles', { ref: true }),
+    .deletion("scheduled", { delayMs: 24 * 60 * 60 * 1000 })
+    .edges("profiles", { ref: true }),
 
   profiles: defineEnt({
     name: v.string(),
-  }).edge('user'),
+  }).edge("user"),
 });
 ```
 
@@ -1053,7 +1053,7 @@ You can cancel a scheduled deletion by unsetting the `deletionTime` field, for
 example:
 
 ```ts
-await ctx.table('user').getX(userId).patch({ deletionTime: undefined });
+await ctx.table("user").getX(userId).patch({ deletionTime: undefined });
 ```
 
 ### Correctness
@@ -1078,7 +1078,7 @@ function ID field:
 defineEntSchema({
   answers: defineEnt({
     question: v.string(),
-    actionId: v.id('_scheduled_functions'),
+    actionId: v.id("_scheduled_functions"),
   }),
 });
 ```
@@ -1087,11 +1087,11 @@ You can then retrieve the scheduled function status and cancel it. For example,
 to retrieve all answers with the status of their action:
 
 ```ts
-return ctx.table('answers').map(async ({ question, actionId }) => ({
+return ctx.table("answers").map(async ({ question, actionId }) => ({
   question,
   status:
-    (await ctx.table('_scheduled_functions').get(actionId)?.state.kind) ??
-    'stale',
+    (await ctx.table("_scheduled_functions").get(actionId)?.state.kind) ??
+    "stale",
 }));
 ```
 
@@ -1103,7 +1103,7 @@ You can simplify the code above by declaring a 1:1 edge to scheduled functions:
 defineEntSchema({
   answers: defineEnt({
     question: v.string(),
-  }).edge('action', { to: '_scheduled_functions' }),
+  }).edge("action", { to: "_scheduled_functions" }),
 });
 ```
 
@@ -1113,9 +1113,9 @@ specify it with the `field` option.
 You can then retrieve scheduled function status via the edge:
 
 ```ts
-return ctx.table('answers').map(async (answer) => ({
+return ctx.table("answers").map(async (answer) => ({
   question: answer.question,
-  status: (await answer.edge('action')?.state.kind) ?? 'stale',
+  status: (await answer.edge("action")?.state.kind) ?? "stale",
 }));
 ```
 
@@ -1128,7 +1128,7 @@ option:
 defineEntSchema({
   answers: defineEnt({
     question: v.string(),
-  }).edge('action', { to: '_scheduled_functions', deletion: 'hard' }),
+  }).edge("action", { to: "_scheduled_functions", deletion: "hard" }),
 });
 ```
 
@@ -1174,9 +1174,9 @@ via custom functions, see [Configuring Functions](/setup/config).
 Add a `rules.ts` file with the following contents:
 
 ```ts filename="convex/rules.ts" {8-16}
-import { addEntRules } from 'convex-ents';
-import { entDefinitions } from './schema';
-import { QueryCtx } from './types';
+import { addEntRules } from "convex-ents";
+import { entDefinitions } from "./schema";
+import { QueryCtx } from "./types";
 
 export function getEntDefinitionsWithRules(
   ctx: QueryCtx
@@ -1194,15 +1194,15 @@ export function getEntDefinitionsWithRules(
 
 // Example: Retrieve viewer ID using `ctx.auth`:
 export async function getViewerId(
-  ctx: Omit<QueryCtx, 'table' | 'viewerId' | 'viewer' | 'viewerX'>
-): Promise<Id<'user'> | null> {
+  ctx: Omit<QueryCtx, "table" | "viewerId" | "viewer" | "viewerX">
+): Promise<Id<"user"> | null> {
   const user = await authComponent.safeGetAuthUser(ctx);
   if (user === null) {
     return null;
   }
   const viewer = await ctx.skipRules
-    .table('user')
-    .get('tokenIdentifier', user.tokenIdentifier);
+    .table("user")
+    .get("tokenIdentifier", user.tokenIdentifier);
   return viewer?._id;
 }
 ```
@@ -1261,12 +1261,12 @@ async function queryCtx(baseCtx: QueryCtx) {
   (ctx as any).table = table;
   // Example: add `viewer` and `viewerX` helpers to `ctx`:
   const viewer = async () =>
-    viewerId !== null ? await table('user').get(viewerId) : null;
+    viewerId !== null ? await table("user").get(viewerId) : null;
   (ctx as any).viewer = viewer;
   const viewerX = async () => {
     const ent = await viewer();
     if (ent === null) {
-      throw new Error('Expected authenticated viewer');
+      throw new Error("Expected authenticated viewer");
     }
     return ent;
   };
@@ -1286,12 +1286,12 @@ async function mutationCtx(baseCtx: MutationCtx) {
   (ctx as any).table = table;
   // Example: add `viewer` and `viewerX` helpers to `ctx`:
   const viewer = async () =>
-    viewerId !== null ? await table('user').get(viewerId) : null;
+    viewerId !== null ? await table("user").get(viewerId) : null;
   (ctx as any).viewer = viewer;
   const viewerX = async () => {
     const ent = await viewer();
     if (ent === null) {
-      throw new Error('Expected authenticated viewer');
+      throw new Error("Expected authenticated viewer");
     }
     return ent;
   };
@@ -1333,12 +1333,12 @@ const table = entsTableFactory(baseCtx, entDefinitionsWithRules);
 // Anything that we want our rule implementations to have
 // access to has to be added to the `ctx`.
 const viewer = async () =>
-  viewerId !== null ? await table('user').get(viewerId) : null;
+  viewerId !== null ? await table("user").get(viewerId) : null;
 (ctx as any).viewer = viewer;
 const viewerX = async () => {
   const ent = await viewer();
   if (ent === null) {
-    throw new Error('Expected authenticated viewer');
+    throw new Error("Expected authenticated viewer");
   }
   return ent;
 };
@@ -1397,7 +1397,7 @@ read_:
 return addEntRules(entDefinitions, {
   profiles: {
     read: async (profile) => {
-      return (await profile.edge('user')) !== null;
+      return (await profile.edge("user")) !== null;
     },
   },
 });
@@ -1418,7 +1418,7 @@ return addEntRules(entDefinitions, {
       return (
         ctx.viewerId !== null &&
         (ctx.viewerId === user._id ||
-          (await user.edge('friends').has(ctx.viewerId)))
+          (await user.edge("friends").has(ctx.viewerId)))
       );
     },
   },
@@ -1440,11 +1440,11 @@ return addEntRules(entDefinitions, {
       return ctx.viewerId === secret.userId;
     },
     write: async ({ operation, ent: secret, value }) => {
-      if (operation === 'delete') {
+      if (operation === "delete") {
         // Example: No one is allowed to delete secrets
         return false;
       }
-      if (operation === 'create') {
+      if (operation === "create") {
         // Example: Only the viewer can create secrets
         return ctx.viewerId === value.ownerId;
       }
@@ -1484,9 +1484,9 @@ when using `ctx.skipRules.table`:
 
 ```ts
 // Avoid!!!
-return await ctx.skipRules.table('foos').get(someId);
+return await ctx.skipRules.table("foos").get(someId);
 // Return an ID instead:
-return (await ctx.skipRules.table('foos').get(someId))._id;
+return (await ctx.skipRules.table("foos").get(someId))._id;
 ```
 
 It is preferable to still use Convex Ents over using the built-in `ctx.db` API
@@ -1520,13 +1520,13 @@ data from an arbitrary table, you must the
 ## Reading a single ent by ID
 
 ```ts
-const task = await ctx.table('tasks').get(taskId);
+const task = await ctx.table("tasks").get(taskId);
 ```
 
 <Aside title="This is equivalent to the built-in:">
 
 ```ts
-const id = ctx.db.normalize('tasks', taskId);
+const id = ctx.db.normalize("tasks", taskId);
 if (id === null) {
   return null;
 }
@@ -1540,15 +1540,15 @@ with the addition of checking that `taskId` belongs to `"tasks"`.
 ## Reading a single ent by indexed field
 
 ```ts
-const task = await ctx.table('user').get('email', 'steve@apple.com');
+const task = await ctx.table("user").get("email", "steve@apple.com");
 ```
 
 <Aside title="This is equivalent to the built-in:">
 
 ```ts
 const task = await ctx.db
-  .query('user')
-  .withIndex('email', (q) => q.eq('email', 'steve@apple.com'))
+  .query("user")
+  .withIndex("email", (q) => q.eq("email", "steve@apple.com"))
   .unique();
 ```
 
@@ -1557,15 +1557,15 @@ const task = await ctx.db
 ## Reading a single ent via a compound index
 
 ```ts
-const task = await ctx.table('user').get('nameAndRank', 'Steve', 10);
+const task = await ctx.table("user").get("nameAndRank", "Steve", 10);
 ```
 
 <Aside title="This is equivalent to the built-in:">
 
 ```ts
 const task = await ctx.db
-  .query('user')
-  .withIndex('nameAndRank', (q) => q.eq('name', 'Steve').eq('rank', 10))
+  .query("user")
+  .withIndex("nameAndRank", (q) => q.eq("name", "Steve").eq("rank", 10))
   .unique();
 ```
 
@@ -1577,11 +1577,11 @@ The `getX` method (pronounced "get or throw") throws an `Error` if the read
 produced no ents:
 
 ```ts
-const task = await ctx.table('tasks').getX(taskId);
+const task = await ctx.table("tasks").getX(taskId);
 ```
 
 ```ts
-const task = await ctx.table('user').getX('email', 'steve@apple.com');
+const task = await ctx.table("user").getX("email", "steve@apple.com");
 ```
 
 ## Reading multiple ents by IDs
@@ -1589,7 +1589,7 @@ const task = await ctx.table('user').getX('email', 'steve@apple.com');
 Retrieve a list of ents or nulls:
 
 ```ts
-const tasks = await ctx.table('tasks').getMany([taskId1, taskId2]);
+const tasks = await ctx.table("tasks").getMany([taskId1, taskId2]);
 ```
 
 <Aside title="This is equivalent to the built-in:">
@@ -1606,7 +1606,7 @@ Retrieve a list of ents or throw an `Error` if any of the IDs didn't map to an
 existing ent:
 
 ```ts
-const tasks = await ctx.table('tasks').getManyX([taskId1, taskId2]);
+const tasks = await ctx.table("tasks").getManyX([taskId1, taskId2]);
 ```
 
 Also throws if any of the ents fail a [read rule](/schema/rules).
@@ -1616,13 +1616,13 @@ Also throws if any of the ents fail a [read rule](/schema/rules).
 To list all ents backed by a single table, simply `await` the `ctx.table` call:
 
 ```ts
-const tasks = await ctx.table('user');
+const tasks = await ctx.table("user");
 ```
 
 <Aside title="This is equivalent to the built-in:">
 
 ```ts
-const tasks = await ctx.db.query('user').collect();
+const tasks = await ctx.db.query("user").collect();
 ```
 
 </Aside>
@@ -1633,8 +1633,8 @@ To list ents from a table and efficiently filter them by an index, pass the
 index name and filter callback to `ctx.table`:
 
 ```ts
-const posts = await ctx.table('posts', 'numLikes', (q) =>
-  q.gt('numLikes', 100)
+const posts = await ctx.table("posts", "numLikes", (q) =>
+  q.gt("numLikes", 100)
 );
 ```
 
@@ -1642,8 +1642,8 @@ const posts = await ctx.table('posts', 'numLikes', (q) =>
 
 ```ts
 const posts = await ctx.db
-  .query('posts')
-  .withIndex('numLikes', (q) => q.gt('numLikes', 100))
+  .query("posts")
+  .withIndex("numLikes", (q) => q.gt("numLikes", 100))
   .collect();
 ```
 
@@ -1655,17 +1655,17 @@ To use [text search](https://docs.convex.dev/search) call the `search` method:
 
 ```ts
 const awesomeVideoPosts = await ctx
-  .table('posts')
-  .search('text', (q) => q.search('text', 'awesome').eq('type', 'video'));
+  .table("posts")
+  .search("text", (q) => q.search("text", "awesome").eq("type", "video"));
 ```
 
 <Aside title="This is equivalent to the built-in:">
 
 ```ts
 const awesomeVideoPosts = await ctx.db
-  .query('posts')
-  .withSearchIndex('text', (q) =>
-    q.search('text', 'awesome').eq('type', 'video')
+  .query("posts")
+  .withSearchIndex("text", (q) =>
+    q.search("text", "awesome").eq("type", "video")
   )
   .collect();
 ```
@@ -1679,16 +1679,16 @@ Use the `filter` method, which works the same as the
 
 ```ts
 const posts = await ctx
-  .table('posts')
-  .filter((q) => q.gt(q.field('numLikes'), 100));
+  .table("posts")
+  .filter((q) => q.gt(q.field("numLikes"), 100));
 ```
 
 <Aside title="This is equivalent to the built-in:">
 
 ```ts
 const posts = await ctx.db
-  .query('posts')
-  .filter((q) => q.gt(q.field('numLikes'), 100))
+  .query("posts")
+  .filter((q) => q.gt(q.field("numLikes"), 100))
   .collect();
 ```
 
@@ -1700,13 +1700,13 @@ Use the `order` method. The default sort is by `_creationTime` in ascending
 order (from oldest created to newest created):
 
 ```ts
-const posts = await ctx.table('posts').order('desc');
+const posts = await ctx.table("posts").order("desc");
 ```
 
 <Aside title="This is equivalent to the built-in:">
 
 ```ts
-const posts = await ctx.db.query('posts').order('desc').collect();
+const posts = await ctx.db.query("posts").order("desc").collect();
 ```
 
 </Aside>
@@ -1717,16 +1717,16 @@ The `order` method takes an index name as a shortcut to sorting by a given
 index:
 
 ```ts
-const posts = await ctx.table('posts').order('desc', 'numLikes');
+const posts = await ctx.table("posts").order("desc", "numLikes");
 ```
 
 <Aside title="This is equivalent to the built-in:">
 
 ```ts
 const posts = await ctx
-  .table('posts')
-  .withIndex('numLikes')
-  .order('desc')
+  .table("posts")
+  .withIndex("numLikes")
+  .order("desc")
   .collect();
 ```
 
@@ -1737,7 +1737,7 @@ const posts = await ctx
 ### Taking first `n` ents
 
 ```ts
-const users = await ctx.table('user').take(5);
+const users = await ctx.table("user").take(5);
 ```
 
 ### Loading a page of ents
@@ -1747,7 +1747,7 @@ as the [the built-in pagination](https://docs.convex.dev/database/pagination)
 method.
 
 ```ts
-const result = await ctx.table('posts').paginate(paginationOpts);
+const result = await ctx.table("posts").paginate(paginationOpts);
 ```
 
 ### Finding the first ent
@@ -1756,7 +1756,7 @@ Useful chained, either to a `ctx.table` call using an index, or after `filter`,
 `order`, `edge`.
 
 ```ts
-const latestUser = await ctx.table('user').order('desc').first();
+const latestUser = await ctx.table("user").order("desc").first();
 ```
 
 ### Finding the first ent or throwing
@@ -1765,7 +1765,7 @@ The `firstX` method (pronounced "first or throw") throws an `Error` if the read
 produced no ents:
 
 ```ts
-const latestUser = await ctx.table('user').order('desc').firstX();
+const latestUser = await ctx.table("user").order("desc").firstX();
 ```
 
 ### Finding a unique ent
@@ -1774,7 +1774,7 @@ Throws if the listing produced more than 1 result, returns `null` if there were
 no results:
 
 ```ts
-const counter = await ctx.table('counters').unique();
+const counter = await ctx.table("counters").unique();
 ```
 
 ### Finding a unique ent or throwing
@@ -1783,7 +1783,7 @@ The `uniqueX` method (pronounced "unique or throw") throws if the listing
 produced more or less than 1 result:
 
 ```ts
-const counter = await ctx.table('counters').uniqueX();
+const counter = await ctx.table("counters").uniqueX();
 ```
 
 ## Accessing system tables
@@ -1792,8 +1792,8 @@ const counter = await ctx.table('counters').uniqueX();
 read with the `ctx.table.system` method:
 
 ```ts
-const filesMetadata = await ctx.table.system('_storage');
-const scheduledFunctions = await ctx.table.system('_scheduled_functions');
+const filesMetadata = await ctx.table.system("_storage");
+const scheduledFunctions = await ctx.table.system("_scheduled_functions");
 ```
 
 All the previously listed methods are also supported by `ctx.table.system`.
@@ -1817,16 +1817,16 @@ For 1:1 edges, the `edge` method returns:
   their `profile`)
 
 ```ts
-const user = await ctx.table('profiles').getX(profileId).edge('user');
-const profileOrNull = await ctx.table('user').getX(userId).edge('profile');
+const user = await ctx.table("profiles").getX(profileId).edge("user");
+const profileOrNull = await ctx.table("user").getX(userId).edge("profile");
 ```
 
 <Aside title="This is equivalent to the built-in:">
 
 ```ts
 const user = await ctx.db
-  .query('user')
-  .withIndex('profileId', (q) => q.eq('profileId', profileId))
+  .query("user")
+  .withIndex("profileId", (q) => q.eq("profileId", profileId))
   .unique();
 ```
 
@@ -1836,7 +1836,7 @@ The `edgeX` method (pronounced "edge or throw") throws if the edge does not
 exist:
 
 ```ts
-const profile = await ctx.table('user').getX(userId).edgeX('profile');
+const profile = await ctx.table("user").getX(userId).edgeX("profile");
 ```
 
 ### Traversing 1:many edges
@@ -1849,16 +1849,16 @@ For 1:many edges, the `edge` method returns:
   the `messages`)
 
 ```ts
-const user = await ctx.table('message').getX(messageId).edge('user');
-const messages = await ctx.table('user').getX(userId).edge('messages');
+const user = await ctx.table("message").getX(messageId).edge("user");
+const messages = await ctx.table("user").getX(userId).edge("messages");
 ```
 
 <Aside title="This is equivalent to the built-in:">
 
 ```ts
 const messages = await ctx.db
-  .query('messages')
-  .withIndex('userId', (q) => q.eq('userId', userId))
+  .query("messages")
+  .withIndex("userId", (q) => q.eq("userId", userId))
   .collect();
 ```
 
@@ -1874,8 +1874,8 @@ For many:many edges, the `edge` method returns a list of ents on the other end
 of the multiple edges:
 
 ```ts
-const tags = await ctx.table('messages').getX(messageId).edge('tags');
-const messages = await ctx.table('tags').getX(tagId).edge('messages');
+const tags = await ctx.table("messages").getX(messageId).edge("tags");
+const messages = await ctx.table("tags").getX(tagId).edge("messages");
 ```
 
 <Aside title="This is equivalent to the built-in:">
@@ -1884,8 +1884,8 @@ const messages = await ctx.table('tags').getX(tagId).edge('messages');
 const tags = await Promise.all(
   (
     await ctx.db
-      .query('messages_to_tags')
-      .withIndex('messagesId', (q) => q.eq('messagesId', messageId))
+      .query("messages_to_tags")
+      .withIndex("messagesId", (q) => q.eq("messagesId", messageId))
       .collect()
   ).map((edge) => ctx.db.get(edge.tagsId))
 );
@@ -1903,7 +1903,7 @@ You can efficiently test whether two ents are connected by a many:many edge
 using the `has` method:
 
 ```ts
-const hasTag = ctx.table('messages').getX(messageId).edge('tags').has(tagId);
+const hasTag = ctx.table("messages").getX(messageId).edge("tags").has(tagId);
 ```
 
 <Aside title="This is equivalent to the built-in:">
@@ -1911,9 +1911,9 @@ const hasTag = ctx.table('messages').getX(messageId).edge('tags').has(tagId);
 ```ts
 const hasTag =
   (await ctx.db
-    .query('messages_to_tags')
-    .withIndex('messagesId_tagsId', (q) =>
-      q.eq('messagesId', message._id).eq('tagsId', tagId)
+    .query("messages_to_tags")
+    .withIndex("messagesId_tagsId", (q) =>
+      q.eq("messagesId", message._id).eq("tagsId", tagId)
     )
     .first()) !== null;
 ```
@@ -1933,8 +1933,8 @@ with the `edge` and `edgeX` methods. This allows traversing edges after loading
 the ent from the database:
 
 ```ts
-const user = await ctx.table('user').firstX();
-const profile = user.edgeX('profile');
+const user = await ctx.table("user").firstX();
+const profile = user.edgeX("profile");
 ```
 
 ### Mapping ents to include edges
@@ -1944,10 +1944,10 @@ returned ent. It can be used to add related ents via the `edge` and `edgeX`
 methods:
 
 ```ts
-const usersWithMessages = await ctx.table('user').map(async (user) => {
+const usersWithMessages = await ctx.table("user").map(async (user) => {
   return {
     name: user.name,
-    messages: await user.edge('messages').take(5),
+    messages: await user.edge("messages").take(5),
   };
 });
 ```
@@ -1971,16 +1971,18 @@ functionality:">
 
 ```ts
 const usersWithMessagesAndProfile = await Promise.all(
-  (await ctx.db.query('user').collect()).map(async (user) => {
+  (
+    await ctx.db.query("user").collect()
+  ).map(async (user) => {
     const [posts, profile] = Promise.all([
       ctx.db
-        .query('messages')
-        .withIndex('userId', (q) => q.eq('userId', user._id))
+        .query("messages")
+        .withIndex("userId", (q) => q.eq("userId", user._id))
         .collect(),
       (async () => {
         const profile = await ctx.db
-          .query('profiles')
-          .withIndex('userId', (q) => q.eq('userId', user._id))
+          .query("profiles")
+          .withIndex("userId", (q) => q.eq("userId", user._id))
           .unique();
         if (profile === null) {
           throw new Error(
@@ -2004,11 +2006,11 @@ requiring that related ents exist.
 The `map` method can beused to load ents by traversing more than one edge:
 
 ```ts
-const usersWithMessagesAndTags = await ctx.table('user').map(async (user) => ({
+const usersWithMessagesAndTags = await ctx.table("user").map(async (user) => ({
   ...user,
-  messages: await user.edge('messages').map(async (message) => ({
+  messages: await user.edge("messages").map(async (message) => ({
     text: message.text,
-    tags: await message.edge('tags'),
+    tags: await message.edge("tags"),
   })),
 }));
 ```
@@ -2018,12 +2020,12 @@ const usersWithMessagesAndTags = await ctx.table('user').map(async (user) => ({
 Consider the following query:
 
 ```ts filename="convex/messages.ts"
-import { query } from './functions';
+import { query } from "./functions";
 
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.table('messages');
+    return await ctx.table("messages");
   },
 });
 ```
@@ -2039,12 +2041,12 @@ sent to clients. For this reason, and for backwards compatibility in general,
 it's a good idea to pick specifically which fields to send:
 
 ```ts filename="convex/messages.ts"
-import { query } from './functions';
+import { query } from "./functions";
 
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.table('messages').map((message) => ({
+    return await ctx.table("messages").map((message) => ({
       _id: message._id,
       _creationTime: message._creationTime,
       text: message.text,
@@ -2058,27 +2060,27 @@ That said, you can easily retrieve raw documents, instead of ents with methods,
 from the database using the `docs` and `doc` methods:
 
 ```ts filename="convex/messages.ts"
-import { query } from './functions';
+import { query } from "./functions";
 
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.table('messages').docs();
+    return await ctx.table("messages").docs();
   },
 });
 ```
 
 ```ts filename="convex/users.ts"
-import { query } from './functions';
+import { query } from "./functions";
 
 export const list = query({
   args: {},
   handler: async (ctx) => {
     const usersWithMessagesAndProfile = await ctx
-      .table('user')
+      .table("user")
       .map(async (user) => ({
         ...user,
-        profile: await user.edgeX('profile').doc(),
+        profile: await user.edgeX("profile").doc(),
       }));
   },
 });
@@ -2105,19 +2107,19 @@ You can insert new ents into the database with the `insert` method chained to
 the result of calling `ctx.table`:
 
 ```ts
-const taskId = await ctx.table('tasks').insert({ text: 'Win at life' });
+const taskId = await ctx.table("tasks").insert({ text: "Win at life" });
 ```
 
 You can retrieve the just created ent with the `get` method:
 
 ```ts
-const task = await ctx.table('tasks').insert({ text: 'Win at life' }).get();
+const task = await ctx.table("tasks").insert({ text: "Win at life" }).get();
 ```
 
 <Aside title="This is equivalent to the built-in:">
 
 ```ts
-const taskId = await ctx.db.insert('tasks', { text: 'Win at life' });
+const taskId = await ctx.db.insert("tasks", { text: "Win at life" });
 const task = (await ctx.db.get(taskId))!;
 ```
 
@@ -2127,8 +2129,8 @@ const task = (await ctx.db.get(taskId))!;
 
 ```ts
 const taskIds = await ctx
-  .table('tasks')
-  .insertMany([{ text: 'Buy socks' }, { text: 'Buy shoes' }]);
+  .table("tasks")
+  .insertMany([{ text: "Buy socks" }, { text: "Buy shoes" }]);
 ```
 
 ## Updating existing ents
@@ -2137,14 +2139,14 @@ To update an existing ent, call the `patch` or `replace` method on a
 [lazy `Promise`](/read) of an ent, or on an already retrieved ent:
 
 ```ts
-await ctx.table('tasks').getX(taskId).patch({ text: 'Changed text' });
-await ctx.table('tasks').getX(taskId).replace({ text: 'Changed text' });
+await ctx.table("tasks").getX(taskId).patch({ text: "Changed text" });
+await ctx.table("tasks").getX(taskId).replace({ text: "Changed text" });
 ```
 
 ```ts
-const task = await ctx.table('tasks').getX(taskId);
-await task.patch({ text: 'Changed text' });
-await task.replace({ text: 'Changed text' });
+const task = await ctx.table("tasks").getX(taskId);
+await task.patch({ text: "Changed text" });
+await task.replace({ text: "Changed text" });
 ```
 
 See the
@@ -2157,11 +2159,11 @@ To delete an ent, call the `delete` method on a [lazy `Promise`](/read) of an
 ent, or on an already retrieved ent:
 
 ```ts
-await ctx.table('tasks').getX(taskId).delete();
+await ctx.table("tasks").getX(taskId).delete();
 ```
 
 ```ts
-const task = await ctx.table('tasks').getX(taskId);
+const task = await ctx.table("tasks").getX(taskId);
 await task.delete();
 ```
 
@@ -2184,17 +2186,17 @@ either when inserting:
 
 ```ts
 // First we need a user, which can have an optional profile edge
-const userId = await ctx.table('user').insert({ name: 'Alice' });
+const userId = await ctx.table("user").insert({ name: "Alice" });
 // Now we can create a profile with the 1:1 edge to the user
 const profileId = await ctx
-  .table('profiles')
-  .insert({ bio: 'In Wonderland', userId });
+  .table("profiles")
+  .insert({ bio: "In Wonderland", userId });
 ```
 
 or when updating:
 
 ```ts
-const profileId = await ctx.table('profiles').getX(profileId).patch({ userId });
+const profileId = await ctx.table("profiles").getX(profileId).patch({ userId });
 ```
 
 <Aside title="This is equivalent to the built-in:">
@@ -2214,11 +2216,11 @@ inserting ents on either side of the edge:
 
 ```ts
 // First we need a tag, which can have many:many edge to messages
-const tagId = await ctx.table('tags').insert({ name: 'Blue' });
+const tagId = await ctx.table("tags").insert({ name: "Blue" });
 // Now we can create a message with a many:many edge to the tag
 const messageId = await ctx
-  .table('messages')
-  .insert({ text: 'Hello world', tags: [tagId] });
+  .table("messages")
+  .insert({ text: "Hello world", tags: [tagId] });
 ```
 
 But we could have equally created a message first, and then created a tag with a
@@ -2228,9 +2230,9 @@ The `replace` method can be used to create and delete many:many edges:
 
 ```ts
 await ctx
-  .table('messages')
+  .table("messages")
   .getX(messageId)
-  .replace({ text: 'Changed message', tags: [tagID, otherTagID] });
+  .replace({ text: "Changed message", tags: [tagID, otherTagID] });
 ```
 
 If a list is specified, the edges that need to be created are created, and all
@@ -2239,16 +2241,16 @@ edges are left unchanged:
 
 ```ts
 await ctx
-  .table('messages')
+  .table("messages")
   .getX(messageId)
-  .replace({ text: 'Changed message' /* no `tags:`, so tags don't change */ });
+  .replace({ text: "Changed message" /* no `tags:`, so tags don't change */ });
 ```
 
 The `patch` method on the other hand expects a description of the changes that
 should be made, a list of IDs to `add` and `remove` edges for:
 
 ```ts
-const message = await ctx.table('messages').getX(messageId);
+const message = await ctx.table("messages").getX(messageId);
 await message.patch({ tags: { add: [tagID] } });
 await message.patch({
   tags: { add: [tagID, otherTagID], remove: [tagToDeleteID] },
@@ -2266,9 +2268,9 @@ update the ent on the other end of an edge:
 
 ```ts
 await ctx
-  .table('user')
+  .table("user")
   .getX(userId)
-  .edgeX('profile')
+  .edgeX("profile")
   .patch({ bio: "I'm the first user" });
 ```
 
@@ -2276,8 +2278,8 @@ await ctx
 
 ```ts
 const profile = await ctx.db
-  .query('profiles')
-  .withIndex('userId', (q) => q.eq('userId', userId))
+  .query("profiles")
+  .withIndex("userId", (q) => q.eq("userId", userId))
   .unique();
 if (profile === null) {
   throw new Error(
@@ -2299,8 +2301,8 @@ await ctx.db.patch(profile._id, { bio: "I'm the first user" });
 The following code does not typecheck [currently](https://github.com/xixixao/convex-ents/issues/8):
 
 ```ts
-const user = await ctx.table('user').getX(userId);
-await user.edgeX('profile').patch({ bio: "I'm the first user" });
+const user = await ctx.table("user").getX(userId);
+await user.edgeX("profile").patch({ bio: "I'm the first user" });
 ```
 
 You can either disable typechecking via `// @ts-expect-error` or preferably

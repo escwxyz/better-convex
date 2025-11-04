@@ -1,26 +1,25 @@
+import type { DataModel } from '@convex/_generated/dataModel';
+import { ac, roles } from '@convex/authPermissions';
 import { convex } from '@convex-dev/better-auth/plugins';
 import { betterAuth } from 'better-auth';
 import { admin, organization } from 'better-auth/plugins';
-import { ac, roles } from '@convex/authPermissions';
 import {
   type AuthFunctions,
-  createClient,
   createApi,
+  createClient,
 } from 'better-auth-convex';
-
+import { entsTableFactory } from 'convex-ents';
 import { api, internal } from './_generated/api';
-import {
+import type {
   ActionCtx,
+  GenericCtx,
   MutationCtx,
   QueryCtx,
-  type GenericCtx,
 } from './_generated/server';
-import { entsTableFactory } from 'convex-ents';
-import schema, { entDefinitions } from './schema';
-import { createPersonalOrganization } from './organizationHelpers';
-import { getEnv } from './helpers/getEnv';
-import { DataModel } from '@convex/_generated/dataModel';
 import { internalMutation } from './functions';
+import { getEnv } from './helpers/getEnv';
+import { createPersonalOrganization } from './organizationHelpers';
+import schema, { entDefinitions } from './schema';
 
 const authFunctions: AuthFunctions = internal.auth;
 
@@ -30,7 +29,7 @@ export const authClient = createClient<DataModel, typeof schema>({
   internalMutation,
   triggers: {
     user: {
-      beforeCreate: async (ctx, data: any) => {
+      beforeCreate: async (_ctx, data: any) => {
         const env = getEnv();
         const adminEmails = env.ADMIN;
 
@@ -176,6 +175,7 @@ export const createAuth = (ctx: GenericCtx, { optionsOnly = false } = {}) => {
       },
     },
     telemetry: { enabled: false },
+    trustedOrigins: [process.env.NEXT_PUBLIC_SITE_URL!],
     user: {
       additionalFields: {
         bio: {
@@ -228,12 +228,11 @@ export const createAuth = (ctx: GenericCtx, { optionsOnly = false } = {}) => {
 
 export const auth = createAuth({} as any, { optionsOnly: true });
 
-export const getAuth = <Ctx extends QueryCtx | MutationCtx>(ctx: Ctx) => {
-  return betterAuth({
+export const getAuth = <Ctx extends QueryCtx | MutationCtx>(ctx: Ctx) =>
+  betterAuth({
     ...auth.options,
     database: authClient.adapter(ctx, auth.options),
   });
-};
 
 export const {
   create,

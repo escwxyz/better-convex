@@ -1,18 +1,21 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { api } from '@convex/_generated/api';
 import {
-  Home,
-  FolderOpen,
-  Tags,
-  LogOut,
-  LogIn,
-  CheckSquare,
-  RotateCcw,
-  TestTube2,
   Building2,
+  CheckSquare,
+  FolderOpen,
+  Home,
+  LogIn,
+  LogOut,
+  Tags,
+  TestTube2,
 } from 'lucide-react';
+import type { Route } from 'next';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { toast } from 'sonner';
+import { OrganizationSwitcher } from '@/components/organization/organization-switcher';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -22,16 +25,15 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
-import {
-  useCurrentUser,
-  useAuthMutation,
-  usePublicQuery,
-  useAuthAction,
-} from '@/lib/convex/hooks';
 import { signOut } from '@/lib/convex/auth-client';
-import { api } from '@convex/_generated/api';
-import { toast } from 'sonner';
-import { OrganizationSwitcher } from '@/components/organization/organization-switcher';
+import {
+  useAuthAction,
+  useCurrentUser,
+  usePublicQuery,
+} from '@/lib/convex/hooks';
+
+// Top-level regex for performance
+const SEGMENT_ID_PATTERN = /^[a-zA-Z0-9]+$/;
 
 export function BreadcrumbNav() {
   const pathname = usePathname();
@@ -70,7 +72,7 @@ export function BreadcrumbNav() {
     breadcrumbItems.push(
       <BreadcrumbItem key="home">
         <BreadcrumbLink asChild>
-          <Link href="/" className="flex items-center gap-1">
+          <Link className="flex items-center gap-1" href="/">
             <Home className="h-4 w-4" />
             <span>Home</span>
           </Link>
@@ -87,19 +89,26 @@ export function BreadcrumbNav() {
   // Add each segment
   segments.forEach((segment, index) => {
     const isLast = index === segments.length - 1;
-    const href = '/' + segments.slice(0, index + 1).join('/');
+    const href = `/${segments.slice(0, index + 1).join('/')}`;
 
     // Format segment name
     let displayName = segment;
 
     // Handle special cases
-    if (segment === 'projects') displayName = 'Projects';
-    else if (segment === 'tags') displayName = 'Tags';
-    else if (segment === 'login') displayName = 'Login';
-    else if (segment === 'register') displayName = 'Register';
+    if (segment === 'projects') {
+      displayName = 'Projects';
+    } else if (segment === 'tags') {
+      displayName = 'Tags';
+    } else if (segment === 'login') {
+      displayName = 'Login';
+    } else if (segment === 'register') {
+      displayName = 'Register';
+    }
     // For dynamic segments (like project IDs), you might want to fetch the actual name
     // For now, we'll just show "Detail" for ID-like segments
-    else if (segment.match(/^[a-zA-Z0-9]+$/)) displayName = 'Detail';
+    else if (segment.match(SEGMENT_ID_PATTERN)) {
+      displayName = 'Detail';
+    }
 
     if (isLast) {
       breadcrumbItems.push(
@@ -111,7 +120,7 @@ export function BreadcrumbNav() {
       breadcrumbItems.push(
         <BreadcrumbItem key={segment}>
           <BreadcrumbLink asChild>
-            <Link href={href}>{displayName}</Link>
+            <Link href={href as Route}>{displayName}</Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
       );
@@ -133,24 +142,24 @@ export function BreadcrumbNav() {
           {/* Center - Quick Links */}
           <div className="flex items-center gap-4">
             <Link
+              className="flex items-center gap-1 font-medium text-muted-foreground text-sm transition-colors hover:text-foreground"
               href="/"
-              className="flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               <CheckSquare className="h-4 w-4" />
               Todos
             </Link>
             <div className="h-4 w-px bg-border" />
             <Link
+              className="flex items-center gap-1 font-medium text-muted-foreground text-sm transition-colors hover:text-foreground"
               href="/projects"
-              className="flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               <FolderOpen className="h-4 w-4" />
               Projects
             </Link>
             <div className="h-4 w-px bg-border" />
             <Link
+              className="flex items-center gap-1 font-medium text-muted-foreground text-sm transition-colors hover:text-foreground"
               href="/tags"
-              className="flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               <Tags className="h-4 w-4" />
               Tags
@@ -159,8 +168,8 @@ export function BreadcrumbNav() {
               <>
                 <div className="h-4 w-px bg-border" />
                 <Link
+                  className="flex items-center gap-1 font-medium text-muted-foreground text-sm transition-colors hover:text-foreground"
                   href={`/org/${user.activeOrganization.slug}`}
-                  className="flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                 >
                   <Building2 className="h-4 w-4" />
                   Organization
@@ -171,13 +180,12 @@ export function BreadcrumbNav() {
 
           {/* Right side - Organization Switcher & Auth */}
           <div className="flex items-center gap-2">
-            {user && user.id ? (
+            {user?.id ? (
               <>
                 <OrganizationSwitcher />
                 {hasData ? null : (
                   <Button
-                    variant="outline"
-                    size="sm"
+                    disabled={generateSamplesAction.isPending}
                     onClick={() => {
                       toast.promise(
                         generateSamplesAction.mutateAsync({ count: 100 }),
@@ -190,20 +198,21 @@ export function BreadcrumbNav() {
                         }
                       );
                     }}
-                    disabled={generateSamplesAction.isPending}
+                    size="sm"
+                    variant="outline"
                   >
                     <TestTube2 className="h-4 w-4" />
                     Add Samples
                   </Button>
                 )}
-                <Button variant="outline" size="sm" onClick={() => signOut()}>
+                <Button onClick={() => signOut()} size="sm" variant="outline">
                   <LogOut className="h-4 w-4" />
                   Sign out
                 </Button>
               </>
             ) : (
               <Link href="/login">
-                <Button variant="outline" size="sm">
+                <Button size="sm" variant="outline">
                   <LogIn className="h-4 w-4" />
                   Sign in
                 </Button>

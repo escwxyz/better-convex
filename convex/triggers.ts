@@ -2,35 +2,38 @@ import { Triggers } from 'convex-helpers/server/triggers';
 
 import type { DataModel } from './_generated/dataModel';
 import {
-  aggregateUsers,
-  aggregateTodosByUser,
+  aggregateCommentsByTodo,
+  aggregateProjectMembers,
+  aggregateTagUsage,
   aggregateTodosByProject,
   aggregateTodosByStatus,
-  aggregateTagUsage,
-  aggregateProjectMembers,
-  aggregateCommentsByTodo,
+  aggregateTodosByUser,
+  aggregateUsers,
 } from './aggregates';
 
-// Initialize triggers with DataModel type
-export const triggers = new Triggers<DataModel>();
+export const registerTriggers = () => {
+  const triggers = new Triggers<DataModel>();
 
-// ===========================================
-// AGGREGATE MAINTENANCE TRIGGERS
-// ===========================================
-// These triggers automatically maintain aggregates when tables change
-// No manual aggregate updates needed in mutations!
+  // ===========================================
+  // AGGREGATE MAINTENANCE TRIGGERS
+  // ===========================================
+  // These triggers automatically maintain aggregates when tables change
+  // No manual aggregate updates needed in mutations!
 
-// User count aggregate
-triggers.register('user', aggregateUsers.trigger());
+  // User count aggregate
+  triggers.register('user', aggregateUsers.trigger());
 
-// Todo aggregates - multiple aggregates on same table
-triggers.register('todos', aggregateTodosByUser.trigger());
-triggers.register('todos', aggregateTodosByProject.trigger());
-triggers.register('todos', aggregateTodosByStatus.trigger());
+  // Todo aggregates - multiple aggregates on same table
+  triggers.register('todos', aggregateTodosByUser.trigger());
+  triggers.register('todos', aggregateTodosByProject.trigger());
+  triggers.register('todos', aggregateTodosByStatus.trigger());
 
-// Many:many relationship aggregates
-triggers.register('todoTags', aggregateTagUsage.trigger());
-triggers.register('projectMembers', aggregateProjectMembers.trigger());
+  // Many:many relationship aggregates
+  triggers.register('todoTags', aggregateTagUsage.trigger());
+  triggers.register('projectMembers', aggregateProjectMembers.trigger());
 
-// Comment count aggregate
-triggers.register('todoComments', aggregateCommentsByTodo.trigger());
+  // Comment count aggregate
+  triggers.register('todoComments', aggregateCommentsByTodo.trigger());
+
+  return triggers;
+};

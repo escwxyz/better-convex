@@ -1,8 +1,22 @@
 'use client';
 
-import { useState } from 'react';
-import { useAuthMutation, useAuthQuery } from '@/lib/convex/hooks';
 import { api } from '@convex/_generated/api';
+import type { Id } from '@convex/_generated/dataModel';
+import {
+  Clock,
+  Crown,
+  Mail,
+  MoreHorizontal,
+  User,
+  UserMinus,
+  UserPlus,
+  X,
+} from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -18,11 +32,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { WithSkeleton } from '@/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -31,38 +57,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  UserPlus,
-  MoreHorizontal,
-  Crown,
-  User,
-  Mail,
-  Calendar,
-  Trash2,
-  UserMinus,
-  Shield,
-  Clock,
-  X,
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { WithSkeleton } from '@/components/ui/skeleton';
-import { Id } from '@convex/_generated/dataModel';
+import { useAuthMutation, useAuthQuery } from '@/lib/convex/hooks';
 
-interface Member {
+type Member = {
   id: Id<'member'>;
   createdAt: number;
   organizationId: Id<'organization'>;
@@ -74,9 +71,9 @@ interface Member {
     name?: string | null;
   };
   userId: Id<'user'>;
-}
+};
 
-interface OrganizationMembersProps {
+type OrganizationMembersProps = {
   organization?: {
     id: Id<'organization'>;
     isPersonal: boolean;
@@ -89,7 +86,7 @@ interface OrganizationMembersProps {
     members: Member[];
   } | null;
   isLoading: boolean;
-}
+};
 
 export function OrganizationMembers({
   organization,
@@ -102,7 +99,7 @@ export function OrganizationMembers({
     role: 'member',
   });
 
-  const a = api;
+  const _a = api;
 
   const { data: pendingInvitations, isLoading: invitationsLoading } =
     useAuthQuery(
@@ -112,9 +109,10 @@ export function OrganizationMembers({
         placeholderData: [
           {
             id: '1' as any,
-            createdAt: Date.now(),
+            createdAt: new Date('2025-11-04').getTime(),
             email: 'pending@example.com',
-            expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+            expiresAt:
+              new Date('2025-11-04').getTime() + 7 * 24 * 60 * 60 * 1000,
             organizationId: '1' as any,
             role: 'member',
             status: 'pending',
@@ -161,7 +159,7 @@ export function OrganizationMembers({
     },
   });
 
-  if (!organization || !members) {
+  if (!(organization && members)) {
     return null;
   }
 
@@ -215,8 +213,8 @@ export function OrganizationMembers({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-medium">Members</h3>
-          <p className="text-sm text-muted-foreground">
+          <h3 className="font-medium text-lg">Members</h3>
+          <p className="text-muted-foreground text-sm">
             Manage organization members and their roles
           </p>
         </div>
@@ -240,7 +238,7 @@ export function OrganizationMembers({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <WithSkeleton isLoading={isLoading} className="w-full">
+          <WithSkeleton className="w-full" isLoading={isLoading}>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -268,7 +266,7 @@ export function OrganizationMembers({
                           <p className="font-medium">
                             {member.user.name || 'Unknown User'}
                           </p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-muted-foreground text-sm">
                             {member.user.email}
                           </p>
                         </div>
@@ -280,7 +278,7 @@ export function OrganizationMembers({
                         {getRoleBadge(member.role)}
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="text-muted-foreground text-sm">
                       {new Date(member.createdAt).toLocaleDateString()}
                     </TableCell>
                     {isOwner && (
@@ -288,7 +286,7 @@ export function OrganizationMembers({
                         {member.role !== 'owner' && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
+                              <Button size="sm" variant="ghost">
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -311,10 +309,10 @@ export function OrganizationMembers({
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
+                                className="text-destructive"
                                 onClick={() =>
                                   handleRemoveMember(member.userId)
                                 }
-                                className="text-destructive"
                               >
                                 <UserMinus className="h-4 w-4" />
                                 Remove Member
@@ -345,7 +343,7 @@ export function OrganizationMembers({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <WithSkeleton isLoading={invitationsLoading} className="w-full">
+            <WithSkeleton className="w-full" isLoading={invitationsLoading}>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -365,14 +363,14 @@ export function OrganizationMembers({
                         </div>
                       </TableCell>
                       <TableCell>{getRoleBadge(invitation.role)}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="text-muted-foreground text-sm">
                         {new Date(invitation.expiresAt).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
                         <Button
-                          variant="ghost"
-                          size="sm"
                           onClick={() => handleCancelInvitation(invitation.id)}
+                          size="sm"
+                          variant="ghost"
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -387,7 +385,7 @@ export function OrganizationMembers({
       )}
 
       {/* Invite Member Dialog */}
-      <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+      <Dialog onOpenChange={setShowInviteDialog} open={showInviteDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Invite Member</DialogTitle>
@@ -400,21 +398,21 @@ export function OrganizationMembers({
               <Label htmlFor="invite-email">Email Address</Label>
               <Input
                 id="invite-email"
-                type="email"
-                value={inviteData.email}
                 onChange={(e) =>
                   setInviteData({ ...inviteData, email: e.target.value })
                 }
                 placeholder="member@example.com"
+                type="email"
+                value={inviteData.email}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="invite-role">Role</Label>
               <Select
-                value={inviteData.role}
                 onValueChange={(value) =>
                   setInviteData({ ...inviteData, role: value })
                 }
+                value={inviteData.role}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -428,14 +426,14 @@ export function OrganizationMembers({
           </div>
           <DialogFooter>
             <Button
-              variant="outline"
               onClick={() => setShowInviteDialog(false)}
+              variant="outline"
             >
               Cancel
             </Button>
             <Button
-              onClick={handleInviteMember}
               disabled={inviteMember.isPending}
+              onClick={handleInviteMember}
             >
               Send Invitation
             </Button>

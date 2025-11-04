@@ -1,9 +1,17 @@
 'use client';
 
-import { useState } from 'react';
-import { useAuthMutation } from '@/lib/convex/hooks';
 import { api } from '@convex/_generated/api';
-import { Id } from '@convex/_generated/dataModel';
+import type { Id } from '@convex/_generated/dataModel';
+import {
+  Crown,
+  MoreVertical,
+  UserCheck,
+  UserMinus,
+  UserPlus,
+} from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -21,25 +29,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  UserPlus,
-  MoreVertical,
-  Crown,
-  UserMinus,
-  UserCheck,
-} from 'lucide-react';
-import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useAuthMutation } from '@/lib/convex/hooks';
 
-interface ProjectMembersProps {
+type ProjectMembersProps = {
   projectId: Id<'projects'>;
   owner: {
     _id: Id<'user'>;
@@ -53,7 +53,7 @@ interface ProjectMembersProps {
     joinedAt: number;
   }>;
   isOwner: boolean;
-}
+};
 
 export function ProjectMembers({
   projectId,
@@ -114,6 +114,7 @@ export function ProjectMembers({
 
   const handleTransferOwnership = (userId: Id<'user'>) => {
     if (
+      // biome-ignore lint/suspicious/noAlert: demo
       confirm(
         'Are you sure you want to transfer ownership? This action cannot be undone.'
       )
@@ -148,7 +149,7 @@ export function ProjectMembers({
             </CardDescription>
           </div>
           {isOwner && (
-            <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+            <Dialog onOpenChange={setShowAddDialog} open={showAddDialog}>
               <DialogTrigger asChild>
                 <Button size="sm">
                   <UserPlus className="mr-1 h-4 w-4" />
@@ -167,23 +168,23 @@ export function ProjectMembers({
                     <Label htmlFor="email">Email Address</Label>
                     <Input
                       id="email"
-                      type="email"
-                      value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="user@example.com"
+                      type="email"
+                      value={email}
                     />
                   </div>
                 </div>
                 <DialogFooter>
                   <Button
-                    variant="outline"
                     onClick={() => setShowAddDialog(false)}
+                    variant="outline"
                   >
                     Cancel
                   </Button>
                   <Button
-                    onClick={handleAddMember}
                     disabled={addMember.isPending}
+                    onClick={handleAddMember}
                   >
                     Add Member
                   </Button>
@@ -206,7 +207,7 @@ export function ProjectMembers({
             <div>
               <div className="font-medium">{owner.name || owner.email}</div>
               {owner.name && (
-                <div className="text-sm text-muted-foreground">
+                <div className="text-muted-foreground text-sm">
                   {owner.email}
                 </div>
               )}
@@ -214,15 +215,15 @@ export function ProjectMembers({
           </div>
           <div className="flex items-center gap-2">
             <Crown className="h-4 w-4 text-yellow-600" />
-            <span className="text-sm text-muted-foreground">Owner</span>
+            <span className="text-muted-foreground text-sm">Owner</span>
           </div>
         </div>
 
         {/* Members */}
         {members.map((member) => (
           <div
-            key={member._id}
             className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50"
+            key={member._id}
           >
             <div className="flex items-center gap-3">
               <Avatar>
@@ -234,20 +235,20 @@ export function ProjectMembers({
               <div>
                 <div className="font-medium">{member.name || member.email}</div>
                 {member.name && (
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-muted-foreground text-sm">
                     {member.email}
                   </div>
                 )}
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">
+              <span className="text-muted-foreground text-xs">
                 Joined {new Date(member.joinedAt).toLocaleDateString()}
               </span>
               {isOwner && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <Button className="h-8 w-8 p-0" size="sm" variant="ghost">
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -259,8 +260,8 @@ export function ProjectMembers({
                       Make Owner
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => handleRemoveMember(member._id)}
                       className="text-destructive"
+                      onClick={() => handleRemoveMember(member._id)}
                     >
                       <UserMinus className="h-4 w-4" />
                       Remove Member

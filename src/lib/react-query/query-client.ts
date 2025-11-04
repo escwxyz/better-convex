@@ -1,10 +1,9 @@
-import type { ConvexReactClient } from 'convex/react';
-
 import { ConvexQueryClient } from '@convex-dev/react-query';
 import {
   defaultShouldDehydrateQuery,
   QueryClient,
 } from '@tanstack/react-query';
+import type { ConvexReactClient } from 'convex/react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import SuperJSON from 'superjson';
@@ -73,7 +72,6 @@ export const createQueryClient = ({
                 Math.floor(Math.random() * genericMessages.length)
               ];
             toast.error(error.data?.message || randomError);
-            console.error(error);
           }
         },
       },

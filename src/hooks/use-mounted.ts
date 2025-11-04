@@ -1,15 +1,16 @@
-import * as React from 'react';
+import { useSyncExternalStore } from 'react';
 
 /**
  * A custom hook that returns a boolean value indicating whether the component
- * is mounted or not.
+ * is mounted (client-side) or not. Useful for preventing hydration mismatches
+ * when rendering different content on server vs client.
  */
 export const useMounted = () => {
-  const [mounted, setMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  return mounted;
+  return useSyncExternalStore(
+    subscribe, // subscribe: no-op, never changes
+    () => true, // getSnapshot (client): always true
+    () => false // getServerSnapshot (SSR): always false
+  );
 };
+
+const subscribe = () => () => {};

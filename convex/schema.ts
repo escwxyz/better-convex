@@ -1,5 +1,5 @@
-import { defineEnt, defineEntSchema, getEntDefinitions } from 'convex-ents';
 import { v } from 'convex/values';
+import { defineEnt, defineEntSchema, getEntDefinitions } from 'convex-ents';
 
 const schema = defineEntSchema(
   {

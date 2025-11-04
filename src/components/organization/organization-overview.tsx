@@ -1,8 +1,22 @@
 'use client';
 
-import { useState } from 'react';
-import { useAuthMutation } from '@/lib/convex/hooks';
 import { api } from '@convex/_generated/api';
+import type { Id } from '@convex/_generated/dataModel';
+import {
+  Building2,
+  Calendar,
+  Crown,
+  Edit3,
+  ExternalLink,
+  Settings,
+  Trash2,
+  UserCheck,
+  Users,
+} from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -18,25 +32,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import {
-  Building2,
-  Users,
-  Calendar,
-  Settings,
-  Edit3,
-  Trash2,
-  ExternalLink,
-  Crown,
-  UserCheck,
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { Id } from '@convex/_generated/dataModel';
+import { useAuthMutation } from '@/lib/convex/hooks';
 
-interface OrganizationOverviewProps {
+type OrganizationOverviewProps = {
   organization?: {
     id: Id<'organization'>;
     createdAt: number;
@@ -48,11 +48,12 @@ interface OrganizationOverviewProps {
     role?: string;
     slug: string;
   } | null;
-}
+};
 
 export function OrganizationOverview({
   organization,
 }: OrganizationOverviewProps) {
+  const [now] = useState(new Date('2025-11-04').getTime());
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editData, setEditData] = useState({
@@ -150,9 +151,9 @@ export function OrganizationOverview({
             </div>
             {canEdit && (
               <Button
-                variant="outline"
-                size="sm"
                 onClick={handleEditOrganization}
+                size="sm"
+                variant="outline"
               >
                 <Edit3 className="h-4 w-4" />
                 Edit
@@ -163,19 +164,19 @@ export function OrganizationOverview({
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">
+              <Label className="font-medium text-muted-foreground text-sm">
                 Name
               </Label>
               <p className="text-sm">{organization.name}</p>
             </div>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">
+              <Label className="font-medium text-muted-foreground text-sm">
                 Slug
               </Label>
               <p className="font-mono text-sm">{organization.slug}</p>
             </div>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">
+              <Label className="font-medium text-muted-foreground text-sm">
                 Type
               </Label>
               <div className="flex items-center gap-2">
@@ -190,7 +191,7 @@ export function OrganizationOverview({
               </div>
             </div>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">
+              <Label className="font-medium text-muted-foreground text-sm">
                 Created
               </Label>
               <p className="text-sm">
@@ -223,10 +224,10 @@ export function OrganizationOverview({
                 <Users className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">
+                <p className="font-bold text-2xl">
                   {organization.membersCount}
                 </p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   Member{organization.membersCount !== 1 ? 's' : ''}
                 </p>
               </div>
@@ -237,10 +238,10 @@ export function OrganizationOverview({
                 <Crown className="h-4 w-4 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold capitalize">
+                <p className="font-bold text-2xl capitalize">
                   {organization.role || 'Member'}
                 </p>
-                <p className="text-sm text-muted-foreground">Your Role</p>
+                <p className="text-muted-foreground text-sm">Your Role</p>
               </div>
             </div>
 
@@ -249,13 +250,12 @@ export function OrganizationOverview({
                 <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold">
+                <p className="font-bold text-2xl">
                   {Math.floor(
-                    (Date.now() - organization.createdAt) /
-                      (1000 * 60 * 60 * 24)
+                    (now - organization.createdAt) / (1000 * 60 * 60 * 24)
                   )}
                 </p>
-                <p className="text-sm text-muted-foreground">Days Active</p>
+                <p className="text-muted-foreground text-sm">Days Active</p>
               </div>
             </div>
           </div>
@@ -270,17 +270,17 @@ export function OrganizationOverview({
         </CardHeader>
         <CardContent>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            <Button variant="outline" className="justify-start">
+            <Button className="justify-start" variant="outline">
               <ExternalLink className="h-4 w-4" />
               View Public Profile
             </Button>
             {isOwner && (
               <>
-                <Button variant="outline" className="justify-start">
+                <Button className="justify-start" variant="outline">
                   <UserCheck className="h-4 w-4" />
                   Manage Members
                 </Button>
-                <Button variant="outline" className="justify-start">
+                <Button className="justify-start" variant="outline">
                   <Settings className="h-4 w-4" />
                   Organization Settings
                 </Button>
@@ -301,8 +301,8 @@ export function OrganizationOverview({
           </CardHeader>
           <CardContent>
             <Button
-              variant="destructive"
               onClick={() => setShowDeleteDialog(true)}
+              variant="destructive"
             >
               <Trash2 className="h-4 w-4" />
               Delete Organization
@@ -312,7 +312,7 @@ export function OrganizationOverview({
       )}
 
       {/* Edit Organization Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+      <Dialog onOpenChange={setShowEditDialog} open={showEditDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Organization</DialogTitle>
@@ -325,42 +325,42 @@ export function OrganizationOverview({
               <Label htmlFor="edit-name">Name</Label>
               <Input
                 id="edit-name"
-                value={editData.name}
                 onChange={(e) =>
                   setEditData({ ...editData, name: e.target.value })
                 }
+                value={editData.name}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-slug">Slug</Label>
               <Input
                 id="edit-slug"
-                value={editData.slug}
                 onChange={(e) =>
                   setEditData({ ...editData, slug: e.target.value })
                 }
                 placeholder="organization-slug"
+                value={editData.slug}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-logo">Logo URL</Label>
               <Input
                 id="edit-logo"
-                value={editData.logo}
                 onChange={(e) =>
                   setEditData({ ...editData, logo: e.target.value })
                 }
                 placeholder="https://example.com/logo.png"
+                value={editData.logo}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+            <Button onClick={() => setShowEditDialog(false)} variant="outline">
               Cancel
             </Button>
             <Button
-              onClick={handleUpdateOrganization}
               disabled={updateOrganization.isPending}
+              onClick={handleUpdateOrganization}
             >
               Save Changes
             </Button>
@@ -369,7 +369,7 @@ export function OrganizationOverview({
       </Dialog>
 
       {/* Delete Organization Dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <Dialog onOpenChange={setShowDeleteDialog} open={showDeleteDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Organization</DialogTitle>
@@ -380,15 +380,15 @@ export function OrganizationOverview({
           </DialogHeader>
           <DialogFooter>
             <Button
-              variant="outline"
               onClick={() => setShowDeleteDialog(false)}
+              variant="outline"
             >
               Cancel
             </Button>
             <Button
-              variant="destructive"
-              onClick={handleDeleteOrganization}
               disabled={deleteOrganization.isPending}
+              onClick={handleDeleteOrganization}
+              variant="destructive"
             >
               Delete Organization
             </Button>

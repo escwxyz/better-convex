@@ -1,14 +1,14 @@
+import { api } from '@convex/_generated/api';
+import { getAuth } from '@convex/auth';
+
+import { getToken } from '@convex-dev/better-auth/nextjs';
 import type { NextjsOptions } from 'convex/nextjs';
+import { fetchMutation, fetchQuery } from 'convex/nextjs';
 import type {
   ArgsAndOptions,
   FunctionReference,
   FunctionReturnType,
 } from 'convex/server';
-
-import { getToken } from '@convex-dev/better-auth/nextjs';
-import { api } from '@convex/_generated/api';
-import { getAuth } from '@convex/auth';
-import { fetchMutation, fetchQuery } from 'convex/nextjs';
 
 export const getSessionToken = async (): Promise<string | undefined> => {
   const token = await getToken(getAuth);
@@ -26,9 +26,7 @@ export const isAuth = async () => {
   }
 };
 
-export const isUnauth = async () => {
-  return !(await isAuth());
-};
+export const isUnauth = async () => !(await isAuth());
 
 // Session helper functions using Convex
 
@@ -50,12 +48,12 @@ export async function fetchAuthQuery<Query extends FunctionReference<'query'>>(
   // Handle both cases: with and without args
   if (args.length === 0) {
     return fetchQuery(query, {}, { token });
-  } else if (args.length === 1) {
-    return fetchQuery(query, args[0], { token });
-  } else {
-    // args[1] contains options, merge token into it
-    return fetchQuery(query, args[0], { token, ...args[1] });
   }
+  if (args.length === 1) {
+    return fetchQuery(query, args[0], { token });
+  }
+  // args[1] contains options, merge token into it
+  return fetchQuery(query, args[0], { token, ...args[1] });
 }
 
 export async function fetchAuthQueryOrThrow<
@@ -72,12 +70,12 @@ export async function fetchAuthQueryOrThrow<
   // Handle both cases: with and without args
   if (args.length === 0) {
     return fetchQuery(query, {}, { token });
-  } else if (args.length === 1) {
-    return fetchQuery(query, args[0], { token });
-  } else {
-    // args[1] contains options, merge token into it
-    return fetchQuery(query, args[0], { token, ...args[1] });
   }
+  if (args.length === 1) {
+    return fetchQuery(query, args[0], { token });
+  }
+  // args[1] contains options, merge token into it
+  return fetchQuery(query, args[0], { token, ...args[1] });
 }
 
 export async function fetchAuthMutation<
@@ -94,10 +92,10 @@ export async function fetchAuthMutation<
   // Handle both cases: with and without args
   if (args.length === 0) {
     return fetchMutation(mutation, {}, { token });
-  } else if (args.length === 1) {
-    return fetchMutation(mutation, args[0], { token });
-  } else {
-    // args[1] contains options, merge token into it
-    return fetchMutation(mutation, args[0], { token, ...args[1] });
   }
+  if (args.length === 1) {
+    return fetchMutation(mutation, args[0], { token });
+  }
+  // args[1] contains options, merge token into it
+  return fetchMutation(mutation, args[0], { token, ...args[1] });
 }

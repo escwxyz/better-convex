@@ -1,23 +1,13 @@
 import { zid } from 'convex-helpers/server/zod';
 import { z } from 'zod';
-
-import {
-  createAuthMutation,
-  createInternalMutation,
-  createInternalQuery,
-  createPublicQuery,
-} from './functions';
-import { updateSettingsSchema } from './userShared';
-import { getAuth } from '@convex/auth';
+import { createAuthMutation, createPublicQuery } from './functions';
 
 // Check if user is authenticated
 export const getIsAuthenticated = createPublicQuery({
   publicOnly: true,
 })({
   returns: z.boolean(),
-  handler: async (ctx) => {
-    return !!(await ctx.auth.getUserIdentity());
-  },
+  handler: async (ctx) => !!(await ctx.auth.getUserIdentity()),
 });
 
 // Get session user (minimal data)
@@ -104,7 +94,10 @@ export const getCurrentUser = createPublicQuery()({
 
 // Update user settings
 export const updateSettings = createAuthMutation()({
-  args: updateSettingsSchema,
+  args: {
+    bio: z.string().optional(),
+    name: z.string().optional(),
+  },
   returns: z.object({ success: z.boolean() }),
   handler: async (ctx, args) => {
     const { user } = ctx;
@@ -113,8 +106,12 @@ export const updateSettings = createAuthMutation()({
     // Build update object
     const updateData: Record<string, any> = {};
 
-    if (bio !== undefined) updateData.bio = bio;
-    if (name !== undefined) updateData.name = name;
+    if (bio !== undefined) {
+      updateData.bio = bio;
+    }
+    if (name !== undefined) {
+      updateData.name = name;
+    }
 
     await user.patch(updateData);
 

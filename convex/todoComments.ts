@@ -1,16 +1,14 @@
-import { z } from 'zod';
-import { zid } from 'convex-helpers/server/zod';
 import { ConvexError } from 'convex/values';
+import { zid } from 'convex-helpers/server/zod';
+import { z } from 'zod';
 
 import type { Id } from './_generated/dataModel';
 import {
-  createAuthQuery,
   createAuthMutation,
-  createPublicQuery,
-  createPublicPaginatedQuery,
   createInternalMutation,
+  createPublicPaginatedQuery,
+  createPublicQuery,
 } from './functions';
-import { aggregateCommentsByTodo } from './aggregates';
 
 // ============================================
 // COMMENT QUERIES
@@ -79,10 +77,14 @@ async function getNestedReplies(
   currentDepth: number,
   maxDepth: number
 ): Promise<any[]> {
-  if (currentDepth >= maxDepth) return [];
+  if (currentDepth >= maxDepth) {
+    return [];
+  }
 
   const parent = await ctx.table('todoComments').get(parentId);
-  if (!parent) return [];
+  if (!parent) {
+    return [];
+  }
 
   const replies = await parent.edge('replies').order('asc').take(10);
 
@@ -166,7 +168,9 @@ export const getCommentThread = createPublicQuery()({
     .nullable(),
   handler: async (ctx, args) => {
     const comment = await ctx.table('todoComments').get(args.commentId);
-    if (!comment) return null;
+    if (!comment) {
+      return null;
+    }
 
     // Get related data
     const [user, todo, parentId, replies] = await Promise.all([
@@ -188,7 +192,9 @@ export const getCommentThread = createPublicQuery()({
       const currentParent = await ctx
         .table('todoComments')
         .get(currentParentId);
-      if (!currentParent) break;
+      if (!currentParent) {
+        break;
+      }
 
       const parentUser = await currentParent.edge('user');
       ancestors.unshift({
@@ -221,7 +227,7 @@ export const getCommentThread = createPublicQuery()({
               _id: parent._id,
               content: parent.content,
               user: (await parent.edge('user'))?.name
-                ? { name: (await parent.edge('user'))!.name }
+                ? { name: (await parent.edge('user'))?.name }
                 : null,
             }
           : null,
@@ -423,7 +429,7 @@ export const toggleReaction = createAuthMutation({
     counts: z.record(z.string(), z.number()),
   }),
   handler: async (ctx, args) => {
-    const comment = await ctx.table('todoComments').getX(args.commentId);
+    const _comment = await ctx.table('todoComments').getX(args.commentId);
 
     // Store reactions in a simple format (could be a separate table)
     // For demo, we'll use a map stored on the comment
@@ -477,17 +483,23 @@ export const cleanupOrphanedComments = createInternalMutation()({
 // Check if user has access to todo
 async function checkTodoAccess(ctx: any, todo: any): Promise<boolean> {
   // Owner always has access
-  if (todo.userId === ctx.userId) return true;
+  if (todo.userId === ctx.userId) {
+    return true;
+  }
 
   // Check if todo is in a public project
   if (todo.projectId) {
     const project = await todo.edge('project');
-    if (project?.isPublic) return true;
+    if (project?.isPublic) {
+      return true;
+    }
 
     // Check if user is project member
     if (project) {
       const isMember = await project.edge('member').has(ctx.userId);
-      if (isMember || project.ownerId === ctx.userId) return true;
+      if (isMember || project.ownerId === ctx.userId) {
+        return true;
+      }
     }
   }
 

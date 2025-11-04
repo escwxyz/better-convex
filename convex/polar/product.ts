@@ -90,13 +90,18 @@ export function productToCredits(productId: string): number {
 // Plan Types for UI Components
 // ----------------------------------------
 
-export enum SubscriptionPlan {
-  Free = 'free',
-  Premium = 'premium',
-}
+export const SubscriptionPlan = {
+  Free: 'free',
+  Premium: 'premium',
+} as const;
+
+export type SubscriptionPlan =
+  (typeof SubscriptionPlan)[keyof typeof SubscriptionPlan];
 
 export const productToPlan = (productId?: string) => {
-  if (productId === env.POLAR_PRODUCT_PREMIUM) return 'premium';
+  if (productId === env.POLAR_PRODUCT_PREMIUM) {
+    return 'premium';
+  }
 };
 
 // Simplified plan details for UI

@@ -1,15 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { useAuthQuery } from '@/lib/convex/hooks';
 import { api } from '@convex/_generated/api';
-import { Id } from '@convex/_generated/dataModel';
+import type { Id } from '@convex/_generated/dataModel';
+import { Check, Tags, X } from 'lucide-react';
+import { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import {
   Command,
   CommandEmpty,
@@ -18,15 +14,19 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { Badge } from '@/components/ui/badge';
-import { Check, Tags, X } from 'lucide-react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { useAuthQuery } from '@/lib/convex/hooks';
 import { cn } from '@/lib/utils';
 
-interface TagPickerProps {
+type TagPickerProps = {
   selectedTagIds: Id<'tags'>[];
   onTagsChange: (tagIds: Id<'tags'>[]) => void;
   disabled?: boolean;
-}
+};
 
 export function TagPicker({
   selectedTagIds,
@@ -52,12 +52,12 @@ export function TagPicker({
 
   return (
     <div className="space-y-2">
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover onOpenChange={setOpen} open={open}>
         <PopoverTrigger asChild>
           <Button
-            variant="outline"
             className="w-full justify-start text-left font-normal"
             disabled={disabled}
+            variant="outline"
           >
             <Tags className="h-4 w-4" />
             {selectedTags.length > 0 ? (
@@ -70,7 +70,7 @@ export function TagPicker({
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-full p-0" align="start">
+        <PopoverContent align="start" className="w-full p-0">
           <Command>
             <CommandInput placeholder="Search tags..." />
             <CommandList>
@@ -79,8 +79,8 @@ export function TagPicker({
                 {tags.map((tag) => (
                   <CommandItem
                     key={tag._id}
-                    value={tag.name}
                     onSelect={() => toggleTag(tag._id)}
+                    value={tag.name}
                   >
                     <div
                       className={cn(
@@ -99,7 +99,7 @@ export function TagPicker({
                       />
                       <span>{tag.name}</span>
                       {tag.usageCount > 0 && (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-muted-foreground text-xs">
                           ({tag.usageCount})
                         </span>
                       )}
@@ -116,21 +116,21 @@ export function TagPicker({
         <div className="flex flex-wrap gap-1">
           {selectedTags.map((tag) => (
             <Badge
-              key={tag._id}
-              variant="secondary"
               className="pr-1 pl-2"
+              key={tag._id}
               style={{
-                backgroundColor: tag.color + '20',
+                backgroundColor: `${tag.color}20`,
                 color: tag.color,
                 borderColor: tag.color,
               }}
+              variant="secondary"
             >
               {tag.name}
               <button
-                type="button"
-                className="ml-1 rounded-full ring-offset-background outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                onClick={() => removeTag(tag._id)}
+                className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 disabled={disabled}
+                onClick={() => removeTag(tag._id)}
+                type="button"
               >
                 <X className="h-3 w-3" />
               </button>

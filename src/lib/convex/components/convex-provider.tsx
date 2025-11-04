@@ -1,12 +1,10 @@
 'use client';
 
-import React, { type ReactNode } from 'react';
-
 import type { api } from '@convex/_generated/api';
-
 import { ConvexBetterAuthProvider } from '@convex-dev/better-auth/react';
-import { type Preloaded, ConvexReactClient } from 'convex/react';
+import { ConvexReactClient, type Preloaded } from 'convex/react';
 import { createAtomStore } from 'jotai-x';
+import React, { type ReactNode } from 'react';
 
 import { env } from '@/env';
 import { authClient, useSession } from '@/lib/convex/auth-client';

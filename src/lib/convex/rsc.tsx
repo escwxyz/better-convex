@@ -1,14 +1,12 @@
-import * as React from 'react';
-
+import type { Route } from 'next';
 import { redirect } from 'next/navigation';
-
+import type * as React from 'react';
 import { isUnauth } from '@/lib/convex/server';
-import { routes } from '@/lib/navigation/routes';
 
 export const authGuard = async () => {
   // Check Convex auth
   if (await isUnauth()) {
-    redirect(routes.login());
+    redirect('/login');
   }
 };
 
@@ -32,7 +30,7 @@ export const authRedirect = async ({
       }
     }
 
-    redirect(callbackUrl);
+    redirect(callbackUrl as Route);
   }
 };
 

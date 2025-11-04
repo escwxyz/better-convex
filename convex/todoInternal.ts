@@ -1,18 +1,13 @@
-import { z } from 'zod';
 import { zid } from 'convex-helpers/server/zod';
-
-import type { Id } from './_generated/dataModel';
-import {
-  createInternalQuery,
-  createInternalMutation,
-  createInternalAction,
-} from './functions';
+import { z } from 'zod';
 import { internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
+import { aggregateTodosByStatus, aggregateTodosByUser } from './aggregates';
 import {
-  aggregateTodosByUser,
-  aggregateTodosByStatus,
-  aggregateTodosByProject,
-} from './aggregates';
+  createInternalAction,
+  createInternalMutation,
+  createInternalQuery,
+} from './functions';
 
 // ============================================
 // INTERNAL QUERIES (Background Processing)
@@ -77,7 +72,9 @@ export const getUsersWithOverdueTodos = createInternalQuery()({
       }>;
     }> = [];
     for (const [userId, todos] of userTodos) {
-      if (results.length >= args.limit) break;
+      if (results.length >= args.limit) {
+        break;
+      }
 
       const user = await ctx.table('user').get(userId);
       if (user) {
@@ -148,21 +145,29 @@ export const getSystemStats = createInternalQuery()({
           upper: { key: ['none', true, false], inclusive: true },
         },
       });
-      if (activeTodoCount > 0) usersWithTodos++;
+      if (activeTodoCount > 0) {
+        usersWithTodos++;
+      }
     }
 
     // Todo stats (only count active todos, not soft-deleted)
     const totalTodos = await aggregateTodosByStatus.count(ctx, {
       bounds: {
         lower: { key: [false, 'high', 0, false], inclusive: true },
-        upper: { key: [true, 'none', Infinity, false], inclusive: true },
+        upper: {
+          key: [true, 'none', Number.POSITIVE_INFINITY, false],
+          inclusive: true,
+        },
       },
     });
     // Count completed active todos
     const completedTodos = await aggregateTodosByStatus.count(ctx, {
       bounds: {
         lower: { key: [true, 'high', 0, false], inclusive: true },
-        upper: { key: [true, 'none', Infinity, false], inclusive: true },
+        upper: {
+          key: [true, 'none', Number.POSITIVE_INFINITY, false],
+          inclusive: true,
+        },
       },
     });
 
@@ -346,7 +351,7 @@ export const recalculateUserStats = createInternalMutation()({
     streak: z.number(),
   }),
   handler: async (ctx, args) => {
-    const user = await ctx.table('user').getX(args.userId);
+    const _user = await ctx.table('user').getX(args.userId);
 
     // Get todo counts from aggregates (exclude soft-deleted)
     const totalTodos = await aggregateTodosByUser.count(ctx, {
@@ -472,22 +477,10 @@ export const processDailySummaries = createInternalAction()({
     let sent = 0;
     let failed = 0;
 
-    for (const user of usersToNotify) {
+    for (const _user of usersToNotify) {
       try {
-        // In real app, send email via external service
-        // await sendEmail({
-        //   to: user.email,
-        //   subject: 'Your overdue todos',
-        //   template: 'overdue-todos',
-        //   data: user,
-        // });
-
-        console.info(
-          `Would send email to ${user.email} about ${user.overdueTodos.length} overdue todos`
-        );
         sent++;
-      } catch (error) {
-        console.error(`Failed to send email to ${user.email}:`, error);
+      } catch (_error) {
         failed++;
       }
     }

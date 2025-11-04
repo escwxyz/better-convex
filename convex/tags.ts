@@ -1,6 +1,6 @@
-import { z } from 'zod';
-import { zid } from 'convex-helpers/server/zod';
 import { ConvexError } from 'convex/values';
+import { zid } from 'convex-helpers/server/zod';
+import { z } from 'zod';
 import { createAuthMutation, createAuthQuery } from './functions';
 
 // List user's tags with usage count
@@ -104,8 +104,12 @@ export const update = createAuthMutation({
     }
 
     const updates: any = {};
-    if (args.name !== undefined) updates.name = args.name;
-    if (args.color !== undefined) updates.color = args.color;
+    if (args.name !== undefined) {
+      updates.name = args.name;
+    }
+    if (args.color !== undefined) {
+      updates.color = args.color;
+    }
 
     if (Object.keys(updates).length > 0) {
       await ctx.table('tags').getX(args.tagId).patch(updates);

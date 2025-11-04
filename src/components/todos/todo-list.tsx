@@ -1,18 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import {
-  usePublicPaginatedQuery,
-  useAuthMutation,
-  useIsAuth,
-} from '@/lib/convex/hooks';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
-import { TodoItem } from './todo-item';
-import { TodoForm } from './todo-form';
-import { TodoSearch } from './todo-search';
+import { Archive, Loader2 } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { WithSkeleton } from '@/components/ui/skeleton';
 import {
   Select,
   SelectContent,
@@ -20,14 +12,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Archive } from 'lucide-react';
-import { toast } from 'sonner';
+import { WithSkeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { usePublicPaginatedQuery } from '@/lib/convex/hooks';
+import { TodoForm } from './todo-form';
+import { TodoItem } from './todo-item';
+import { TodoSearch } from './todo-search';
 
-interface TodoListProps {
+type TodoListProps = {
   projectId?: Id<'projects'>;
   showFilters?: boolean;
-}
+};
 
 export function TodoList({ projectId, showFilters = true }: TodoListProps) {
   const [completedFilter, setCompletedFilter] = useState<boolean | undefined>();
@@ -56,19 +51,19 @@ export function TodoList({ projectId, showFilters = true }: TodoListProps) {
       placeholderData: [
         {
           _id: '1' as any,
-          _creationTime: Date.now(),
+          _creationTime: new Date('2025-11-04').getTime(),
           title: 'Example Todo 1',
           description: 'This is a placeholder todo item',
           completed: false,
           priority: 'medium' as const,
-          dueDate: Date.now() + 86400000,
+          dueDate: new Date('2025-11-05').getTime(),
           userId: 'user1' as any,
           tags: [],
           project: null,
         },
         {
           _id: '2' as any,
-          _creationTime: Date.now() - 86400000,
+          _creationTime: new Date('2025-11-04').getTime(),
           title: 'Example Todo 2',
           description: 'Another placeholder todo item',
           completed: true,
@@ -93,13 +88,13 @@ export function TodoList({ projectId, showFilters = true }: TodoListProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Todos</h2>
+        <h2 className="font-bold text-2xl">Todos</h2>
         <div className="flex items-center gap-2">
           <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowDeleted(!showDeleted)}
             className={showDeleted ? 'bg-muted' : ''}
+            onClick={() => setShowDeleted(!showDeleted)}
+            size="sm"
+            variant="outline"
           >
             <Archive className="h-4 w-4" />
             {showDeleted ? 'Hide' : 'Show'} Deleted
@@ -114,6 +109,11 @@ export function TodoList({ projectId, showFilters = true }: TodoListProps) {
 
           <div className="flex flex-wrap gap-2">
             <Tabs
+              onValueChange={(value) => {
+                setCompletedFilter(
+                  value === 'all' ? undefined : value === 'completed'
+                );
+              }}
               value={
                 completedFilter === undefined
                   ? 'all'
@@ -121,11 +121,6 @@ export function TodoList({ projectId, showFilters = true }: TodoListProps) {
                     ? 'completed'
                     : 'active'
               }
-              onValueChange={(value) => {
-                setCompletedFilter(
-                  value === 'all' ? undefined : value === 'completed'
-                );
-              }}
             >
               <TabsList>
                 <TabsTrigger value="all">All</TabsTrigger>
@@ -135,10 +130,10 @@ export function TodoList({ projectId, showFilters = true }: TodoListProps) {
             </Tabs>
 
             <Select
-              value={priorityFilter || 'all'}
               onValueChange={(value) =>
                 setPriorityFilter(value === 'all' ? undefined : (value as any))
               }
+              value={priorityFilter || 'all'}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Filter by priority" />
@@ -171,9 +166,9 @@ export function TodoList({ projectId, showFilters = true }: TodoListProps) {
           <>
             {todos.map((todo: any, index: number) => (
               <WithSkeleton
-                key={todo._id || index}
-                isLoading={isLoading}
                 className="w-full"
+                isLoading={isLoading}
+                key={todo._id || index}
               >
                 <TodoItem todo={todo} />
               </WithSkeleton>
@@ -182,9 +177,9 @@ export function TodoList({ projectId, showFilters = true }: TodoListProps) {
             {hasNextPage && (
               <div className="flex justify-center pt-4">
                 <Button
-                  variant="outline"
-                  onClick={() => fetchNextPage()}
                   disabled={isFetchingNextPage}
+                  onClick={() => fetchNextPage()}
+                  variant="outline"
                 >
                   {isFetchingNextPage ? (
                     <>

@@ -1,12 +1,11 @@
-import type { MutationCtx, QueryCtx } from '@convex/_generated/server';
-import type { CtxWithTable, Ent, EntWriter } from '@convex/shared/types';
-import { getSession } from 'better-auth-convex';
-import { getProduct, productToPlan } from '@convex/polar/product';
-import { Doc, Id } from '@convex/_generated/dataModel';
-
-import type { AuthCtx } from '@convex/functions';
-import { ConvexError } from 'convex/values';
 import { internal } from '@convex/_generated/api';
+import type { Doc, Id } from '@convex/_generated/dataModel';
+import type { MutationCtx, QueryCtx } from '@convex/_generated/server';
+import type { AuthCtx, CtxWithTable } from '@convex/functions';
+import { getProduct, productToPlan } from '@convex/polar/product';
+import type { Ent, EntWriter } from '@convex/shared/types';
+import { getSession } from 'better-auth-convex';
+import { ConvexError } from 'convex/values';
 
 export type SessionUser = Omit<Doc<'user'>, '_creationTime' | '_id'> & {
   id: Id<'user'>;
@@ -166,7 +165,6 @@ export const createUser = async (
       github: args.github ?? undefined,
       image: args.image ?? undefined,
       location: args.location ?? undefined,
-      monthlyCreditsPeriodCount: 0,
       name: args.name,
       role: args.role ?? 'user',
       updatedAt: now.getTime(),
