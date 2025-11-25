@@ -740,7 +740,7 @@ export const convertToDatabaseSubscription = (
 
 **File:** `convex/polar/polyfills.ts`
 
-**⚠️ REQUIRED:** Install the `buffer` npm package (`pnpm add buffer`) for Polar SDK to work in Convex.
+**⚠️ REQUIRED:** Install the `buffer` npm package (`bun add buffer`) for Polar SDK to work in Convex.
 
 ```typescript
 import { Buffer as BufferPolyfill } from "buffer";

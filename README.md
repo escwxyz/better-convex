@@ -30,7 +30,7 @@ A modern Next.js starter template featuring **Convex** backend with **Better Aut
 ### Prerequisites
 
 - Node.js 18 or later
-- pnpm package manager
+- Bun package manager
 - GitHub and/or Google OAuth app credentials
 
 ### Setup Instructions
@@ -40,7 +40,7 @@ A modern Next.js starter template featuring **Convex** backend with **Better Aut
 ```sh
 git clone <your-repo-url>
 cd better-convex
-pnpm install
+bun install
 ```
 
 2. **Set up environment variables:**
@@ -76,7 +76,7 @@ RESEND_API_KEY=your_resend_api_key
 
 ```sh
 # This will start both Next.js and Convex
-pnpm dev
+bun dev
 ```
 
 5. **Initialize Convex environment (first time only):**
@@ -84,7 +84,7 @@ pnpm dev
 In a new terminal:
 
 ```sh
-pnpm sync
+bun sync
 ```
 
 6. **Open the app:**
@@ -94,9 +94,9 @@ Navigate to [http://localhost:3005](http://localhost:3005)
 ### Database Management
 
 ```sh
-pnpm init         # Populate with sample data
-pnpm reset        # Reset all tables
-pnpm studio       # Open Convex dashboard
+bun init         # Populate with sample data
+bun reset        # Reset all tables
+bun studio       # Open Convex dashboard
 ```
 
 ## Custom Convex Functions
@@ -274,14 +274,14 @@ args: {
 ## Development Commands
 
 ```bash
-pnpm dev          # Start dev servers
-pnpm typecheck    # Run TypeScript checks
-pnpm lint         # Check code with Ultracite/Biome
-pnpm lint:fix     # Fix linting and formatting issues
-pnpm check        # Run all checks (lint, ESLint, TypeScript)
-pnpm seed         # Seed database
-pnpm reset        # Reset database
-pnpm studio       # Open Convex dashboard
+bun dev          # Start dev servers
+bun typecheck    # Run TypeScript checks
+bun lint         # Check code with Ultracite/Biome
+bun lint:fix     # Fix linting and formatting issues
+bun check        # Run all checks (lint, ESLint, TypeScript)
+bun seed         # Seed database
+bun reset        # Reset database
+bun studio       # Open Convex dashboard
 ```
 
 ## Best Practices
@@ -481,7 +481,7 @@ After making these changes:
 
 ```bash
 # Regenerate Convex types
-pnpm dev
+bun dev
 ```
 
 This will give you a clean authentication-only starter with:

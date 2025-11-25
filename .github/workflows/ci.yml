@@ -23,46 +23,40 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - uses: pnpm/action-setup@v3
-        name: Install pnpm
-        id: pnpm-install
+      - uses: oven-sh/setup-bun@v2
+        name: Install bun
         with:
-          version: 8
-          run_install: false
+          bun-version: latest
 
-      - name: Use Node.js 22
+      - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'pnpm'
-          cache-dependency-path: '**/pnpm-lock.yaml'
-
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        run: |
-          echo "pnpm_cache_dir=$(pnpm store path)" >> $GITHUB_OUTPUT
 
       - uses: actions/cache@v4
-        name: ♻️ Setup pnpm cache
+        name: ♻️ Setup bun cache
         with:
-          path: ${{ steps.pnpm-cache.outputs.pnpm_cache_dir }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
           restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+            ${{ runner.os }}-bun-
 
       - uses: actions/cache@v4
         name: ♻️ Setup Next.js cache
         with:
           path: ${{ github.workspace }}/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/bun.lock') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
           restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/bun.lock') }}-
 
       - name: 📥 Install
-        run: pnpm install --no-frozen-lockfile && cp .env.example .env.local
+        run: bun install --frozen-lockfile && cp .env.example .env.local
 
-      - name: 🔬 Linter
-        run: pnpm lint && pnpm eslint
+      - name: 🔬 Run Biome & ESLint
+        run: bun lint
 
       - name: 🕵️ Typecheck & Build
-        run: SKIP_ENV_VALIDATION=true pnpm build
+        run: SKIP_ENV_VALIDATION=true bun run build
+
+      # - name: 🧪 Unit tests
+      #   run: bun test
