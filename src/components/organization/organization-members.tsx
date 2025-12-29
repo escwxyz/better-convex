@@ -167,11 +167,14 @@ export function OrganizationMembers({
     });
   };
 
-  const handleRemoveMember = (memberId: Id<'user'>) => {
+  const handleRemoveMember = (memberId: Id<'member'>) => {
     removeMember.mutate({ memberId });
   };
 
-  const handleUpdateRole = (memberId: Id<'user'>, role: 'owner' | 'member') => {
+  const handleUpdateRole = (
+    memberId: Id<'member'>,
+    role: 'owner' | 'member'
+  ) => {
     updateMemberRole.mutate({ memberId, role });
   };
 
@@ -283,7 +286,7 @@ export function OrganizationMembers({
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
                                 onClick={() =>
-                                  handleUpdateRole(member.userId, 'owner')
+                                  handleUpdateRole(member.id, 'owner')
                                 }
                               >
                                 <Crown className="h-4 w-4" />
@@ -291,7 +294,7 @@ export function OrganizationMembers({
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() =>
-                                  handleUpdateRole(member.userId, 'member')
+                                  handleUpdateRole(member.id, 'member')
                                 }
                               >
                                 <User className="h-4 w-4" />
@@ -300,9 +303,7 @@ export function OrganizationMembers({
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 className="text-destructive"
-                                onClick={() =>
-                                  handleRemoveMember(member.userId)
-                                }
+                                onClick={() => handleRemoveMember(member.id)}
                               >
                                 <UserMinus className="h-4 w-4" />
                                 Remove Member
