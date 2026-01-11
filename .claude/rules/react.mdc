@@ -1,48 +1,8 @@
 ---
-description: Use when writing React components - provides patterns for destructured props, React Compiler optimization, Effects best practices, and Tailwind v4 syntax
-globs: *.tsx,**/globals.css
+description: React patterns with destructured props, compiler optimization, Effects, and Tailwind v4 syntax. ALWAYS use when using React.
+globs: *.tsx
 alwaysApply: false
 ---
-
-## App-Specific Rules
-
-### CSS Variables
-
-Custom CSS variables from globals.css:
-
-```css
---brand: oklch(0.621 0.173 227.766); /* Main brand color */
---subtle-foreground: oklch(0.442 0.017 285.786); /* Subtle text */
-```
-
-**Usage:**
-
-```tsx
-// In Tailwind classes
-<div className="text-(--custom)" />
-
-// In inline styles
-<div style={{ color: 'var(--custom)' }} />
-```
-
-### Custom Breakpoints
-
-**IMPORTANT:** Use custom breakpoint syntax (`@xl`, `@3xl`, `@5xl`) instead of default Tailwind breakpoints:
-
-```tsx
-// ✅ Correct - Custom breakpoints
-<div className="w-full @xl:w-1/2 @3xl:w-1/3 @5xl:w-1/4" />
-<div className="block @max-xl:hidden @max-3xl:flex-col @max-5xl:gap-2" />
-
-// ❌ Wrong - Default Tailwind breakpoints
-<div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4" />
-```
-
-**Breakpoints:** `@xl` (640px, replaces `sm:`), `@3xl` (1024px, replaces `md:`), `@5xl` (1280px, replaces `lg:`). Max-width: `@max-xl` (639px), `@max-3xl` (1023px), `@max-5xl` (1279px).
-
-## Context
-
-When working with React components, types, and hooks.
 
 ## Requirements
 
@@ -51,12 +11,10 @@ When working with React components, types, and hooks.
 - Avoid creating separate interfaces for component props
 - Avoid non-destructured props that require additional destructuring inside the component
 - Use available UI components from the component library
-- Use CSS variables from globals.css for consistent theming
 - Use Tailwind v4 syntax (see [Tailwind v4 Syntax](#tailwind-v4-syntax))
 - DO NOT add icon margin in Button, DropdownMenuItem: use gap-2 instead
 - Use `useEffectEvent` to extract non-reactive logic from Effects (see [Separating Events from Effects](#separating-events-from-effects))
 - NEVER suppress the dependency linter with `eslint-disable` - use `useEffectEvent` instead
-- Use custom breakpoint syntax for responsive design (see [App-Specific Rules](#app-specific-rules))
 
 ## Tailwind v4 Syntax
 
@@ -75,82 +33,6 @@ When working with React components, types, and hooks.
 - **Composable variants**: Chain variants together (`group-has-data-selected:opacity-100`, `data-highlighted:ring-2`)
 - **Canonical classes**: Always prefer built-in utilities over arbitrary values (e.g., `w-full` instead of `w-[100%]`, `translate-x-full` instead of `translate-x-[100%]`)
 - **Default changes**: Border color now `currentColor` (was `gray-200`), ring width now 1px (was 3px)
-
-## Core shadcn UI Components
-
-Standard shadcn/ui components available in `src/components/ui`:
-
-- Button [button.tsx](mdc:src/components/ui/button.tsx) - Note `tooltip` prop, `icon` prop, has `gap-2` (no `mr-2` on icons)
-- Command (`command.tsx`) - Has `gap-2` (no `mr-2` on icons)
-- DropdownMenu (`dropdown-menu.tsx`) - CRITICAL: `DropdownMenuItem` has `gap-2` (no `mr-2`), ALWAYS wrap items in `DropdownMenuGroup`
-- Tabs (`tabs.tsx`) / TabsVercel (`tabs-vercel.tsx`)
-
-**USE PROACTIVELY**: Custom components that extend shadcn/ui patterns. All can be imported from `src/components/ui`.
-
-### ButtonGroup
-
-[button-group.tsx](mdc:src/components/ui/button-group.tsx) - Groups controls with seamless borders. Grouped buttons, split buttons, toolbars, pagination, search with button
-
-- Components: `ButtonGroup`, `ButtonGroupText`, `ButtonGroupSeparator` | Orientation: `horizontal`, `vertical`
-- Critical patterns: Split button (`Button` + `DropdownMenu`), nested groups, with Input/Select/InputGroup
-- Replace: Custom flex with manual borders, separate buttons with gaps
-
-### Empty
-
-[empty.tsx](mdc:src/components/ui/empty.tsx) - Empty/error state container. Empty states, error pages, 404s, no data scenarios, offline states
-
-- Components: `Empty`, `EmptyHeader`, `EmptyMedia`, `EmptyTitle`, `EmptyDescription`, `EmptyContent`
-- `EmptyMedia` variants: `default`, `icon` (bordered container)
-- CRITICAL: Use for error.tsx, not-found.tsx, and all empty data states
-- Replace: Custom empty divs, hardcoded error pages, inline messages
-
-### Form
-
-**When working with forms, read [form.mdc](mdc:.claude/rules/form.mdc) for comprehensive patterns and examples.**
-
-Components: [form.tsx](mdc:src/components/ui/form.tsx) and [field.tsx](mdc:src/components/ui/field.tsx) - React Hook Form integration with automatic accessibility
-
-### InputGroup
-
-[input-group.tsx](mdc:src/components/ui/input-group.tsx) - Enhanced input with addons. Inputs with buttons/icons/text prefix/suffix, copy buttons, validation icons
-
-- Components: `InputGroup`, `InputGroupAddon`, `InputGroupButton`, `InputGroupText`, `InputGroupInput`, `InputGroupTextarea`
-- Alignment: `inline-start`, `inline-end`, `block-start`, `block-end`
-- Critical: Addons auto-focus input, supports multiple per side, works with ButtonGroup
-- Replace: Input with separate buttons/icons, manual wrappers
-
-### Item
-
-[item.tsx](mdc:src/components/ui/item.tsx) - Flexible content container. Lists, cards, menus, profile items, settings sections, form fields (Radio/Checkbox/Switch/Select)
-
-- Components: `Item`, `ItemGroup`, `ItemSeparator`, `ItemMedia`, `ItemContent`, `ItemTitle`, `ItemDescription`, `ItemActions`, `ItemHeader`, `ItemFooter`
-- Variants: `default` (non-interactive items), `ghost` (interactive items with asChild), `outline`, `muted`, `destructive` | Sizes: `default`, `sm`
-- `ItemMedia` variants: `default`, `icon` (bordered icon container), `image` (rounded image container)
-- Use `asChild` with `variant="ghost"` to render as link/button (hover/focus states applied)
-- **ItemGroup separator prop**: CRITICAL - Use `separator` boolean prop for automatic separators between items
-- **When to use ItemGroup**: ALL content EXCEPT Input/Textarea - profile lists, user lists, contact lists, dropdown menus, popover menus, command palette items, notification items, search results, settings sections, team members, form fields (Radio, Checkbox, Switch, Select), any content with media+title+description pattern
-- **Critical patterns**:
-  - ItemGroup for lists: `<ItemGroup separator>{items.map((item) => <Item key={item.id}>...</Item>)}</ItemGroup>`
-  - ItemGroup for form fields: `<ItemGroup separator><Item><Radio /></Item><Item><Checkbox /></Item></ItemGroup>`
-  - Rich menu items: Wrap Item with `size="sm"` inside DropdownMenuItem/PopoverContent
-- **Replace**: Custom flex containers with hardcoded spacing/borders, plain text menu items, manual separator divs
-- **ItemGroup vs FieldGroup**: Use ItemGroup for ALL content EXCEPT Input/Textarea. Use FieldGroup ONLY for Input/Textarea fields.
-- **Item vs Field**: Use Field (from Form) if you need to display a form input (checkbox, input, radio, select). If you only need to display content (title, description, actions), use Item.
-
-### Kbd
-
-[kbd.tsx](mdc:src/components/ui/kbd.tsx) - Keyboard shortcut indicators. Keyboard shortcuts in buttons, tooltips, command palette, help docs
-
-- Use in buttons, tooltips, command palette, search inputs, help docs
-
-### Section
-
-[section.tsx](mdc:src/components/ui/section.tsx) - Settings/configuration layout container. Settings pages, configuration screens, account management, grouped sections
-
-- Components: `Section`, `SectionTitle`, `SectionDescription`
-- Use with Item components for structured settings pages
-- Critical: Supports inline links in SectionDescription
-- Replace: Card-based settings layouts, custom section wrappers
 
 # Component Patterns
 
@@ -557,51 +439,7 @@ The `useCallback` is unnecessary and creates a subtle bug: the inline arrow func
 
 ### Computed Values
 
-<example>
-```tsx
-// ✅ Good - Direct computation
-function UserProfile({ user }) {
-  const fullName = `${user.firstName} ${user.lastName}`;
-  const initials = `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
-
-return (
-
-<div>
-<h1>{fullName}</h1>
-<Avatar initials={initials} />
-</div>
-);
-}
-
-````
-The compiler automatically memoizes these computations when appropriate.
-</example>
-
-<example type="invalid">
-```tsx
-// ❌ Avoid - Unnecessary useMemo
-function UserProfile({ user }) {
-  const fullName = useMemo(
-    () => `${user.firstName} ${user.lastName}`,
-    [user.firstName, user.lastName]
-  );
-
-  const initials = useMemo(
-    () => `${user.firstName[0]}${user.lastName[0]}`.toUpperCase(),
-    [user.firstName, user.lastName]
-  );
-
-  return (
-    <div>
-      <h1>{fullName}</h1>
-      <Avatar initials={initials} />
-    </div>
-  );
-}
-````
-
-These `useMemo` calls are redundant and make the code harder to read.
-</example>
+See [Derived State](#derived-state-compute-during-render-not-in-effects) for the pattern. Compute inline during render; React Compiler handles memoization.
 
 ### Conditional Memoization
 
@@ -717,10 +555,187 @@ This is an acceptable escape hatch for external library integration.
 
 ### When _Not_ to Add an Effect
 
-- Deriving or filtering data for rendering. Compute it inline during render; React Compiler memoizes expensive branches.
+- Deriving or filtering data for rendering. See [Derived State](#derived-state-compute-during-render-not-in-effects).
 - Resetting or coordinating state between components. Use keys, derive state from props, or lift state up instead of chaining Effects.
 - Handling user interactions. Run imperative logic inside the event handler so React can batch updates and you avoid double execution.
 - Preventing Strict Mode double-invocation. Never guard Effects with refs or flags to stop re-execution; fix the underlying cleanup instead.
+
+### Derived State: Compute During Render, Not in Effects
+
+**The most common unnecessary Effect is transforming data for rendering.** When you have data that can be computed from props or state, compute it directly during render:
+
+<example>
+```tsx
+// ❌ Anti-pattern: useState + useEffect for derived data
+function FilteredList({ items, filter }) {
+  const [filtered, setFiltered] = useState([]);
+
+useEffect(() => {
+setFiltered(items.filter(item => item.status === filter));
+}, [items, filter]);
+
+return <List items={filtered} />;
+}
+
+// ✅ Correct: Compute during render
+function FilteredList({ items, filter }) {
+const filtered = items.filter(item => item.status === filter);
+return <List items={filtered} />;
+}
+
+````
+</example>
+
+**Why this matters**: The Effect pattern causes an extra render pass with stale data, wastes cycles, and can cause visual flicker.
+
+### When setState in Effect IS Valid
+
+setState in an Effect is valid when the value **comes from an external source** that React can't observe:
+
+1. **DOM measurements** - Reading element dimensions after paint
+2. **External subscriptions** - Browser APIs, WebSocket, third-party stores
+3. **Resources with cleanup** - Object URLs, media streams, connections
+
+<example>
+```tsx
+// ✅ Valid: DOM measurement after paint
+function Tooltip({ children }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(0);
+
+  useLayoutEffect(() => {
+    if (ref.current) {
+      setHeight(ref.current.getBoundingClientRect().height);
+    }
+  }, []);
+
+  return <div ref={ref}>{children}</div>;
+}
+
+// ✅ Valid: External subscription
+function OnlineStatus() {
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handler = () => setIsOnline(navigator.onLine);
+    window.addEventListener('online', handler);
+    window.addEventListener('offline', handler);
+    return () => {
+      window.removeEventListener('online', handler);
+      window.removeEventListener('offline', handler);
+    };
+  }, []);
+
+  return <span>{isOnline ? 'Online' : 'Offline'}</span>;
+}
+
+// ✅ Valid: Resource with cleanup (Object URL)
+function ImagePreview({ file }: { file: File }) {
+  const objectUrl = useMemo(() => URL.createObjectURL(file), [file]);
+
+  useEffect(() => {
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [objectUrl]);
+
+  return <img src={objectUrl} alt={file.name} />;
+}
+````
+
+</example>
+
+### Ref Access Rules
+
+**Never read or write `ref.current` during render** except for lazy initialization:
+
+<example>
+```tsx
+// ❌ Invalid: Reading ref during render
+function Component() {
+  const ref = useRef(0);
+  const value = ref.current; // Don't read during render!
+  return <div>{value}</div>;
+}
+
+// ❌ Invalid: Writing ref during render
+function Component({ value }) {
+const ref = useRef(null);
+ref.current = value; // Don't write during render!
+return <div />;
+}
+
+// ✅ Valid: Read/write in Effects or handlers
+function Component() {
+const ref = useRef<HTMLDivElement>(null);
+
+useEffect(() => {
+if (ref.current) {
+console.log(ref.current.offsetWidth); // OK in effect
+}
+}, []);
+
+const handleClick = () => {
+console.log(ref.current); // OK in handler
+};
+
+return <div ref={ref} onClick={handleClick} />;
+}
+
+// ✅ Valid: Lazy initialization (read-then-write once)
+function Component() {
+const ref = useRef<ExpensiveValue | null>(null);
+
+if (ref.current === null) {
+ref.current = createExpensiveValue(); // OK - one-time init
+}
+
+return <div />;
+}
+
+```
+</example>
+
+### Decision Tree: Derived State vs Effects vs Refs
+
+```
+
+Need to transform/filter/derive data for display?
+├─ YES → Compute during render (no useState, no useEffect)
+│ const derived = items.filter(x => x.active);
+│
+├─ Need to cache expensive computation?
+│ └─ Let React Compiler handle it, or useMemo if profiled bottleneck
+│
+Need to sync with external system (DOM, network, browser API)?
+├─ YES → useEffect with setState IS valid
+│ useEffect(() => { setHeight(ref.current.offsetHeight) }, [])
+│
+Need to read ref.current?
+├─ During render → ❌ NEVER (except lazy init)
+├─ In Effect → ✅ OK
+├─ In handler → ✅ OK
+│
+Need to sync file/blob/stream with cleanup?
+└─ useMemo for creation + useEffect for cleanup
+const url = useMemo(() => URL.createObjectURL(file), [file]);
+useEffect(() => () => URL.revokeObjectURL(url), [url]);
+
+````
+
+### Red Flags - STOP Before "Fixing"
+
+If you're about to:
+- Replace `useState + useEffect` with `useMemo` that reads `ref.current` → STOP
+- Add `eslint-disable` for either rule → STOP, use decision tree
+- "Fix" one error and immediately get the other → STOP, you're cycling
+
+### Rationalization Table
+
+| Excuse | Reality |
+|--------|---------|
+| "useMemo fixes derived state" | Only if you don't read refs during render |
+| "I'll read ref in useMemo since it runs during render" | useMemo IS render. Ref rules still apply. |
+| "Effect was the problem" | Maybe, but check if you're now violating ref rules |
+| "This is simple, I know what to do" | The cycle happens because you skip the decision tree |
 
 ### Cleanup and Strict Mode
 
@@ -762,6 +777,7 @@ return <video ref={ref} src={src} playsInline loop />;
 }
 
 ````
+
 </example>
 
 <example type="invalid">
@@ -770,24 +786,28 @@ return <video ref={ref} src={src} playsInline loop />;
 function ProductPage({ product }: Props) {
   const [isInCart, setIsInCart] = useState(false);
 
-  useEffect(() => {
-    if (product.isInCart) {
-      setIsInCart(true); // Derivation should happen during render
-      notifyAdd(product.id); // Event logic belongs in the click handler
-    }
-  }, [product]);
-  // ...
+useEffect(() => {
+if (product.isInCart) {
+setIsInCart(true); // Derivation should happen during render
+notifyAdd(product.id); // Event logic belongs in the click handler
 }
+}, [product]);
+// ...
+}
+
 ````
 
 This mixes reactive synchronization with event-driven logic. Use `useEffectEvent` if you need to read current props without re-running the Effect. See [Separating Events from Effects](#separating-events-from-effects).
 </example>
 
 <critical>
+  - **Derived data**: Compute inline during render. No useState + useEffect.
+  - **External systems**: setState in Effect IS valid (DOM, browser APIs, subscriptions).
+  - **Refs**: Never read/write during render (except lazy init). Read in Effects/handlers.
+  - **Resources with cleanup**: useMemo for creation, useEffect for cleanup.
   - Use Effects only for external synchronization; keep render pure and events in handlers.
-  - Always implement cleanup so mount → cleanup → mount cycles in development behave identically to a single mount in production.
-  - Do not fight dependency linting with manual memoization; rely on actual inputs and let React Compiler optimize the rest.
-  - Prefer purpose-built hooks (`useSyncExternalStore`, custom hooks) for shared subscription or fetching logic.
+  - Always implement cleanup so mount → cleanup → mount cycles behave correctly.
+  - Do not fight dependency linting with manual memoization; rely on actual inputs.
 </critical>
 
 ## Separating Events from Effects
@@ -833,6 +853,7 @@ return (
 }
 
 ````
+
 </example>
 
 ### Reactive Values and Reactive Logic
@@ -859,24 +880,25 @@ function ChatRoom({ roomId, theme }) {
     return () => connection.disconnect();
   }, [roomId, theme]); // ❌ Unnecessary reconnection
 
-  return <h1>Welcome to the {roomId} room!</h1>;
+return <h1>Welcome to the {roomId} room!</h1>;
 }
 
 // ✅ With useEffectEvent - Only reconnects on roomId change
 function ChatRoom({ roomId, theme }) {
-  const onConnected = useEffectEvent(() => {
-    showNotification('Connected!', theme); // Reads current theme, not reactive
-  });
+const onConnected = useEffectEvent(() => {
+showNotification('Connected!', theme); // Reads current theme, not reactive
+});
 
-  useEffect(() => {
-    const connection = createConnection(serverUrl, roomId);
-    connection.on('connected', onConnected);
-    connection.connect();
-    return () => connection.disconnect();
-  }, [roomId]); // ✅ Only roomId
+useEffect(() => {
+const connection = createConnection(serverUrl, roomId);
+connection.on('connected', onConnected);
+connection.connect();
+return () => connection.disconnect();
+}, [roomId]); // ✅ Only roomId
 
-  return <h1>Welcome to the {roomId} room!</h1>;
+return <h1>Welcome to the {roomId} room!</h1>;
 }
+
 ````
 
 </example>
@@ -928,6 +950,7 @@ onVisit(url);
 }
 
 ````
+
 </example>
 
 ### Critical Rules and Limitations
@@ -940,34 +963,35 @@ onVisit(url);
 function Component() {
   const [canMove, setCanMove] = useState(true);
 
-  function handleMove(e) {
-    if (canMove) { // Always sees initial value!
-      setPosition({ x: e.clientX, y: e.clientY });
-    }
-  }
+function handleMove(e) {
+if (canMove) { // Always sees initial value!
+setPosition({ x: e.clientX, y: e.clientY });
+}
+}
 
-  useEffect(() => {
-    window.addEventListener('pointermove', handleMove);
-    return () => window.removeEventListener('pointermove', handleMove);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+useEffect(() => {
+window.addEventListener('pointermove', handleMove);
+return () => window.removeEventListener('pointermove', handleMove);
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
 }
 
 // ✅ Use Effect Event instead
 function Component() {
-  const [canMove, setCanMove] = useState(true);
+const [canMove, setCanMove] = useState(true);
 
-  const onMove = useEffectEvent((e) => {
-    if (canMove) { // Always sees current value
-      setPosition({ x: e.clientX, y: e.clientY });
-    }
-  });
-
-  useEffect(() => {
-    window.addEventListener('pointermove', onMove);
-    return () => window.removeEventListener('pointermove', onMove);
-  }, []);
+const onMove = useEffectEvent((e) => {
+if (canMove) { // Always sees current value
+setPosition({ x: e.clientX, y: e.clientY });
 }
+});
+
+useEffect(() => {
+window.addEventListener('pointermove', onMove);
+return () => window.removeEventListener('pointermove', onMove);
+}, []);
+}
+
 ````
 
 </example>
@@ -1023,6 +1047,7 @@ return <Button onClick={handleCancelEdit}>Cancel</Button>;
 }
 
 ````
+
 </example>
 
 <example type="invalid">
@@ -1033,27 +1058,29 @@ function Component() {
     // ...
   });
 
-  return <Button onClick={handleClick} />; // ESLint error!
+return <Button onClick={handleClick} />; // ESLint error!
 }
 
 // ❌ WRONG - No Effect Event wrapper causes stale closure
 function Component({ editingMessage }) {
-  const handleCancelEdit = () => {
-    // Without useCallback, this recreates every render
-    // causing the Effect to re-run constantly
-  };
+const handleCancelEdit = () => {
+// Without useCallback, this recreates every render
+// causing the Effect to re-run constantly
+};
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        handleCancelEdit(); // Stale closure!
-      }
-    };
+useEffect(() => {
+const handleKeyDown = (e: KeyboardEvent) => {
+if (e.key === 'Escape') {
+handleCancelEdit(); // Stale closure!
+}
+};
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleCancelEdit]); // Effect re-runs every render!
+
+}, [handleCancelEdit]); // Effect re-runs every render!
 }
+
 ````
 
 </example>
@@ -1150,35 +1177,14 @@ function ProductList({ products, onAddToCart }) {
 );
 }
 
-````
+```
 
 The compiler optimizes this correctly, including the computed `discountedPrice`.
 </example>
 
 ### Derived State
 
-<example>
-```tsx
-// ✅ Good - Direct derivation
-function OrderSummary({ items }) {
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const tax = subtotal * 0.08;
-  const total = subtotal + tax;
-
-return (
-
-<div>
-<div>Subtotal: ${subtotal.toFixed(2)}</div>
-<div>Tax: ${tax.toFixed(2)}</div>
-<div>Total: ${total.toFixed(2)}</div>
-</div>
-);
-}
-
-```
-
-Let the compiler handle memoization of these calculations.
-</example>
+See [Derived State: Compute During Render](#derived-state-compute-during-render-not-in-effects) in the Effects section.
 
 ## Migration Guide
 
@@ -1195,18 +1201,5 @@ The compiler's output is designed to work with clean, idiomatic React code. Remo
 
 ### Adding New Code
 
-For all new code:
-
-- Write clean, idiomatic React without manual memoization
-- Let the compiler optimize automatically
-- Only add manual memoization if you have a specific, documented reason
-- Prefer simplicity over premature optimization
-
-<critical>
-  - DO NOT use `React.memo`, `useMemo`, or `useCallback` for performance optimization
-  - React Compiler automatically applies optimal memoization
-  - Manual memoization should only be used as a documented escape hatch
-  - Write clean, idiomatic React and let the compiler do its job
-  - The compiler can optimize cases that manual memoization cannot
-</critical>
+Write clean, idiomatic React without manual memoization. See [DO NOT Use Manual Memoization](#do-not-use-manual-memoization) for details.
 ```

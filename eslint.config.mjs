@@ -5,21 +5,18 @@ import reactHooks from 'eslint-plugin-react-hooks';
 export default defineConfig([
   {
     ...reactHooks.configs.flat.recommended,
-    files: ['src/**/*.ts*'],
+    files: ['**/src/**/*.ts*'],
     languageOptions: { parser: tsParser },
   },
   {
     ignores: [
-      'node_modules/**',
-      '.next/**',
-      'next-env.d.ts',
-      'out/**',
-      'build/**',
-      'tmp/**',
-      'convex',
-      '**/vault',
-      '**/_vault',
-      '.contentlayer',
+      '**/node_modules/**',
+      '**/.next/**',
+      '**/next-env.d.ts',
+      '**/out/**',
+      '**/build/**',
+      '**/tmp/**',
+      '**/convex',
     ],
   },
 ]);
