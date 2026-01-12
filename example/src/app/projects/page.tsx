@@ -2,6 +2,7 @@
 
 import { api } from '@convex/api';
 import type { Id } from '@convex/dataModel';
+import { useInfiniteQuery } from 'better-convex/react';
 import { Archive, CheckSquare, Plus, Square, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -21,12 +22,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { WithSkeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  useAuthMutation,
-  useIsAuth,
-  usePublicPaginatedQuery,
-} from '@/lib/convex/hooks';
+import { useCRPC } from '@/lib/convex/crpc';
+import { useAuthMutation, useIsAuth } from '@/lib/convex/hooks';
 import { cn } from '@/lib/utils';
+
+type ProjectListItem = {
+  _id: Id<'projects'>;
+  _creationTime: number;
+  name: string;
+  description?: string;
+  ownerId: Id<'user'>;
+  isPublic: boolean;
+  archived: boolean;
+  memberCount: number;
+  todoCount: number;
+  completedTodoCount: number;
+  isOwner: boolean;
+};
 
 export default function ProjectsPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -38,13 +50,10 @@ export default function ProjectsPage() {
   });
 
   const isAuth = useIsAuth();
+  const crpc = useCRPC();
 
   const { data, hasNextPage, isLoading, isFetchingNextPage, fetchNextPage } =
-    usePublicPaginatedQuery(
-      api.projects.list,
-      { includeArchived },
-      { initialNumItems: 9 }
-    );
+    useInfiniteQuery(crpc.projects.list.infiniteQueryOptions({ includeArchived }));
 
   const createProject = useAuthMutation(api.projects.create, {
     onSuccess: () => {
@@ -86,7 +95,7 @@ export default function ProjectsPage() {
     });
   };
 
-  const projects = data || [];
+  const projects = (data || []) as ProjectListItem[];
 
   return (
     <div className="mx-auto max-w-5xl @3xl:px-8 px-6 @3xl:py-12 py-8">

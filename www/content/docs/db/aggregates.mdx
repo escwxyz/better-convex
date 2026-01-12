@@ -92,7 +92,7 @@ export const aggregatePostLikes = new TableAggregate<{
 // Usage
 const likeCount = await aggregatePostLikes.count(ctx, {
   namespace: postId,
-  bounds: {} as any, // Required for null keys
+  bounds: {},
 });
 ```
 
@@ -115,7 +115,7 @@ export const aggregateTotalUsers = new TableAggregate<{
 // Usage
 const totalUsers = await aggregateTotalUsers.count(ctx, {
   namespace: 'global',
-  bounds: {} as any,
+  bounds: {},
 });
 ```
 
@@ -229,7 +229,7 @@ const count = await aggregate.count(ctx, {
 // ✅ CORRECT: Include empty bounds
 const count = await aggregate.count(ctx, {
   namespace: itemId,
-  bounds: {} as any,
+  bounds: {},
 });
 ```
 
@@ -270,7 +270,7 @@ export const registerTriggers = () => {
 ```ts
 const likeCount = await aggregatePostLikes.count(ctx, {
   namespace: postId,
-  bounds: {} as any,
+  bounds: {},
 });
 ```
 
@@ -288,7 +288,7 @@ const totalPoints = await aggregatePoints.sum(ctx, {
 ```ts
 // Average score
 const sum = await aggregate.sum(ctx, { namespace: gameId });
-const count = await aggregate.count(ctx, { namespace: gameId, bounds: {} as any });
+const count = await aggregate.count(ctx, { namespace: gameId, bounds: {}});
 const average = count > 0 ? sum / count : 0;
 
 // 95th percentile
@@ -314,7 +314,7 @@ const randomAggregate = new TableAggregate<{
 });
 
 // Get random song
-const count = await randomAggregate.count(ctx, { bounds: {} as any });
+const count = await randomAggregate.count(ctx, { bounds: {}});
 if (count === 0) return null;
 
 const randomIndex = Math.floor(Math.random() * count);
@@ -419,7 +419,7 @@ triggers.register('postLikes', aggregatePostLikes.trigger());
 // Query count
 const likeCount = await aggregatePostLikes.count(ctx, {
   namespace: postId,
-  bounds: {} as any,
+  bounds: {},
 });
 ```
 
@@ -429,11 +429,11 @@ const likeCount = await aggregatePostLikes.count(ctx, {
 const stats = {
   totalUsers: await aggregateTotalUsers.count(ctx, {
     namespace: 'global',
-    bounds: {} as any,
+    bounds: {},
   }),
   totalPosts: await aggregateTotalPosts.count(ctx, {
     namespace: 'global',
-    bounds: {} as any,
+    bounds: {},
   }),
 };
 ```
@@ -443,11 +443,11 @@ const stats = {
 ```ts
 const followerCount = await aggregateFollowers.count(ctx, {
   namespace: userId,
-  bounds: {} as any,
+  bounds: {},
 });
 const followingCount = await aggregateFollowing.count(ctx, {
   namespace: userId,
-  bounds: {} as any,
+  bounds: {},
 });
 ```
 

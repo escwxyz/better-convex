@@ -1,4 +1,31 @@
-import { getHeaders, getSession } from 'better-convex/auth';
+/**
+ * CRPC - Convex RPC
+ * tRPC-style fluent API for Convex functions
+ *
+ * This file contains project-specific setup. The core builder is generic.
+ *
+ * Usage:
+ * ```typescript
+ * import { z } from 'zod';
+ * import { publicQuery, authQuery, authMutation } from '../lib/crpc';
+ *
+ * export const getItem = publicQuery
+ *   .input(z.object({ id: zid('items') }))
+ *   .output(z.object({ name: z.string() }).nullable())
+ *   .query(async ({ ctx, input }) => {
+ *     return ctx.table('items').get(input.id);
+ *   });
+ *
+ * export const createItem = authMutation
+ *   .input(z.object({ name: z.string() }))
+ *   .output(zid('items'))
+ *   .mutation(async ({ ctx, input }) => {
+ *     return ctx.table('items').insert({ name: input.name, userId: ctx.userId });
+ *   });
+ * ```
+ */
+
+import { getHeaders } from 'better-convex/auth';
 import { CRPCError, initCRPC } from 'better-convex/server';
 import type { Auth } from 'convex/server';
 import {
@@ -7,7 +34,11 @@ import {
 } from 'convex-helpers/server/customFunctions';
 import { api } from '../functions/_generated/api';
 import type { DataModel, Id } from '../functions/_generated/dataModel';
-import type { ActionCtx, MutationCtx, QueryCtx } from '../functions/_generated/server';
+import type {
+  ActionCtx,
+  MutationCtx,
+  QueryCtx,
+} from '../functions/_generated/server';
 import {
   action,
   internalAction,
@@ -16,36 +47,37 @@ import {
   mutation,
   query,
 } from '../functions/_generated/server';
+import { getAuth } from '../functions/auth';
+import type { SessionUser } from '../shared/auth-shared';
+import { getSessionUser, getSessionUserWriter } from './auth/auth-helpers';
+import type { Ent, EntWriter } from './ents';
 import { type CtxWithTable, getCtxWithTable } from './ents';
+import { getEnv } from './get-env';
 import { rateLimitGuard } from './rate-limiter';
 import { registerTriggers } from './triggers';
-import { getAuth } from '../functions/auth';
 
 // =============================================================================
-// Types
+// Context Types
 // =============================================================================
 
 export type GenericCtx = QueryCtx | MutationCtx | ActionCtx;
 
-type SessionUser = {
-  id: Id<'user'>;
-  plan?: 'premium' | null;
-  isAdmin?: boolean;
-};
+type CtxUser<Ctx extends MutationCtx | QueryCtx = QueryCtx> = SessionUser &
+  (Ctx extends MutationCtx ? EntWriter<'user'> : Ent<'user'>);
 
 /** Context with optional auth - user/userId may be null */
 export type MaybeAuthCtx<Ctx extends MutationCtx | QueryCtx = QueryCtx> =
   CtxWithTable<Ctx> & {
-    auth: Auth & { headers?: Headers };
-    user: SessionUser | null;
+    auth: Auth & Partial<ReturnType<typeof getAuth> & { headers: Headers }>;
+    user: CtxUser<Ctx> | null;
     userId: Id<'user'> | null;
   };
 
 /** Context with required auth - user/userId guaranteed */
 export type AuthCtx<Ctx extends MutationCtx | QueryCtx = QueryCtx> =
   CtxWithTable<Ctx> & {
-    auth: Auth & { headers: Headers };
-    user: SessionUser;
+    auth: Auth & ReturnType<typeof getAuth> & { headers: Headers };
+    user: CtxUser<Ctx>;
     userId: Id<'user'>;
   };
 
@@ -56,9 +88,10 @@ export type AuthActionCtx = ActionCtx & {
 };
 
 // =============================================================================
-// Setup
+// Project-Specific Setup
 // =============================================================================
 
+// Initialize triggers for mutations
 const triggers = registerTriggers();
 
 type Meta = {
@@ -68,6 +101,7 @@ type Meta = {
   dev?: boolean;
 };
 
+// Initialize CRPC with tRPC-style builder chain
 const c = initCRPC
   .dataModel<DataModel>()
   .context({
@@ -78,6 +112,7 @@ const c = initCRPC
   .create({
     query,
     internalQuery,
+    // biome-ignore lint/suspicious/noExplicitAny: convex internals
     mutation: (handler: any) =>
       mutation({
         ...handler,
@@ -86,6 +121,7 @@ const c = initCRPC
           return handler.handler(wrappedCtx, args);
         },
       }),
+    // biome-ignore lint/suspicious/noExplicitAny: convex internals
     internalMutation: (handler: any) =>
       internalMutation({
         ...handler,
@@ -104,7 +140,7 @@ const c = initCRPC
 
 /** Dev mode middleware - throws in production if meta.dev: true */
 const devMiddleware = c.middleware<object>(({ meta, next, ctx }) => {
-  if (meta.dev && process.env.DEPLOY_ENV === 'production') {
+  if (meta.dev && getEnv().DEPLOY_ENV === 'production') {
     throw new CRPCError({
       code: 'FORBIDDEN',
       message: 'This function is only available in development',
@@ -114,7 +150,9 @@ const devMiddleware = c.middleware<object>(({ meta, next, ctx }) => {
 });
 
 /** Rate limit middleware - applies rate limiting based on meta.rateLimit and user tier */
-const rateLimitMiddleware = c.middleware<any>(async ({ ctx, meta, next }) => {
+const rateLimitMiddleware = c.middleware<
+  MutationCtx & { user?: Pick<SessionUser, 'id' | 'plan'> | null }
+>(async ({ ctx, meta, next }) => {
   await rateLimitGuard({
     ...ctx,
     rateLimitKey: meta.rateLimit ?? 'default',
@@ -124,12 +162,26 @@ const rateLimitMiddleware = c.middleware<any>(async ({ ctx, meta, next }) => {
 });
 
 /** Role middleware - checks admin role from meta after auth middleware */
-const roleMiddleware = c.middleware<any>(({ ctx, meta, next }) => {
-  if (meta.role === 'admin' && !ctx.user?.isAdmin) {
-    throw new CRPCError({ code: 'FORBIDDEN', message: 'Admin access required' });
+const roleMiddleware = c.middleware<object>(({ ctx, meta, next }) => {
+  const user = (ctx as { user?: { isAdmin?: boolean } }).user;
+  if (meta.role === 'admin' && !user?.isAdmin) {
+    throw new CRPCError({
+      code: 'FORBIDDEN',
+      message: 'Admin access required',
+    });
   }
   return next({ ctx });
 });
+
+function requireAuth<T>(user: T | null): T {
+  if (!user) {
+    throw new CRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'Not authenticated',
+    });
+  }
+  return user;
+}
 
 // =============================================================================
 // Query Procedures
@@ -141,14 +193,12 @@ export const publicQuery = c.query.use(devMiddleware);
 /** Private query - only callable from other Convex functions */
 export const privateQuery = c.query.internal();
 
-/** Optional auth query - ctx.user may be null, supports dev: true in meta */
+/** MaybeAuth query - ctx.user may be null, supports dev: true in meta */
 export const optionalAuthQuery = c.query
   .meta({ auth: 'optional' })
   .use(devMiddleware)
   .use(async ({ ctx, next }) => {
-    const session = await getSession(ctx);
-
-    const user = session ? await ctx.table('user').getX(session.userId) : null;
+    const user = await getSessionUser(ctx);
 
     return next({
       ctx: {
@@ -157,11 +207,11 @@ export const optionalAuthQuery = c.query
           ? {
               ...ctx.auth,
               ...getAuth(ctx),
-              headers: await getHeaders(ctx, session),
+              headers: await getHeaders(ctx, user.session),
             }
           : ctx.auth,
         user,
-        userId: user?._id ?? null,
+        userId: user?.id ?? null,
       },
     });
   });
@@ -171,22 +221,18 @@ export const authQuery = c.query
   .meta({ auth: 'required' })
   .use(devMiddleware)
   .use(async ({ ctx, next }) => {
-    const session = await getSession(ctx);
-    if (!session) {
-      throw new CRPCError({ code: 'UNAUTHORIZED', message: 'Not authenticated' });
-    }
-
-    const user = await ctx.table('user').getX(session.userId);
+    const user = requireAuth(await getSessionUser(ctx));
 
     return next({
       ctx: {
         ...ctx,
         auth: {
           ...ctx.auth,
-          headers: await getHeaders(ctx, session),
+          ...getAuth(ctx),
+          headers: await getHeaders(ctx, user.session),
         },
-        user: { id: user._id, session, ...user.doc() },
-        userId: user._id,
+        user,
+        userId: user.id,
       },
     });
   })
@@ -204,14 +250,12 @@ export const publicMutation = c.mutation
 /** Private mutation - only callable from other Convex functions */
 export const privateMutation = c.mutation.internal();
 
-/** Optional auth mutation - ctx.user may be null, rate limited, supports dev: true */
+/** MaybeAuth mutation - ctx.user may be null, rate limited, supports dev: true in meta */
 export const optionalAuthMutation = c.mutation
   .meta({ auth: 'optional' })
   .use(devMiddleware)
   .use(async ({ ctx, next }) => {
-    const session = await getSession(ctx);
-
-    const user = session ? await ctx.table('user').getX(session.userId) : null;
+    const user = await getSessionUserWriter(ctx);
 
     return next({
       ctx: {
@@ -220,37 +264,33 @@ export const optionalAuthMutation = c.mutation
           ? {
               ...ctx.auth,
               ...getAuth(ctx),
-              headers: await getHeaders(ctx, session),
+              headers: await getHeaders(ctx, user.session),
             }
           : ctx.auth,
         user,
-        userId: user?._id ?? null,
+        userId: user?.id ?? null,
       },
     });
   })
   .use(rateLimitMiddleware);
 
-/** Auth mutation - ctx.user required, rate limited, supports role: 'admin' and dev: true */
+/** Auth mutation - ctx.user required, rate limited, supports role: 'admin' and dev: true in meta */
 export const authMutation = c.mutation
   .meta({ auth: 'required' })
   .use(devMiddleware)
   .use(async ({ ctx, next }) => {
-    const session = await getSession(ctx);
-    if (!session) {
-      throw new CRPCError({ code: 'UNAUTHORIZED', message: 'Not authenticated' });
-    }
-
-    const user = await ctx.table('user').getX(session.userId);
+    const user = requireAuth(await getSessionUserWriter(ctx));
 
     return next({
       ctx: {
         ...ctx,
         auth: {
           ...ctx.auth,
-          headers: await getHeaders(ctx, session),
+          ...getAuth(ctx),
+          headers: await getHeaders(ctx, user.session),
         },
-        user: { id: user._id, session, ...user.doc() },
-        userId: user._id,
+        user,
+        userId: user.id,
       },
     });
   })
@@ -272,18 +312,14 @@ export const authAction = c.action
   .meta({ auth: 'required' })
   .use(devMiddleware)
   .use(async ({ ctx, next }) => {
-    const rawUser = await ctx.runQuery(api.user.getSessionUser, {});
-    if (!rawUser) {
-      throw new CRPCError({ code: 'UNAUTHORIZED', message: 'Not authenticated' });
-    }
-    return next({ ctx: { ...ctx, user: rawUser as SessionUser, userId: rawUser.id } });
+    // Actions don't have db access, use runQuery to get session user
+    // biome-ignore lint/suspicious/noExplicitAny: circular reference
+    const rawUser: any = await ctx.runQuery(api.user.getSessionUser, {});
+    const user = requireAuth(rawUser as SessionUser | null);
+
+    return next({ ctx: { ...ctx, user, userId: user.id } });
   });
 
-// =============================================================================
-// Exports for Better Auth
-// =============================================================================
-
-/** Trigger-wrapped internalMutation for better-auth hooks */
 export const internalMutationWithTriggers = customMutation(
   internalMutation,
   customCtx(async (ctx) => ({

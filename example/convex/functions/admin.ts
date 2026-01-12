@@ -1,5 +1,5 @@
 import { ConvexError } from 'convex/values';
-import { zid, zodPaginationOptsValidator } from 'convex-helpers/server/zod4';
+import { zid } from 'convex-helpers/server/zod4';
 import { z } from 'zod';
 
 import { authMutation, authQuery } from '../lib/crpc';
@@ -97,16 +97,30 @@ export const grantAdminByEmail = authMutation
     };
   });
 
+// Schema for user list items
+const UserListItemSchema = z.object({
+  _id: zid('user'),
+  _creationTime: z.number(),
+  name: z.string().optional(),
+  email: z.string(),
+  image: z.string().nullish(),
+  role: z.string(),
+  isBanned: z.boolean().optional(),
+  banReason: z.string().nullish(),
+  banExpiresAt: z.number().nullish(),
+});
+
 // Get all users with pagination for admin dashboard
 export const getAllUsers = authQuery
   .input(
     z.object({
       role: z.enum(['all', 'user', 'admin']).optional(),
       search: z.string().optional(),
-      paginationOpts: zodPaginationOptsValidator,
     })
   )
+  .paginated({ limit: 20, item: UserListItemSchema.nullable() })
   .query(async ({ ctx, input }) => {
+    const paginationOpts = { cursor: input.cursor, numItems: input.limit };
     // Build query
     const query = ctx.table('user');
 
@@ -116,7 +130,7 @@ export const getAllUsers = authQuery
 
       // For now, just paginate and filter in memory
       // You can add a search index later for better performance
-      const result = await query.paginate(input.paginationOpts);
+      const result = await query.paginate(paginationOpts);
 
       const enrichedPage = await Promise.all(
         result.page.map(async (user) => {
@@ -150,7 +164,7 @@ export const getAllUsers = authQuery
     }
 
     // Regular pagination without search
-    const result = await query.paginate(input.paginationOpts);
+    const result = await query.paginate(paginationOpts);
 
     const enrichedPage = await Promise.all(
       result.page.map(async (user) => {
@@ -164,7 +178,11 @@ export const getAllUsers = authQuery
         };
 
         // Filter by role if specified
-        if (input.role && input.role !== 'all' && userData.role !== input.role) {
+        if (
+          input.role &&
+          input.role !== 'all' &&
+          userData.role !== input.role
+        ) {
           return null;
         }
 
@@ -254,7 +272,7 @@ export const getDashboardStats = authQuery
 
     // Get exact user count using aggregate - O(log n) performance!
     const totalUsers = await aggregateUsers.count(ctx, {
-      bounds: {} as any,
+      bounds: {},
       namespace: 'global',
     });
 

@@ -1,4 +1,4 @@
-import { SignForm } from '@/lib/convex/components/login-form';
+import { SignForm } from '@/components/login-form';
 
 export default function LoginPage() {
   return (

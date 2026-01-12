@@ -1,5 +1,5 @@
 import { api } from '@convex/api';
-
+import type { Id } from '@convex/dataModel';
 import { useAuthStatus, usePublicQuery } from '@/lib/convex/hooks/convex-hooks';
 
 export const useCurrentUser = () => {
@@ -10,9 +10,9 @@ export const useCurrentUser = () => {
     isAuthenticated ? {} : 'skip',
     {
       placeholderData: {
-        id: '0' as any,
+        id: '0' as Id<'user'>,
         activeOrganization: {
-          id: '0' as any,
+          id: '0' as Id<'organization'>,
           logo: '',
           name: '',
           role: '',

@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  skipToken,
   QueryClientProvider as TanstackQueryClientProvider,
   useQuery,
 } from '@tanstack/react-query';
@@ -82,7 +83,7 @@ function AuthSync() {
   useSyncSession(session);
 
   useQuery(
-    crpc.user.getSessionUser.queryOptions({}, { enabled: isAuthenticated })
+    crpc.user.getSessionUser.queryOptions(isAuthenticated ? {} : skipToken)
   );
 
   return null;

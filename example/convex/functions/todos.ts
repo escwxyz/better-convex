@@ -1,7 +1,41 @@
 import { ConvexError } from 'convex/values';
-import { zid, zodPaginationOptsValidator } from 'convex-helpers/server/zod4';
+import { zid } from 'convex-helpers/server/zod4';
 import { z } from 'zod';
 import { authMutation, authQuery, optionalAuthQuery } from '../lib/crpc';
+
+// Schema for todo list items
+const TodoListItemSchema = z.object({
+  _id: zid('todos'),
+  _creationTime: z.number(),
+  userId: zid('user'),
+  title: z.string(),
+  description: z.string().optional(),
+  completed: z.boolean(),
+  priority: z.enum(['low', 'medium', 'high']).optional(),
+  dueDate: z.number().optional(),
+  projectId: zid('projects').optional(),
+  deletionTime: z.number().optional(),
+  tags: z.array(
+    z.object({
+      _id: zid('tags'),
+      _creationTime: z.number(),
+      name: z.string(),
+      color: z.string(),
+      createdBy: zid('user'),
+    })
+  ),
+  project: z
+    .object({
+      _id: zid('projects'),
+      _creationTime: z.number(),
+      name: z.string(),
+      description: z.string().optional(),
+      isPublic: z.boolean(),
+      archived: z.boolean(),
+      ownerId: zid('user'),
+    })
+    .nullable(),
+});
 
 // List todos - shows user's todos when authenticated, public project todos when not
 export const list = optionalAuthQuery
@@ -10,10 +44,12 @@ export const list = optionalAuthQuery
       completed: z.boolean().optional(),
       projectId: zid('projects').optional(),
       priority: z.enum(['low', 'medium', 'high']).optional(),
-      paginationOpts: zodPaginationOptsValidator,
     })
   )
+  .paginated({ limit: 20, item: TodoListItemSchema })
   .query(async ({ ctx, input }) => {
+    const paginationOpts = { cursor: input.cursor, numItems: input.limit };
+
     // If projectId is specified, check if it's a public project
     if (input.projectId) {
       const project = await ctx.table('projects').getX(input.projectId);
@@ -62,7 +98,7 @@ export const list = optionalAuthQuery
       // Order by creation time (newest first) and paginate
       return await query
         .order('desc')
-        .paginate(input.paginationOpts)
+        .paginate(paginationOpts)
         .map(async (todo) => ({
           ...todo.doc(),
           tags: await todo.edge('tags').map((tag) => tag.doc()),
@@ -76,7 +112,7 @@ export const list = optionalAuthQuery
       return await ctx
         .table('todos')
         .filter((q) => q.eq(q.field('userId'), 'impossible-user-id' as any))
-        .paginate(input.paginationOpts)
+        .paginate(paginationOpts)
         .map(async (todo) => ({
           ...todo.doc(),
           tags: await todo.edge('tags').map((tag) => tag.doc()),
@@ -102,7 +138,7 @@ export const list = optionalAuthQuery
     // Order by creation time (newest first) and paginate
     return await query
       .order('desc')
-      .paginate(input.paginationOpts)
+      .paginate(paginationOpts)
       .map(async (todo) => ({
         ...todo.doc(),
         tags: await todo.edge('tags').map((tag) => tag.doc()),
@@ -119,10 +155,12 @@ export const search = optionalAuthQuery
       query: z.string().min(1),
       completed: z.boolean().optional(),
       projectId: zid('projects').optional(),
-      paginationOpts: zodPaginationOptsValidator,
     })
   )
+  .paginated({ limit: 20, item: TodoListItemSchema })
   .query(async ({ ctx, input }) => {
+    const paginationOpts = { cursor: input.cursor, numItems: input.limit };
+
     // If projectId is specified, check if it's a public project
     if (input.projectId) {
       const project = await ctx.table('projects').getX(input.projectId);
@@ -166,7 +204,7 @@ export const search = optionalAuthQuery
 
           return searchQuery;
         })
-        .paginate(input.paginationOpts)
+        .paginate(paginationOpts)
         .map(async (todo) => ({
           ...todo.doc(),
           tags: await todo.edge('tags').map((tag) => tag.doc()),
@@ -195,7 +233,7 @@ export const search = optionalAuthQuery
 
         return searchQuery;
       })
-      .paginate(input.paginationOpts)
+      .paginate(paginationOpts)
       .map(async (todo) => ({
         ...todo.doc(),
         tags: await todo.edge('tags').map((tag) => tag.doc()),

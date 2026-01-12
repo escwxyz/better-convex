@@ -43,7 +43,7 @@ export function BreadcrumbNav() {
   // Check if there's any data (projects)
   const { data: projectsData } = usePublicQuery(
     api.projects.list,
-    { paginationOpts: { numItems: 1, cursor: null } },
+    { limit: 1, cursor: null },
     {
       placeholderData: { page: [], isDone: true, continueCursor: '' },
     }

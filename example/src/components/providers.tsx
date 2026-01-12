@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
-import { BetterConvexProvider } from '@/lib/convex/components/convex-provider';
+import type { ReactNode } from 'react';
+import { BetterConvexProvider } from '@/lib/convex/convex-provider';
 import { caller, HydrateClient } from '@/lib/convex/rsc';
 
 export async function Providers({ children }: { children: ReactNode }) {

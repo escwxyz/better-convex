@@ -2,10 +2,7 @@ import { ac, roles } from '@convex/auth-shared';
 import { convexClient } from '@convex-dev/better-auth/client/plugins';
 
 // import { polarClient } from '@polar-sh/better-auth';
-import {
-  adminClient,
-  organizationClient,
-} from 'better-auth/client/plugins';
+import { adminClient, organizationClient } from 'better-auth/client/plugins';
 import { createAuthClient } from 'better-auth/react';
 
 export const authClient = createAuthClient({
@@ -41,6 +38,6 @@ export function checkRolePermission(args: {
 }) {
   return authClient.organization.checkRolePermission({
     permissions: args.permissions,
-    role: (args.role as any) ?? 'member',
+    role: args.role ?? 'member',
   });
 }

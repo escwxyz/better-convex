@@ -1,7 +1,7 @@
 'use client';
 
-import { api } from '@convex/api';
 import type { Id } from '@convex/dataModel';
+import { useInfiniteQuery } from 'better-convex/react';
 import { Archive, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/select';
 import { WithSkeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { usePublicPaginatedQuery } from '@/lib/convex/hooks';
+import { useCRPC } from '@/lib/convex/crpc';
 import { TodoForm } from './todo-form';
 import { TodoItem } from './todo-item';
 import { TodoSearch } from './todo-search';
@@ -24,6 +24,32 @@ type TodoListProps = {
   showFilters?: boolean;
 };
 
+const placeholderTodos = [
+  {
+    _id: '1' as any,
+    _creationTime: new Date('2025-11-04').getTime(),
+    title: 'Example Todo 1',
+    description: 'This is a placeholder todo item',
+    completed: false,
+    priority: 'medium' as const,
+    dueDate: new Date('2025-11-05').getTime(),
+    userId: 'user1' as any,
+    tags: [],
+    project: null,
+  },
+  {
+    _id: '2' as any,
+    _creationTime: new Date('2025-11-04').getTime(),
+    title: 'Example Todo 2',
+    description: 'Another placeholder todo item',
+    completed: true,
+    priority: 'low' as const,
+    userId: 'user1' as any,
+    tags: [],
+    project: null,
+  },
+];
+
 export function TodoList({ projectId, showFilters = true }: TodoListProps) {
   const [completedFilter, setCompletedFilter] = useState<boolean | undefined>();
   const [priorityFilter, setPriorityFilter] = useState<
@@ -31,53 +57,23 @@ export function TodoList({ projectId, showFilters = true }: TodoListProps) {
   >();
   const [showDeleted, setShowDeleted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const crpc = useCRPC();
 
   // Use search API when there's a query, otherwise use the regular list
-  const listResult = usePublicPaginatedQuery(
-    searchQuery ? api.todos.search : api.todos.list,
-    searchQuery
-      ? {
-          query: searchQuery,
-          completed: completedFilter,
-          projectId,
-        }
-      : {
-          completed: completedFilter,
-          projectId,
-          priority: priorityFilter,
-        },
-    {
-      initialNumItems: 9,
-      placeholderData: [
-        {
-          _id: '1' as any,
-          _creationTime: new Date('2025-11-04').getTime(),
-          title: 'Example Todo 1',
-          description: 'This is a placeholder todo item',
-          completed: false,
-          priority: 'medium' as const,
-          dueDate: new Date('2025-11-05').getTime(),
-          userId: 'user1' as any,
-          tags: [],
-          project: null,
-        },
-        {
-          _id: '2' as any,
-          _creationTime: new Date('2025-11-04').getTime(),
-          title: 'Example Todo 2',
-          description: 'Another placeholder todo item',
-          completed: true,
-          priority: 'low' as const,
-          userId: 'user1' as any,
-          tags: [],
-          project: null,
-        },
-      ],
-    }
+  const searchOptions = crpc.todos.search.infiniteQueryOptions(
+    { query: searchQuery, completed: completedFilter, projectId },
+    { placeholderData: placeholderTodos, enabled: !!searchQuery }
+  );
+  const listOptions = crpc.todos.list.infiniteQueryOptions(
+    { completed: completedFilter, projectId, priority: priorityFilter },
+    { placeholderData: placeholderTodos, enabled: !searchQuery }
   );
 
+  const searchResult = useInfiniteQuery(searchOptions);
+  const listResult = useInfiniteQuery(listOptions);
+
   const { data, isLoading, hasNextPage, isFetchingNextPage, fetchNextPage } =
-    listResult;
+    searchQuery ? searchResult : listResult;
 
   const allTodos = data || [];
   const todos = showDeleted

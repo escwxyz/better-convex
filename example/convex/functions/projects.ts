@@ -1,7 +1,7 @@
 import { ConvexError } from 'convex/values';
 import { asyncMap } from 'convex-helpers';
 import { stream } from 'convex-helpers/server/stream';
-import { zid, zodPaginationOptsValidator } from 'convex-helpers/server/zod4';
+import { zid } from 'convex-helpers/server/zod4';
 import { z } from 'zod';
 import {
   authMutation,
@@ -12,15 +12,31 @@ import {
 import { aggregateTodosByProject } from './aggregates';
 import schema from './schema';
 
+// Schema for project list items
+const ProjectListItemSchema = z.object({
+  _id: zid('projects'),
+  _creationTime: z.number(),
+  name: z.string(),
+  description: z.string().optional(),
+  ownerId: zid('user'),
+  isPublic: z.boolean(),
+  archived: z.boolean(),
+  memberCount: z.number(),
+  todoCount: z.number(),
+  completedTodoCount: z.number(),
+  isOwner: z.boolean(),
+});
+
 // List projects - shows user's projects when authenticated, public projects when not
 export const list = optionalAuthQuery
   .input(
     z.object({
       includeArchived: z.boolean().optional(),
-      paginationOpts: zodPaginationOptsValidator,
     })
   )
+  .paginated({ limit: 20, item: ProjectListItemSchema })
   .query(async ({ ctx, input }) => {
+    const paginationOpts = { cursor: input.cursor, numItems: input.limit };
     const userId = ctx.userId;
 
     // If not authenticated, show only public non-archived projects
@@ -36,7 +52,7 @@ export const list = optionalAuthQuery
           // Apply archive filter (archived projects are never shown publicly)
           return !project.archived;
         })
-        .paginate(input.paginationOpts);
+        .paginate(paginationOpts);
 
       // Transform results with public data
       return {
@@ -50,7 +66,7 @@ export const list = optionalAuthQuery
           ).length,
           todoCount: await aggregateTodosByProject.count(ctx, {
             namespace: project._id,
-            bounds: {} as any,
+            bounds: {},
           }),
           completedTodoCount: (
             await ctx
@@ -89,7 +105,7 @@ export const list = optionalAuthQuery
         // When includeArchived is false/undefined, show ONLY non-archived projects
         return !project.archived;
       })
-      .paginate(input.paginationOpts);
+      .paginate(paginationOpts);
 
     // Transform results with additional data
     return {
@@ -103,7 +119,7 @@ export const list = optionalAuthQuery
         ).length,
         todoCount: await aggregateTodosByProject.count(ctx, {
           namespace: project._id,
-          bounds: {} as any,
+          bounds: {},
         }),
         completedTodoCount: (
           await ctx
@@ -194,7 +210,7 @@ export const get = publicQuery
 
     const todoCount = await aggregateTodosByProject.count(ctx, {
       namespace: project._id,
-      bounds: {} as any,
+      bounds: {},
     });
 
     // Get completed todo count
@@ -333,7 +349,7 @@ export const addMember = authMutation
   .input(
     z.object({
       projectId: zid('projects'),
-      userEmail: z.string().email(),
+      userEmail: z.email(),
     })
   )
   .output(z.null())

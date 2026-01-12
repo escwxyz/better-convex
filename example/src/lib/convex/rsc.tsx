@@ -12,27 +12,31 @@ import {
   createServerCRPCProxy,
   getServerQueryClientOptions,
 } from 'better-convex/rsc';
-import type { Route } from 'next';
 import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
-import type * as React from 'react';
 import { cache } from 'react';
 
 import { hydrationConfig } from './query-client';
 import { createCaller, createContext } from './server';
 
-// CRPC proxy for RSC
+// App-specific CRPC proxy for RSC (uses server-compatible proxy)
 export const crpc = createServerCRPCProxy(api, meta);
 
-// RSC context factory
+// RSC context factory - wraps createContext with cache() and next/headers
 const createRSCContext = cache(async () =>
   createContext({ headers: await headers() })
 );
 
-/** RSC caller for server-side data fetching */
+/**
+ * RSC caller - lazy context creation per call.
+ *
+ * @example
+ * ```tsx
+ * const posts = await caller.posts.list();
+ * ```
+ */
 export const caller = createCaller(createRSCContext);
 
-/** Create server-side QueryClient */
+/** Create server-side QueryClient with HTTP-based queryFn */
 function createServerQueryClient() {
   return new QueryClient({
     defaultOptions: {
@@ -44,17 +48,47 @@ function createServerQueryClient() {
   });
 }
 
-/** Get stable QueryClient per request */
+/**
+ * Get a stable QueryClient per request (React cache)
+ */
 export const getQueryClient = cache(createServerQueryClient);
 
-/** Prefetch query for client hydration (fire-and-forget) */
+/**
+ * Prefetch a query on the server. Results are dehydrated via HydrateClient.
+ * Fire-and-forget - returns void, does not wait for completion.
+ *
+ * For data on server + hydration, use:
+ * `const data = await getQueryClient().fetchQuery(crpc.x.queryOptions())`
+ *
+ * @example
+ * ```tsx
+ * // RSC - prefetch for client hydration only
+ * prefetch(crpc.posts.list.queryOptions());
+ * return <HydrateClient><ClientComponent /></HydrateClient>;
+ * ```
+ */
 export function prefetch<T extends { queryKey: readonly unknown[] }>(
   queryOptions: T
 ): void {
   void getQueryClient().prefetchQuery(queryOptions);
 }
 
-/** Preload query - returns data + hydrates for client */
+/**
+ * Preload a query on the server. Returns data + hydrates for client.
+ *
+ * If you render the data on the server AND use it in client components,
+ * they can get out of sync when the client revalidates. Prefer `prefetch` unless
+ * you need server-side data access and understand this tradeoff.
+ *
+ * @see https://tanstack.com/query/latest/docs/framework/react/guides/advanced-ssr
+ *
+ * @example
+ * ```tsx
+ * // RSC - preload data for server rendering + hydrate for client
+ * const posts = await preloadQuery(crpc.posts.list.queryOptions());
+ * return <HydrateClient><PostList initialData={posts} /></HydrateClient>;
+ * ```
+ */
 export function preloadQuery<
   TQueryFnData = unknown,
   TError = Error,
@@ -66,7 +100,25 @@ export function preloadQuery<
   return getQueryClient().fetchQuery(options);
 }
 
-/** Hydration wrapper for client components */
+/**
+ * Hydration wrapper for client components.
+ * Dehydrates prefetched queries so client components get instant data.
+ *
+ * IMPORTANT: Must wrap ALL client components that use prefetched queries.
+ * If a client component renders BEFORE HydrateClient and uses useQuery,
+ * it will create the query in pending state, and hydration won't update it.
+ *
+ * @example
+ * ```tsx
+ * // RSC
+ * prefetch(crpc.posts.list.queryOptions());
+ * return (
+ *   <HydrateClient>
+ *     <ClientComponent />
+ *   </HydrateClient>
+ * );
+ * ```
+ */
 export function HydrateClient({ children }: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
   const dehydratedState = dehydrate(queryClient);
@@ -74,56 +126,4 @@ export function HydrateClient({ children }: { children: React.ReactNode }) {
   return (
     <HydrationBoundary state={dehydratedState}>{children}</HydrationBoundary>
   );
-}
-
-/** Check if user is authenticated */
-export const isAuth = async () => {
-  const token = await caller.getToken();
-  return !!token;
-};
-
-/** Check if user is unauthenticated */
-export const isUnauth = async () => !(await isAuth());
-
-export const authGuard = async () => {
-  if (await isUnauth()) {
-    redirect('/login');
-  }
-};
-
-export const authRedirect = async ({
-  pathname,
-  searchParams,
-}: {
-  pathname?: string;
-  searchParams?: Record<string, string>;
-}) => {
-  if (await isUnauth()) {
-    let callbackUrl = '/login';
-
-    if (pathname) {
-      if (searchParams) {
-        const params = new URLSearchParams(searchParams);
-        callbackUrl += `?callbackUrl=${encodeURIComponent(pathname + params.toString())}`;
-      } else {
-        callbackUrl += `?callbackUrl=${pathname}`;
-      }
-    }
-
-    redirect(callbackUrl as Route);
-  }
-};
-
-export async function AuthRedirect({
-  children,
-  pathname,
-  searchParams,
-}: {
-  children: React.ReactNode;
-  pathname?: string;
-  searchParams?: Record<string, string>;
-}) {
-  await authRedirect({ pathname, searchParams });
-
-  return <>{children}</>;
 }

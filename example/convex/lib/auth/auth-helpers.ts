@@ -1,26 +1,15 @@
-import { internal } from '../../functions/_generated/api';
-import type { Doc, Id } from '../../functions/_generated/dataModel';
-import type { MutationCtx, QueryCtx } from '../../functions/_generated/server';
-import type { AuthCtx } from '../crpc';
-import type { CtxWithTable } from '../ents';
-import { getProduct, productToPlan } from '../../shared/polar-shared';
-import type { Ent, EntWriter } from '../ents';
 import { getSession } from 'better-convex/auth';
-import { ConvexError } from 'convex/values';
+import { CRPCError } from 'better-convex/server';
 
-export type SessionUser = Omit<Doc<'user'>, '_creationTime' | '_id'> & {
-  id: Id<'user'>;
-  activeOrganization:
-    | (Omit<Doc<'organization'>, '_id'> & {
-        id: Id<'organization'>;
-        role: Doc<'member'>['role'];
-      })
-    | null;
-  isAdmin: boolean;
-  session: Doc<'session'>;
-  impersonatedBy?: string;
-  plan?: 'premium';
-};
+import { internal } from '../../functions/_generated/api';
+import type { Id } from '../../functions/_generated/dataModel';
+import type { MutationCtx, QueryCtx } from '../../functions/_generated/server';
+import type { SessionUser } from '../../shared/auth-shared';
+import { getProduct, productToPlan } from '../../shared/polar-shared';
+import type { AuthCtx } from '../crpc';
+import type { CtxWithTable, Ent, EntWriter } from '../ents';
+
+export type { SessionUser };
 
 const getSessionData = async (ctx: CtxWithTable<MutationCtx>) => {
   const session = await getSession(ctx);
@@ -206,7 +195,7 @@ export const hasPermission = async (
   });
 
   if (shouldThrow && !canUpdate.success) {
-    throw new ConvexError({
+    throw new CRPCError({
       code: 'FORBIDDEN',
       message: 'Insufficient permissions for this action',
     });

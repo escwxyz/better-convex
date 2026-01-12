@@ -1,5 +1,5 @@
 import { ConvexError } from 'convex/values';
-import { zid, zodPaginationOptsValidator } from 'convex-helpers/server/zod4';
+import { zid } from 'convex-helpers/server/zod4';
 import { z } from 'zod';
 
 import type { Id } from './_generated/dataModel';
@@ -9,6 +9,22 @@ import {
   privateMutation,
   publicQuery,
 } from '../lib/crpc';
+
+// Schema for comment list items
+const CommentListItemSchema = z.object({
+  _id: zid('todoComments'),
+  content: z.string(),
+  createdAt: z.number(),
+  user: z
+    .object({
+      _id: zid('user'),
+      name: z.string().optional(),
+      image: z.string().nullish(),
+    })
+    .nullable(),
+  replies: z.array(z.any()),
+  replyCount: z.number(),
+});
 
 // ============================================
 // COMMENT QUERIES
@@ -21,10 +37,12 @@ export const getTodoComments = optionalAuthQuery
       todoId: zid('todos'),
       includeReplies: z.boolean().default(true),
       maxReplyDepth: z.number().min(0).max(5).default(3),
-      paginationOpts: zodPaginationOptsValidator,
     })
   )
+  .paginated({ limit: 20, item: CommentListItemSchema })
   .query(async ({ ctx, input }) => {
+    const paginationOpts = { cursor: input.cursor, numItems: input.limit };
+
     const todo = await ctx.table('todos').get(input.todoId);
     if (!todo) {
       throw new ConvexError({
@@ -39,7 +57,7 @@ export const getTodoComments = optionalAuthQuery
       .filter((q) => q.eq(q.field('todoId'), input.todoId))
       .filter((q) => q.eq(q.field('parentId'), undefined))
       .order('desc')
-      .paginate(input.paginationOpts)
+      .paginate(paginationOpts)
       .map(async (comment) => {
         // Get user info
         const user = await comment.edge('user');
@@ -243,21 +261,45 @@ export const getCommentThread = publicQuery
     };
   });
 
+// Schema for user comments
+const UserCommentSchema = z.object({
+  _id: zid('todoComments'),
+  content: z.string(),
+  createdAt: z.number(),
+  isReply: z.boolean(),
+  todo: z
+    .object({
+      _id: zid('todos'),
+      title: z.string(),
+      completed: z.boolean(),
+    })
+    .nullable()
+    .optional(),
+  parentPreview: z
+    .object({
+      content: z.string(),
+      userName: z.string().optional(),
+    })
+    .optional(),
+});
+
 // Get user's recent comments
 export const getUserComments = optionalAuthQuery
   .input(
     z.object({
       userId: zid('user'),
       includeTodo: z.boolean().default(true),
-      paginationOpts: zodPaginationOptsValidator,
     })
   )
+  .paginated({ limit: 20, item: UserCommentSchema })
   .query(async ({ ctx, input }) => {
+    const paginationOpts = { cursor: input.cursor, numItems: input.limit };
+
     return await ctx
       .table('todoComments')
       .filter((q) => q.eq(q.field('userId'), input.userId))
       .order('desc')
-      .paginate(input.paginationOpts)
+      .paginate(paginationOpts)
       .map(async (comment) => {
         const result: any = {
           _id: comment._id,
