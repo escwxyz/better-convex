@@ -1,7 +1,7 @@
 'use client';
 
-import { api } from '@convex/_generated/api';
-import type { Id } from '@convex/_generated/dataModel';
+import { api } from '@convex/api';
+import type { Id } from '@convex/dataModel';
 import { Archive, CheckSquare, Plus, Square, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';

@@ -1,8 +1,8 @@
 import type { AuthCtx } from '@convex/functions';
 import { entsTableFactory } from 'convex-ents';
 import { asyncMap } from 'convex-helpers';
-import type { Id } from '../_generated/dataModel';
-import type { MutationCtx } from '../_generated/server';
+import type { Id } from './_generated/dataModel';
+import type { MutationCtx } from './_generated/server';
 
 import { entDefinitions } from './schema';
 

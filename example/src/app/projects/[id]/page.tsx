@@ -1,7 +1,7 @@
 'use client';
 
-import { api } from '@convex/_generated/api';
-import type { Id } from '@convex/_generated/dataModel';
+import { api } from '@convex/api';
+import type { Id } from '@convex/dataModel';
 import { Archive, Crown, Settings, UserMinus } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';

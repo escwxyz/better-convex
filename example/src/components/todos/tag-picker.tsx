@@ -1,7 +1,7 @@
 'use client';
 
-import { api } from '@convex/_generated/api';
-import type { Id } from '@convex/_generated/dataModel';
+import { api } from '@convex/api';
+import type { Id } from '@convex/dataModel';
 import { Check, Tags, X } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';

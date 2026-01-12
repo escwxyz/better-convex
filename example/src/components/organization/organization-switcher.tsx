@@ -1,7 +1,7 @@
 'use client';
 
-import { api } from '@convex/_generated/api';
-import type { Id } from '@convex/_generated/dataModel';
+import { api } from '@convex/api';
+import type { Id } from '@convex/dataModel';
 import { Building2, Check, ChevronsUpDown, Plus, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';

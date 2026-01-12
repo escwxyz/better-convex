@@ -2,7 +2,7 @@ import { ConvexError } from 'convex/values';
 import { zid } from 'convex-helpers/server/zod4';
 import { z } from 'zod';
 
-import type { Id } from '../_generated/dataModel';
+import type { Id } from './_generated/dataModel';
 import {
   createAuthMutation,
   createInternalMutation,

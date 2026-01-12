@@ -1,6 +1,6 @@
 import { TableAggregate } from '@convex-dev/aggregate';
-import { components } from '../_generated/api';
-import type { DataModel, Id } from '../_generated/dataModel';
+import { components } from './_generated/api';
+import type { DataModel, Id } from './_generated/dataModel';
 
 // Aggregate for users
 export const aggregateUsers = new TableAggregate<{

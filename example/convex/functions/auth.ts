@@ -7,10 +7,10 @@ import {
   type AuthFunctions,
   createApi,
   createClient,
-} from 'better-auth-convex';
+} from 'better-convex/auth';
 import { entsTableFactory } from 'convex-ents';
-import { api, internal } from '../_generated/api';
-import type { ActionCtx, MutationCtx, QueryCtx } from '../_generated/server';
+import { api, internal } from './_generated/api';
+import type { ActionCtx, MutationCtx, QueryCtx } from './_generated/server';
 import { type GenericCtx, internalMutation } from './functions';
 import { getEnv } from './helpers/getEnv';
 import { createPersonalOrganization } from './organizationHelpers';

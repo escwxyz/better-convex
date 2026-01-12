@@ -1,7 +1,7 @@
 import { zid } from 'convex-helpers/server/zod4';
 import { z } from 'zod';
-import { internal } from '../_generated/api';
-import type { Id } from '../_generated/dataModel';
+import { internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
 import { createUser } from './authHelpers';
 import { createAuthAction, createInternalMutation } from './functions';
 import { getEnv } from './helpers/getEnv';

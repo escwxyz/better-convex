@@ -1,6 +1,6 @@
 'use client';
 
-import type { api } from '@convex/_generated/api';
+import type { api } from '@convex/api';
 import { ConvexBetterAuthProvider } from '@convex-dev/better-auth/react';
 import { ConvexReactClient, type Preloaded } from 'convex/react';
 import { createAtomStore } from 'jotai-x';

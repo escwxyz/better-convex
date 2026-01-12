@@ -4,7 +4,7 @@ import type { MutationCtx, QueryCtx } from '@convex/_generated/server';
 import type { AuthCtx, CtxWithTable } from '@convex/functions';
 import { getProduct, productToPlan } from '@convex/polar/product';
 import type { Ent, EntWriter } from '@convex/shared/types';
-import { getSession } from 'better-auth-convex';
+import { getSession } from 'better-convex/auth';
 import { ConvexError } from 'convex/values';
 
 export type SessionUser = Omit<Doc<'user'>, '_creationTime' | '_id'> & {

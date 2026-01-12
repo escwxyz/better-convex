@@ -9,7 +9,9 @@
     "dev:app": "next dev",
     "dev:backend": "convex dev",
     "start": "next start",
-    "studio": "convex dashboard"
+    "studio": "convex dashboard",
+    "typecheck": "tsc --noEmit",
+    "typecheck:watch": "tsc --noEmit --watch"
   },
   "dependencies": {
     "@convex-dev/aggregate": "0.2.1",

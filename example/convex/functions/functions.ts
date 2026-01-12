@@ -1,6 +1,6 @@
 import { getAuth } from '@convex/auth';
 import { registerTriggers } from '@convex/triggers';
-import { getHeaders } from 'better-auth-convex';
+import { getHeaders } from 'better-convex/auth';
 import { type Auth, paginationOptsValidator } from 'convex/server';
 import { ConvexError } from 'convex/values';
 import { entsTableFactory } from 'convex-ents';
@@ -13,9 +13,9 @@ import {
   zCustomMutation,
   zCustomQuery,
 } from 'convex-helpers/server/zod4';
-import { api } from '../_generated/api';
-import type { Id } from '../_generated/dataModel';
-import type { ActionCtx, MutationCtx, QueryCtx } from '../_generated/server';
+import { api } from './_generated/api';
+import type { Id } from './_generated/dataModel';
+import type { ActionCtx, MutationCtx, QueryCtx } from './_generated/server';
 import {
   action,
   internalMutation as baseInternalMutation,
@@ -23,7 +23,7 @@ import {
   internalAction,
   internalQuery,
   query,
-} from '../_generated/server';
+} from './_generated/server';
 import {
   getSessionUser,
   getSessionUserWriter,

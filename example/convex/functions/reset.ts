@@ -4,7 +4,7 @@ import { getEnv } from '@convex/helpers/getEnv';
 import schema from '@convex/schema';
 import { z } from 'zod';
 
-import { internal } from '../_generated/api';
+import { internal } from './_generated/api';
 import {
   createInternalAction,
   createInternalMutation,

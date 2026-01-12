@@ -1,4 +1,4 @@
-import { api } from '@convex/_generated/api';
+import { api } from '@convex/api';
 
 import { useAuthValue } from '@/lib/convex/components/convex-provider';
 import { usePublicQuery } from '@/lib/convex/hooks/convex-hooks';
