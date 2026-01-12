@@ -1,14 +1,14 @@
-import { ConvexError } from 'convex/values';
+import { CRPCError } from 'better-convex/server';
 import { zid } from 'convex-helpers/server/zod4';
 import { z } from 'zod';
-
-import type { Id } from './_generated/dataModel';
 import {
   authMutation,
   optionalAuthQuery,
   privateMutation,
   publicQuery,
 } from '../lib/crpc';
+import type { CtxWithTable, Ent } from '../lib/ents';
+import type { Id } from './_generated/dataModel';
 
 // Schema for comment list items
 const CommentListItemSchema = z.object({
@@ -45,7 +45,7 @@ export const getTodoComments = optionalAuthQuery
 
     const todo = await ctx.table('todos').get(input.todoId);
     if (!todo) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'NOT_FOUND',
         message: 'Todo not found',
       });
@@ -63,7 +63,7 @@ export const getTodoComments = optionalAuthQuery
         const user = await comment.edge('user');
 
         // Get replies if requested
-        let replies: any[] = [];
+        let replies: Reply[] = [];
         if (input.includeReplies) {
           replies = await getNestedReplies(
             ctx,
@@ -90,13 +90,20 @@ export const getTodoComments = optionalAuthQuery
       });
   });
 
+type Reply = Pick<Ent<'todoComments'>, '_id' | 'content'> & {
+  createdAt: number;
+  user: Pick<Ent<'user'>, '_id' | 'name' | 'image'> | null;
+  replies: Reply[];
+  replyCount: number;
+};
+
 // Helper to get nested replies recursively
 async function getNestedReplies(
-  ctx: any,
+  ctx: CtxWithTable,
   parentId: Id<'todoComments'>,
   currentDepth: number,
   maxDepth: number
-): Promise<any[]> {
+): Promise<Reply[]> {
   if (currentDepth >= maxDepth) {
     return [];
   }
@@ -109,7 +116,7 @@ async function getNestedReplies(
   const replies = await parent.edge('replies').order('asc').take(10);
 
   return await Promise.all(
-    replies.map(async (reply: any) => {
+    replies.map(async (reply) => {
       const user = await reply.edge('user');
       const nestedReplies = await getNestedReplies(
         ctx,
@@ -210,7 +217,11 @@ export const getCommentThread = publicQuery
       : null;
 
     // Get ancestors (for context)
-    const ancestors: any[] = [];
+    const ancestors: {
+      _id: Id<'todoComments'>;
+      content: string;
+      user: Pick<Ent<'user'>, '_id' | 'name' | 'image'> | null;
+    }[] = [];
     let currentParentId = parentId;
     while (currentParentId && ancestors.length < 5) {
       const currentParent = await ctx
@@ -224,7 +235,13 @@ export const getCommentThread = publicQuery
       ancestors.unshift({
         _id: currentParent._id,
         content: currentParent.content,
-        user: parentUser ? { name: parentUser.name } : null,
+        user: parentUser
+          ? {
+              _id: parentUser._id,
+              name: parentUser.name,
+              image: parentUser.image,
+            }
+          : null,
       });
       currentParentId = currentParent.parentId;
     }
@@ -301,7 +318,7 @@ export const getUserComments = optionalAuthQuery
       .order('desc')
       .paginate(paginationOpts)
       .map(async (comment) => {
-        const result: any = {
+        const result: z.infer<typeof UserCommentSchema> = {
           _id: comment._id,
           content: comment.content,
           createdAt: comment._creationTime,
@@ -355,10 +372,33 @@ export const addComment = authMutation
   .mutation(async ({ ctx, input }) => {
     const todo = await ctx.table('todos').getX(input.todoId);
 
+    async function checkTodoAccess() {
+      // Owner always has access
+      if (todo.userId === ctx.userId) {
+        return true;
+      }
+
+      // Check if todo is in a public project
+      if (todo.projectId) {
+        const project = await todo.edge('project');
+        if (project?.isPublic) {
+          return true;
+        }
+
+        // Check if user is project member
+        if (project) {
+          const isMember = await project.edge('members').has(ctx.userId);
+          if (isMember || project.ownerId === ctx.userId) {
+            return true;
+          }
+        }
+      }
+    }
+
     // Check access (todo must be public, owned by user, or user is project member)
-    const hasAccess = await checkTodoAccess(ctx, todo);
+    const hasAccess = await checkTodoAccess();
     if (!hasAccess) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'FORBIDDEN',
         message: 'No access to this todo',
       });
@@ -368,7 +408,7 @@ export const addComment = authMutation
     if (input.parentId) {
       const parent = await ctx.table('todoComments').get(input.parentId);
       if (!parent || parent.todoId !== input.todoId) {
-        throw new ConvexError({
+        throw new CRPCError({
           code: 'BAD_REQUEST',
           message: 'Invalid parent comment',
         });
@@ -377,7 +417,7 @@ export const addComment = authMutation
       // Check reply depth limit
       const depth = await getCommentDepth(ctx, input.parentId);
       if (depth >= 5) {
-        throw new ConvexError({
+        throw new CRPCError({
           code: 'BAD_REQUEST',
           message: 'Maximum reply depth reached',
         });
@@ -407,7 +447,7 @@ export const updateComment = authMutation
 
     // Only author can update
     if (comment.userId !== ctx.userId) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'FORBIDDEN',
         message: 'Only comment author can update',
       });
@@ -416,7 +456,7 @@ export const updateComment = authMutation
     // Don't allow editing after 1 hour
     const hourAgo = Date.now() - 60 * 60 * 1000;
     if (comment._creationTime < hourAgo) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'BAD_REQUEST',
         message: 'Cannot edit comments older than 1 hour',
       });
@@ -437,7 +477,7 @@ export const deleteComment = authMutation
     // Author or todo owner can delete
     const todo = await comment.edgeX('todo');
     if (comment.userId !== ctx.userId && todo.userId !== ctx.userId) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'FORBIDDEN',
         message: 'Insufficient permissions',
       });
@@ -484,7 +524,7 @@ export const toggleReaction = authMutation
     // In production, use a separate reactions table
 
     // This is a simplified example - in real app, create a reactions table
-    throw new ConvexError({
+    throw new CRPCError({
       code: 'NOT_IMPLEMENTED',
       message: 'Reactions require a separate table - see schema design',
     });
@@ -526,35 +566,9 @@ export const cleanupOrphanedComments = privateMutation
 // HELPER FUNCTIONS
 // ============================================
 
-// Check if user has access to todo
-async function checkTodoAccess(ctx: any, todo: any): Promise<boolean> {
-  // Owner always has access
-  if (todo.userId === ctx.userId) {
-    return true;
-  }
-
-  // Check if todo is in a public project
-  if (todo.projectId) {
-    const project = await todo.edge('project');
-    if (project?.isPublic) {
-      return true;
-    }
-
-    // Check if user is project member
-    if (project) {
-      const isMember = await project.edge('member').has(ctx.userId);
-      if (isMember || project.ownerId === ctx.userId) {
-        return true;
-      }
-    }
-  }
-
-  return false;
-}
-
 // Get comment depth in thread
 async function getCommentDepth(
-  ctx: any,
+  ctx: CtxWithTable,
   commentId: Id<'todoComments'>
 ): Promise<number> {
   let depth = 0;

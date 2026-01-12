@@ -1,4 +1,4 @@
-import { ConvexError } from 'convex/values';
+import { CRPCError } from 'better-convex/server';
 import { zid } from 'convex-helpers/server/zod4';
 import { z } from 'zod';
 
@@ -40,7 +40,7 @@ export const updateUserRole = authMutation
   .mutation(async ({ ctx, input }) => {
     // Only admin can promote to admin
     if (input.role === 'admin' && !ctx.user.isAdmin) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'FORBIDDEN',
         message: 'Only admin can promote users to admin',
       });
@@ -50,7 +50,7 @@ export const updateUserRole = authMutation
 
     // Can't demote admin unless you are admin
     if (targetUser.role === 'admin' && !ctx.user.isAdmin) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'FORBIDDEN',
         message: 'Cannot modify admin users',
       });

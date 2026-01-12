@@ -1,7 +1,8 @@
-import { zid } from 'convex-helpers/server/zod';
-import { ConvexError } from 'convex/values';
+import { CRPCError } from 'better-convex/server';
+import { zid } from 'convex-helpers/server/zod4';
 import { z } from 'zod';
 import { authMutation, authQuery } from '../lib/crpc';
+import type { EntWriter } from '../lib/ents';
 
 // List user's tags with usage count
 export const list = authQuery
@@ -50,8 +51,8 @@ export const create = authMutation
       .first();
 
     if (existingTag) {
-      throw new ConvexError({
-        code: 'DUPLICATE_TAG',
+      throw new CRPCError({
+        code: 'CONFLICT',
         message: 'A tag with this name already exists',
       });
     }
@@ -83,7 +84,7 @@ export const update = authMutation
     const tag = await ctx.table('tags').getX(input.tagId);
 
     if (tag.createdBy !== ctx.userId) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'NOT_FOUND',
         message: 'Tag not found',
       });
@@ -97,14 +98,14 @@ export const update = authMutation
         .first();
 
       if (existingTag) {
-        throw new ConvexError({
-          code: 'DUPLICATE_TAG',
+        throw new CRPCError({
+          code: 'CONFLICT',
           message: 'A tag with this name already exists',
         });
       }
     }
 
-    const updates: any = {};
+    const updates: Partial<EntWriter<'tags'>> = {};
     if (input.name !== undefined) {
       updates.name = input.name;
     }
@@ -132,7 +133,7 @@ export const deleteTag = authMutation
     const tag = await ctx.table('tags').getX(input.tagId);
 
     if (tag.createdBy !== ctx.userId) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'NOT_FOUND',
         message: 'Tag not found',
       });
@@ -156,8 +157,8 @@ export const merge = authMutation
   .output(z.null())
   .mutation(async ({ ctx, input }) => {
     if (input.sourceTagId === input.targetTagId) {
-      throw new ConvexError({
-        code: 'INVALID_OPERATION',
+      throw new CRPCError({
+        code: 'BAD_REQUEST',
         message: 'Cannot merge a tag with itself',
       });
     }
@@ -166,14 +167,14 @@ export const merge = authMutation
     const targetTag = await ctx.table('tags').getX(input.targetTagId);
 
     if (sourceTag.createdBy !== ctx.userId) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'NOT_FOUND',
         message: 'Source tag not found',
       });
     }
 
     if (targetTag.createdBy !== ctx.userId) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'NOT_FOUND',
         message: 'Target tag not found',
       });

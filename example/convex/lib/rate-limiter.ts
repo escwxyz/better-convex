@@ -134,7 +134,8 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
 export function getRateLimitKey(
   baseKey: string,
   tier: 'free' | 'premium' | 'public'
-): string {
+  // biome-ignore lint/suspicious/noExplicitAny: Rate limiter key type is dynamic based on configuration
+): any {
   // For general limits without tiers and admin-only limits
   if (['free', 'premium', 'public'].includes(baseKey)) {
     return baseKey;

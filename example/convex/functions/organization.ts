@@ -1,13 +1,12 @@
-import type { Id } from './_generated/dataModel';
-import type { MutationCtx } from './_generated/server';
-
-import { hasPermission } from '../lib/auth/auth-helpers';
-import { type AuthCtx, authMutation, authQuery } from '../lib/crpc';
-import { listUserOrganizations } from '../lib/organization-helpers';
-import { ConvexError } from 'convex/values';
+import { CRPCError } from 'better-convex/server';
 import { asyncMap } from 'convex-helpers';
 import { zid } from 'convex-helpers/server/zod4';
 import { z } from 'zod';
+import { hasPermission } from '../lib/auth/auth-helpers';
+import { type AuthCtx, authMutation, authQuery } from '../lib/crpc';
+import { listUserOrganizations } from '../lib/organization-helpers';
+import type { Id } from './_generated/dataModel';
+import type { MutationCtx } from './_generated/server';
 
 // Maximum members per organization (including pending invitations)
 const MEMBER_LIMIT = 5;
@@ -35,7 +34,7 @@ export const listOrganizations = authQuery
   )
   .query(async ({ ctx }) => {
     // Get all organizations for user using helper
-    const orgs = await listUserOrganizations(ctx as any, ctx.userId);
+    const orgs = await listUserOrganizations(ctx, ctx.userId);
 
     if (!orgs || orgs.length === 0) {
       return {
@@ -44,7 +43,7 @@ export const listOrganizations = authQuery
       };
     }
 
-    const activeOrgId = (ctx.user as any).activeOrganization?.id;
+    const activeOrgId = ctx.user.activeOrganization?.id;
 
     // Calculate if user can create organization
     const canCreateOrganization = true;
@@ -56,7 +55,7 @@ export const listOrganizations = authQuery
     const enrichedOrgs = filteredOrgs.map((org) => ({
       id: org._id,
       createdAt: org._creationTime,
-      isPersonal: org._id === (ctx.user as any).personalOrganizationId,
+      isPersonal: org._id === ctx.user.personalOrganizationId,
       logo: org.logo || null,
       name: org.name,
       plan: DEFAULT_PLAN,
@@ -93,7 +92,7 @@ export const createOrganization = authMutation
     }
 
     if (attempt >= 10) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'BAD_REQUEST',
         message:
           'Could not generate a unique slug. Please provide a custom slug.',
@@ -101,24 +100,24 @@ export const createOrganization = authMutation
     }
 
     // Create organization via Better Auth
-    const org = await (ctx as any).auth.api.createOrganization({
+    const org = await ctx.auth.api.createOrganization({
       body: {
         monthlyCredits: 0,
         name: input.name,
         slug,
       },
-      headers: (ctx as any).auth.headers,
+      headers: ctx.auth.headers,
     });
 
     if (!org) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: 'Failed to create organization',
       });
     }
 
     // Set as active organization
-    await setActiveOrganizationHandler(ctx as any, {
+    await setActiveOrganizationHandler(ctx, {
       organizationId: org.id as Id<'organization'>,
     });
 
@@ -140,18 +139,18 @@ export const updateOrganization = authMutation
   )
   .output(z.null())
   .mutation(async ({ ctx, input }) => {
-    const user = ctx.user as any;
+    const user = ctx.user;
 
     // Check active organization exists first
     if (!user.activeOrganization?.id) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'UNAUTHORIZED',
         message: 'No active organization',
       });
     }
 
     // Then check permissions
-    await hasPermission(ctx as any, {
+    await hasPermission(ctx, {
       permissions: { organization: ['update'] },
     });
 
@@ -168,7 +167,7 @@ export const updateOrganization = authMutation
         const existingOrg = await ctx.table('organization').get('slug', slug!);
 
         if (existingOrg && existingOrg._id !== user.activeOrganization.id) {
-          throw new ConvexError({
+          throw new CRPCError({
             code: 'BAD_REQUEST',
             message: 'This slug is already taken',
           });
@@ -198,9 +197,9 @@ const setActiveOrganizationHandler = async (
   ctx: AuthCtx<MutationCtx>,
   args: { organizationId: Id<'organization'> }
 ) => {
-  await (ctx as any).auth.api.setActiveOrganization({
+  await ctx.auth.api.setActiveOrganization({
     body: { organizationId: args.organizationId },
-    headers: (ctx as any).auth.headers,
+    headers: ctx.auth.headers,
   });
 
   // Skip updating lastActiveOrganizationId to avoid aggregate issues
@@ -214,43 +213,41 @@ export const setActiveOrganization = authMutation
   .meta({ rateLimit: 'organization/setActive' })
   .input(z.object({ organizationId: zid('organization') }))
   .output(z.null())
-  .mutation(async ({ ctx, input }) =>
-    setActiveOrganizationHandler(ctx as any, input)
-  );
+  .mutation(async ({ ctx, input }) => setActiveOrganizationHandler(ctx, input));
 
 // Accept invitation
 export const acceptInvitation = authMutation
   .input(z.object({ invitationId: zid('invitation') }))
   .output(z.null())
   .mutation(async ({ ctx, input }) => {
-    const user = ctx.user as any;
+    const user = ctx.user;
 
     // Validate that the invitation is for the current user's email (optimized)
     const invitation = await ctx.table('invitation').get(input.invitationId);
 
     // Additional validation that it's for the current user
     if (invitation && invitation.email !== user.email) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'FORBIDDEN',
         message: 'This invitation is not found for your email address',
       });
     }
     if (!invitation) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'FORBIDDEN',
         message: 'This invitation is not found for your email address',
       });
     }
     if (invitation.status !== 'pending') {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'BAD_REQUEST',
         message: 'This invitation has already been processed',
       });
     }
 
-    await (ctx as any).auth.api.acceptInvitation({
+    await ctx.auth.api.acceptInvitation({
       body: { invitationId: input.invitationId },
-      headers: (ctx as any).auth.headers,
+      headers: ctx.auth.headers,
     });
 
     return null;
@@ -262,34 +259,34 @@ export const rejectInvitation = authMutation
   .input(z.object({ invitationId: zid('invitation') }))
   .output(z.null())
   .mutation(async ({ ctx, input }) => {
-    const user = ctx.user as any;
+    const user = ctx.user;
 
     // Get the specific invitation directly
     const invitation = await ctx.table('invitation').get(input.invitationId);
 
     // Additional validation that it's for the current user
     if (invitation && invitation.email !== user.email) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'FORBIDDEN',
         message: 'This invitation is not found for your email address',
       });
     }
     if (!invitation) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'FORBIDDEN',
         message: 'This invitation is not found for your email address',
       });
     }
     if (invitation.status !== 'pending') {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'BAD_REQUEST',
         message: 'This invitation has already been processed',
       });
     }
 
-    await (ctx as any).auth.api.rejectInvitation({
+    await ctx.auth.api.rejectInvitation({
       body: { invitationId: input.invitationId },
-      headers: (ctx as any).auth.headers,
+      headers: ctx.auth.headers,
     });
 
     return null;
@@ -301,17 +298,17 @@ export const removeMember = authMutation
   .input(z.object({ memberId: zid('member') }))
   .output(z.null())
   .mutation(async ({ ctx, input }) => {
-    const user = ctx.user as any;
+    const user = ctx.user;
 
     // Permission: member delete
-    await hasPermission(ctx as any, { permissions: { member: ['delete'] } });
+    await hasPermission(ctx, { permissions: { member: ['delete'] } });
 
-    await (ctx as any).auth.api.removeMember({
+    await ctx.auth.api.removeMember({
       body: {
         memberIdOrEmail: input.memberId,
         organizationId: user.activeOrganization?.id,
       },
-      headers: (ctx as any).auth.headers,
+      headers: ctx.auth.headers,
     });
 
     return null;
@@ -322,12 +319,12 @@ export const leaveOrganization = authMutation
   .meta({ rateLimit: 'organization/leave' })
   .output(z.null())
   .mutation(async ({ ctx }) => {
-    const user = ctx.user as any;
+    const user = ctx.user;
 
     // Prevent leaving personal organizations (similar to personal org deletion protection)
     // Personal organizations typically have a specific naming pattern or metadata
     if (user.activeOrganization?.id === user.personalOrganizationId) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'BAD_REQUEST',
         message:
           'You cannot leave your personal organization. Personal organizations are required for your account.',
@@ -346,7 +343,7 @@ export const leaveOrganization = authMutation
         .take(2); // We only need to know if there's more than one owner
 
       if (owners.length <= 1) {
-        throw new ConvexError({
+        throw new CRPCError({
           code: 'FORBIDDEN',
           message:
             'Cannot leave organization as the only owner. Transfer ownership or add another owner first.',
@@ -354,13 +351,13 @@ export const leaveOrganization = authMutation
       }
     }
 
-    await (ctx as any).auth.api.leaveOrganization({
+    await ctx.auth.api.leaveOrganization({
       body: { organizationId: user.activeOrganization!.id },
-      headers: (ctx as any).auth.headers,
+      headers: ctx.auth.headers,
     });
 
     // Automatically switch to personal organization
-    await setActiveOrganizationHandler(ctx as any, {
+    await setActiveOrganizationHandler(ctx, {
       organizationId: user.personalOrganizationId!,
     });
 
@@ -379,7 +376,7 @@ export const updateMemberRole = authMutation
   .output(z.null())
   .mutation(async ({ ctx, input }) => {
     // Permission: member update
-    await hasPermission(ctx as any, { permissions: { member: ['update'] } });
+    await hasPermission(ctx, { permissions: { member: ['update'] } });
 
     // Update member role directly
     await ctx.table('member').getX(input.memberId).patch({ role: input.role });
@@ -391,10 +388,10 @@ export const updateMemberRole = authMutation
 export const deleteOrganization = authMutation
   .output(z.null())
   .mutation(async ({ ctx }) => {
-    const user = ctx.user as any;
+    const user = ctx.user;
 
     // Permission: organization delete
-    await hasPermission(ctx as any, {
+    await hasPermission(ctx, {
       permissions: { organization: ['delete'] },
     });
 
@@ -402,21 +399,21 @@ export const deleteOrganization = authMutation
 
     // Prevent deletion of personal organizations
     if (organizationId === user.personalOrganizationId) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'FORBIDDEN',
         message:
           'Personal organizations can be deleted only by deleting your account.',
       });
     }
 
-    await setActiveOrganizationHandler(ctx as any, {
+    await setActiveOrganizationHandler(ctx, {
       organizationId: user.personalOrganizationId!,
     });
 
     // Delete organization via Better Auth
-    await (ctx as any).auth.api.deleteOrganization({
+    await ctx.auth.api.deleteOrganization({
       body: { organizationId: organizationId! },
-      headers: (ctx as any).auth.headers,
+      headers: ctx.auth.headers,
     });
 
     return null;
@@ -442,7 +439,7 @@ export const getOrganization = authQuery
       .nullable()
   )
   .query(async ({ ctx, input }) => {
-    const user = ctx.user as any;
+    const user = ctx.user;
 
     // Get organization by slug using index
     const org = await ctx.table('organization').get('slug', input.slug);
@@ -465,7 +462,7 @@ export const getOrganization = authQuery
 
     return {
       id: org._id,
-      createdAt: org.createdAt as any,
+      createdAt: org.createdAt,
       isActive: org._id === user.activeOrganization?.id,
       isPersonal: org._id === user.personalOrganizationId,
       logo: org.logo || null,
@@ -517,7 +514,7 @@ export const getOrganizationOverview = authQuery
       .nullable()
   )
   .query(async ({ ctx, input }) => {
-    const user = ctx.user as any;
+    const user = ctx.user;
 
     // Get organization details
     const org = await ctx.table('organization').get('slug', input.slug);
@@ -620,7 +617,7 @@ export const listMembers = authQuery
     })
   )
   .query(async ({ ctx, input }) => {
-    const user = ctx.user as any;
+    const user = ctx.user;
     const org = await ctx.table('organization').get('slug', input.slug);
 
     if (!org) {
@@ -630,7 +627,7 @@ export const listMembers = authQuery
       };
     }
     if (user.activeOrganization?.id !== org._id) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'FORBIDDEN',
         message: 'You are not a member of this organization',
       });
@@ -691,7 +688,7 @@ export const listPendingInvitations = authQuery
     )
   )
   .query(async ({ ctx, input }) => {
-    const user = ctx.user as any;
+    const user = ctx.user;
 
     // Get organization by slug using index
     const org = await ctx.table('organization').get('slug', input.slug);
@@ -702,7 +699,7 @@ export const listPendingInvitations = authQuery
 
     // Permission: invitation management (use create permission as a proxy for managing invites)
     const canManageInvites = await hasPermission(
-      ctx as any,
+      ctx,
       { permissions: { invitation: ['create'] } },
       false
     );
@@ -742,20 +739,20 @@ export const inviteMember = authMutation
   )
   .output(z.null())
   .mutation(async ({ ctx, input }) => {
-    const user = ctx.user as any;
+    const user = ctx.user;
 
     // Premium guard for invitations
     // premiumGuard(ctx.user);
 
     // Permission: invitation create
-    await hasPermission(ctx as any, {
+    await hasPermission(ctx, {
       permissions: { invitation: ['create'] },
     });
 
     const orgId = user.activeOrganization?.id;
 
     if (!orgId) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'UNAUTHORIZED',
         message: 'No active organization',
       });
@@ -785,8 +782,8 @@ export const inviteMember = authMutation
 
     // Check against limit (5 members)
     if (totalCount >= MEMBER_LIMIT) {
-      throw new ConvexError({
-        code: 'LIMIT_EXCEEDED',
+      throw new CRPCError({
+        code: 'FORBIDDEN',
         message: `Organization member limit reached. Maximum ${MEMBER_LIMIT} members allowed (${currentMemberCount} current, ${pendingCount} pending invitations).`,
       });
     }
@@ -825,7 +822,7 @@ export const inviteMember = authMutation
       const memberUser = await ctx.table('user').get(member.userId);
 
       if (memberUser?.email === input.email) {
-        throw new ConvexError({
+        throw new CRPCError({
           code: 'CONFLICT',
           message: `${input.email} is already a member of this organization`,
         });
@@ -835,25 +832,25 @@ export const inviteMember = authMutation
     // Create new invitation via Better Auth API (triggers configured email)
     // Create new invitation directly
     try {
-      const { id: invitationId } = await (ctx as any).auth.api.createInvitation({
+      const { id: invitationId } = await ctx.auth.api.createInvitation({
         body: {
           email: input.email,
           organizationId: orgId,
           role: input.role,
         },
-        headers: (ctx as any).auth.headers,
+        headers: ctx.auth.headers,
       });
 
       if (!invitationId) {
-        throw new ConvexError({
+        throw new CRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to create invitation',
         });
       }
-    } catch (error: any) {
-      throw new ConvexError({
+    } catch (error) {
+      throw new CRPCError({
         code: 'BAD_REQUEST',
-        message: `Failed to send invitation: ${error.message || 'Unknown error'}`,
+        message: `Failed to send invitation: ${error instanceof Error ? error.message : 'Unknown error'}`,
       });
     }
 
@@ -866,16 +863,16 @@ export const cancelInvitation = authMutation
   .input(z.object({ invitationId: zid('invitation') }))
   .output(z.null())
   .mutation(async ({ ctx, input }) => {
-    const user = ctx.user as any;
+    const user = ctx.user;
     const invitation = await ctx.table('invitation').get(input.invitationId);
 
     // Permission: invitation cancel and ownership of current active org
-    await hasPermission(ctx as any, {
+    await hasPermission(ctx, {
       permissions: { invitation: ['cancel'] },
     });
 
     if (user.activeOrganization?.id !== invitation?.organizationId) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'FORBIDDEN',
         message: 'You do not have permission to cancel this invitation',
       });
@@ -883,21 +880,21 @@ export const cancelInvitation = authMutation
 
     // Cancel the invitation in Better Auth
     try {
-      await (ctx as any).auth.api.cancelInvitation({
+      await ctx.auth.api.cancelInvitation({
         body: { invitationId: input.invitationId },
-        headers: (ctx as any).auth.headers,
+        headers: ctx.auth.headers,
       });
-    } catch (error: any) {
-      if (error.message?.includes('not found')) {
-        throw new ConvexError({
+    } catch (error) {
+      if (error instanceof Error && error.message?.includes('not found')) {
+        throw new CRPCError({
           code: 'NOT_FOUND',
           message: 'Invitation not found or already processed',
         });
       }
 
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'BAD_REQUEST',
-        message: `Failed to cancel invitation: ${error.message || 'Unknown error'}`,
+        message: `Failed to cancel invitation: ${error instanceof Error ? error.message : 'Unknown error'}`,
       });
     }
 

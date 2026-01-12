@@ -1,10 +1,11 @@
 import { zid } from 'convex-helpers/server/zod4';
 import { z } from 'zod';
+import { createUser } from '../lib/auth/auth-helpers';
+import { authAction, privateMutation } from '../lib/crpc';
+import type { EntWriter } from '../lib/ents';
 import { getEnv } from '../lib/get-env';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { createUser } from '../lib/auth/auth-helpers';
-import { authAction, privateMutation } from '../lib/crpc';
 
 // Admin configuration - moved inside functions to avoid module-level execution
 const getAdminConfig = () => {
@@ -88,7 +89,7 @@ export const seedUsers = privateMutation
 
       if (existing) {
         // Update existing user (preserve session-related fields)
-        const updateData: any = {
+        const updateData: Partial<EntWriter<'user'>> = {
           name: userData.name,
         };
 

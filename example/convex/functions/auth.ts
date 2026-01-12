@@ -11,7 +11,7 @@ import { type GenericCtx, internalMutationWithTriggers } from '../lib/crpc';
 import { getEnv } from '../lib/get-env';
 import { createPersonalOrganization } from '../lib/organization-helpers';
 import { ac, roles } from '../shared/auth-shared';
-import { api, internal } from './_generated/api';
+import { internal } from './_generated/api';
 import type { DataModel } from './_generated/dataModel';
 import type { ActionCtx, MutationCtx, QueryCtx } from './_generated/server';
 import authConfig from './auth.config';
@@ -25,7 +25,7 @@ export const authClient = createClient<DataModel, typeof schema>({
   internalMutation: internalMutationWithTriggers,
   triggers: {
     user: {
-      beforeCreate: async (_ctx, data: any) => {
+      beforeCreate: async (_ctx, data) => {
         const env = getEnv();
         const adminEmails = env.ADMIN;
 
@@ -111,7 +111,7 @@ const createAuthOptions = (ctx: GenericCtx) =>
           // Send invitation email via Resend
           await (ctx as ActionCtx).scheduler.runAfter(
             0,
-            api.emails.sendOrganizationInviteEmail,
+            internal.email.sendOrganizationInviteEmail,
             {
               acceptUrl: `${process.env.SITE_URL!}/w/${data.organization.slug}?invite=${data.id}`,
               invitationId: data.id,
@@ -171,7 +171,7 @@ const createAuthOptions = (ctx: GenericCtx) =>
       },
     },
     telemetry: { enabled: false },
-    trustedOrigins: [process.env.SITE_URL!],
+    trustedOrigins: [process.env.SITE_URL ?? 'http://localhost:3000'],
     user: {
       additionalFields: {
         bio: {

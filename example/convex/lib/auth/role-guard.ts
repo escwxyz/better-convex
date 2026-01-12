@@ -1,4 +1,4 @@
-import { ConvexError } from 'convex/values';
+import { CRPCError } from 'better-convex/server';
 
 // Helper function to check role authorization
 export function roleGuard(
@@ -6,13 +6,13 @@ export function roleGuard(
   user: { isAdmin?: boolean; role?: string | null } | null
 ) {
   if (!user) {
-    throw new ConvexError({
+    throw new CRPCError({
       code: 'FORBIDDEN',
       message: 'Access denied',
     });
   }
   if (role === 'admin' && !user.isAdmin) {
-    throw new ConvexError({
+    throw new CRPCError({
       code: 'FORBIDDEN',
       message: 'Admin access required',
     });

@@ -44,6 +44,14 @@ export const meta = {
   seed: {
     generateSamples: { auth: 'required', type: 'action' },
   },
+  tags: {
+    create: { auth: 'required', rateLimit: 'tag/create', type: 'mutation' },
+    deleteTag: { auth: 'required', rateLimit: 'tag/delete', type: 'mutation' },
+    list: { auth: 'required', type: 'query' },
+    merge: { auth: 'required', rateLimit: 'tag/update', type: 'mutation' },
+    popular: { auth: 'required', type: 'query' },
+    update: { auth: 'required', rateLimit: 'tag/update', type: 'mutation' },
+  },
   todoComments: {
     addComment: { auth: 'required', rateLimit: 'todoComment/create', type: 'mutation' },
     deleteComment: { auth: 'required', rateLimit: 'todoComment/update', type: 'mutation' },
@@ -64,6 +72,12 @@ export const meta = {
     search: { auth: 'optional', limit: 20, type: 'query' },
     toggleComplete: { auth: 'required', rateLimit: 'todo/update', type: 'mutation' },
     update: { auth: 'required', rateLimit: 'todo/update', type: 'mutation' },
+  },
+  user: {
+    getCurrentUser: { auth: 'optional', type: 'query' },
+    getIsAuthenticated: { type: 'query' },
+    getSessionUser: { auth: 'optional', type: 'query' },
+    updateSettings: { auth: 'required', type: 'mutation' },
   },
 } as const;
 

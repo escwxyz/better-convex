@@ -1,4 +1,4 @@
-import { ConvexError } from 'convex/values';
+import { CRPCError } from 'better-convex/server';
 import { asyncMap } from 'convex-helpers';
 import { stream } from 'convex-helpers/server/stream';
 import { zid } from 'convex-helpers/server/zod4';
@@ -9,6 +9,7 @@ import {
   optionalAuthQuery,
   publicQuery,
 } from '../lib/crpc';
+import type { EntWriter } from '../lib/ents';
 import { aggregateTodosByProject } from './aggregates';
 import schema from './schema';
 
@@ -177,7 +178,7 @@ export const get = publicQuery
     // For private projects, check membership
     if (!(project.isPublic || isOwner)) {
       if (!userId) {
-        throw new ConvexError({
+        throw new CRPCError({
           code: 'FORBIDDEN',
           message: 'You do not have access to this project',
         });
@@ -273,18 +274,18 @@ export const update = authMutation
 
     // Check ownership
     if (project.ownerId !== ctx.userId) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'FORBIDDEN',
         message: 'Only the project owner can update the project',
       });
     }
 
-    const updates: any = {};
+    const updates: Partial<EntWriter<'projects'>> = {};
     if (input.name !== undefined) {
       updates.name = input.name;
     }
     if (input.description !== undefined) {
-      updates.description = input.description;
+      updates.description = input.description ?? undefined;
     }
     if (input.isPublic !== undefined) {
       updates.isPublic = input.isPublic;
@@ -307,7 +308,7 @@ export const archive = authMutation
 
     // Check ownership
     if (project.ownerId !== ctx.userId) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'FORBIDDEN',
         message: 'Only the project owner can archive the project',
       });
@@ -330,7 +331,7 @@ export const restore = authMutation
 
     // Check ownership
     if (project.ownerId !== ctx.userId) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'FORBIDDEN',
         message: 'Only the project owner can restore the project',
       });
@@ -358,7 +359,7 @@ export const addMember = authMutation
 
     // Check ownership
     if (project.ownerId !== ctx.userId) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'FORBIDDEN',
         message: 'Only the project owner can add members',
       });
@@ -369,7 +370,7 @@ export const addMember = authMutation
 
     // Check if already member or owner
     if (userToAdd._id === project.ownerId) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'BAD_REQUEST',
         message: 'User is already the owner of this project',
       });
@@ -406,7 +407,7 @@ export const removeMember = authMutation
 
     // Check ownership
     if (project.ownerId !== ctx.userId) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'FORBIDDEN',
         message: 'Only the project owner can remove members',
       });
@@ -455,7 +456,7 @@ export const transfer = authMutation
 
     // Check ownership
     if (project.ownerId !== ctx.userId) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'FORBIDDEN',
         message: 'Only the project owner can transfer ownership',
       });

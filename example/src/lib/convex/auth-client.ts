@@ -36,8 +36,12 @@ export function checkRolePermission(args: {
   >;
   role?: string | null;
 }) {
+  const normalizedRole = (args.role === 'owner' ? 'owner' : 'member') as
+    | 'member'
+    | 'owner';
+
   return authClient.organization.checkRolePermission({
     permissions: args.permissions,
-    role: args.role ?? 'member',
+    role: normalizedRole,
   });
 }

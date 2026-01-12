@@ -1,4 +1,4 @@
-import { zid } from 'convex-helpers/server/zod';
+import { zid } from 'convex-helpers/server/zod4';
 import { z } from 'zod';
 import { authMutation, optionalAuthQuery, publicQuery } from '../lib/crpc';
 
@@ -34,12 +34,12 @@ export const getSessionUser = optionalAuthQuery
 
     return {
       id: user.id,
-      activeOrganization: (user as any).activeOrganization ?? null,
-      image: (user as any).image,
-      isAdmin: (user as any).isAdmin ?? false,
-      name: (user as any).name,
-      personalOrganizationId: (user as any).personalOrganizationId,
-      plan: (user as any).plan,
+      activeOrganization: user.activeOrganization ?? null,
+      image: user.image,
+      isAdmin: user.isAdmin ?? false,
+      name: user.name,
+      personalOrganizationId: user.personalOrganizationId,
+      plan: user.plan,
     };
   });
 
@@ -80,12 +80,12 @@ export const getCurrentUser = optionalAuthQuery
 
     return {
       id: user.id,
-      activeOrganization: (user as any).activeOrganization ?? null,
-      image: (user as any).image,
-      isAdmin: (user as any).isAdmin ?? false,
-      name: (user as any).name,
-      personalOrganizationId: (user as any).personalOrganizationId,
-      plan: (user as any).plan,
+      activeOrganization: user.activeOrganization ?? null,
+      image: user.image,
+      isAdmin: user.isAdmin ?? false,
+      name: user.name,
+      personalOrganizationId: user.personalOrganizationId,
+      plan: user.plan,
     };
   });
 

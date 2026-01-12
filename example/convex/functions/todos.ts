@@ -1,7 +1,9 @@
-import { ConvexError } from 'convex/values';
+import { CRPCError } from 'better-convex/server';
 import { zid } from 'convex-helpers/server/zod4';
 import { z } from 'zod';
 import { authMutation, authQuery, optionalAuthQuery } from '../lib/crpc';
+import type { EntWriter } from '../lib/ents';
+import type { Id } from './_generated/dataModel';
 
 // Schema for todo list items
 const TodoListItemSchema = z.object({
@@ -57,7 +59,7 @@ export const list = optionalAuthQuery
       // Check access
       if (!project.isPublic) {
         if (!ctx.userId) {
-          throw new ConvexError({
+          throw new CRPCError({
             code: 'FORBIDDEN',
             message: 'You do not have access to this project',
           });
@@ -72,7 +74,7 @@ export const list = optionalAuthQuery
           .first();
 
         if (!(isOwner || isMember)) {
-          throw new ConvexError({
+          throw new CRPCError({
             code: 'FORBIDDEN',
             message: 'You do not have access to this project',
           });
@@ -111,7 +113,9 @@ export const list = optionalAuthQuery
       // Return empty paginated result using a filter that matches nothing
       return await ctx
         .table('todos')
-        .filter((q) => q.eq(q.field('userId'), 'impossible-user-id' as any))
+        .filter((q) =>
+          q.eq(q.field('userId'), 'impossible-user-id' as unknown as Id<'user'>)
+        )
         .paginate(paginationOpts)
         .map(async (todo) => ({
           ...todo.doc(),
@@ -168,7 +172,7 @@ export const search = optionalAuthQuery
       // Check access
       if (!project.isPublic) {
         if (!ctx.userId) {
-          throw new ConvexError({
+          throw new CRPCError({
             code: 'FORBIDDEN',
             message: 'You do not have access to this project',
           });
@@ -183,7 +187,7 @@ export const search = optionalAuthQuery
           .first();
 
         if (!(isOwner || isMember)) {
-          throw new ConvexError({
+          throw new CRPCError({
             code: 'FORBIDDEN',
             message: 'You do not have access to this project',
           });
@@ -214,8 +218,8 @@ export const search = optionalAuthQuery
 
     // No projectId - search user's todos only (must be authenticated)
     if (!ctx.userId) {
-      throw new ConvexError({
-        code: 'UNAUTHENTICATED',
+      throw new CRPCError({
+        code: 'UNAUTHORIZED',
         message: 'You must be logged in to search your todos',
       });
     }
@@ -330,7 +334,7 @@ export const create = authMutation
       const isMember = await project.edge('members').has(ctx.userId);
 
       if (!(isOwner || isMember)) {
-        throw new ConvexError({
+        throw new CRPCError({
           code: 'FORBIDDEN',
           message: "You don't have access to this project",
         });
@@ -345,8 +349,8 @@ export const create = authMutation
       );
 
       if (validTags.length !== input.tagIds.length) {
-        throw new ConvexError({
-          code: 'INVALID_TAGS',
+        throw new CRPCError({
+          code: 'BAD_REQUEST',
           message: "Some tags are invalid or don't belong to you",
         });
       }
@@ -386,14 +390,14 @@ export const update = authMutation
     const todo = await ctx.table('todos').getX(input.id);
 
     if (todo.userId !== ctx.userId) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'NOT_FOUND',
         message: 'Todo not found',
       });
     }
 
     // Build update object
-    const updates: any = {};
+    const updates: Partial<EntWriter<'todos'>> = {};
 
     if (input.title !== undefined) {
       updates.title = input.title;
@@ -417,7 +421,7 @@ export const update = authMutation
         const isMember = await project.edge('members').has(ctx.userId);
 
         if (!(isOwner || isMember)) {
-          throw new ConvexError({
+          throw new CRPCError({
             code: 'FORBIDDEN',
             message: "You don't have access to this project",
           });
@@ -437,8 +441,8 @@ export const update = authMutation
         );
 
         if (validTags.length !== input.tagIds.length) {
-          throw new ConvexError({
-            code: 'INVALID_TAGS',
+          throw new CRPCError({
+            code: 'BAD_REQUEST',
             message: "Some tags are invalid or don't belong to you",
           });
         }
@@ -461,7 +465,7 @@ export const toggleComplete = authMutation
     const todo = await ctx.table('todos').getX(input.id);
 
     if (todo.userId !== ctx.userId) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'NOT_FOUND',
         message: 'Todo not found',
       });
@@ -482,7 +486,7 @@ export const deleteTodo = authMutation
     const todo = await ctx.table('todos').getX(input.id);
 
     if (todo.userId !== ctx.userId) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'NOT_FOUND',
         message: 'Todo not found',
       });
@@ -503,15 +507,15 @@ export const restore = authMutation
     const todo = await ctx.table('todos').getX(input.id);
 
     if (todo.userId !== ctx.userId) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'NOT_FOUND',
         message: 'Todo not found',
       });
     }
 
     if (!todo.deletionTime) {
-      throw new ConvexError({
-        code: 'INVALID_STATE',
+      throw new CRPCError({
+        code: 'BAD_REQUEST',
         message: 'Todo is not deleted',
       });
     }
@@ -575,7 +579,7 @@ export const reorder = authMutation
     const todo = await ctx.table('todos').getX(input.todoId);
 
     if (todo.userId !== ctx.userId) {
-      throw new ConvexError({
+      throw new CRPCError({
         code: 'NOT_FOUND',
         message: 'Todo not found',
       });

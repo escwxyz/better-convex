@@ -1811,7 +1811,7 @@ Common scripts for development workflow:
 ```json title="package.json"
 {
   "scripts": {
-    "dev:backend": "convex dev --until-success --run init && better-convex dev",
+    "convex:dev": "convex dev --until-success --run init && better-convex dev",
     "reset": "convex run reset:reset && sleep 5 && convex run init",
     "seed": "convex run seed:seed",
     "sync:jwks": "convex run auth:getLatestJwks | convex env set JWKS",
@@ -1822,7 +1822,7 @@ Common scripts for development workflow:
 
 | Script | Description |
 |--------|-------------|
-| `dev:backend` | Initialize DB then run Convex dev with meta generation |
+| `convex:dev` | Initialize DB then run Convex dev with meta generation |
 | `reset` | Clear all tables then reinitialize |
 | `seed` | Run seed function manually |
 | `sync:jwks` | Sync JWKS from Convex to env |
