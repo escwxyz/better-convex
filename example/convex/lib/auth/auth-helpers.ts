@@ -1,9 +1,10 @@
-import { internal } from '@convex/_generated/api';
-import type { Doc, Id } from '@convex/_generated/dataModel';
-import type { MutationCtx, QueryCtx } from '@convex/_generated/server';
-import type { AuthCtx, CtxWithTable } from '@convex/functions';
-import { getProduct, productToPlan } from '@convex/polar/product';
-import type { Ent, EntWriter } from '@convex/shared/types';
+import { internal } from '../../functions/_generated/api';
+import type { Doc, Id } from '../../functions/_generated/dataModel';
+import type { MutationCtx, QueryCtx } from '../../functions/_generated/server';
+import type { AuthCtx } from '../crpc';
+import type { CtxWithTable } from '../ents';
+import { getProduct, productToPlan } from '../../shared/polar-shared';
+import type { Ent, EntWriter } from '../ents';
 import { getSession } from 'better-convex/auth';
 import { ConvexError } from 'convex/values';
 

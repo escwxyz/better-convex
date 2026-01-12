@@ -13,23 +13,19 @@ export const entDefinitions = getEntDefinitions(schema);
 
 export type Ent<TableName extends TableNames> = GenericEnt<
   typeof entDefinitions,
-  // @ts-expect-error Ents types mismatch with raw DataModel
   TableName
 >;
 
 export type EntWriter<TableName extends TableNames> = GenericEntWriter<
   typeof entDefinitions,
-  // @ts-expect-error Ents types mismatch with raw DataModel
   TableName
 >;
 
 export type EntInsert<TableName extends TableNames> = Parameters<
-  // @ts-expect-error Ents types mismatch with raw DataModel
   Awaited<PromiseTableWriter<TableName, typeof entDefinitions>['insert']>
 >[0];
 
 export type EntInsertMany<TableName extends TableNames> = Parameters<
-  // @ts-expect-error Ents types mismatch with raw DataModel
   Awaited<PromiseTableWriter<TableName, typeof entDefinitions>['insertMany']>
 >[0];
 

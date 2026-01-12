@@ -10,6 +10,7 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "lib": ["esnext", "dom"],
+    "types": ["bun-types"],
     "target": "esnext",
     "moduleDetection": "force",
     "module": "esnext",
@@ -18,5 +19,5 @@
     "allowJs": true
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "**/*.spec.ts", "**/*.test.ts"]
 }

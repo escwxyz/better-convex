@@ -1,8 +1,8 @@
 import { HOUR, MINUTE, RateLimiter, SECOND } from '@convex-dev/rate-limiter';
 import { ConvexError } from 'convex/values';
-import { components } from '../_generated/api';
-import type { ActionCtx, MutationCtx } from '../_generated/server';
-import type { SessionUser } from '../authHelpers';
+import { components } from '../functions/_generated/api';
+import type { ActionCtx, MutationCtx } from '../functions/_generated/server';
+import type { SessionUser } from './auth/auth-helpers';
 
 // Define rate limits matching the existing Upstash configuration
 export const rateLimiter = new RateLimiter(components.rateLimiter, {

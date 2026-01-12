@@ -1,10 +1,10 @@
-import type { AuthCtx } from '@convex/functions';
+import type { AuthCtx } from './crpc';
 import { entsTableFactory } from 'convex-ents';
 import { asyncMap } from 'convex-helpers';
-import type { Id } from './_generated/dataModel';
-import type { MutationCtx } from './_generated/server';
+import type { Id } from '../functions/_generated/dataModel';
+import type { MutationCtx } from '../functions/_generated/server';
 
-import { entDefinitions } from './schema';
+import { entDefinitions } from '../functions/schema';
 
 export const listUserOrganizations = async (
   ctx: AuthCtx,

@@ -1,28 +1,31 @@
 import { ConvexError } from 'convex/values';
-import { zid } from 'convex-helpers/server/zod4';
+import { zid, zodPaginationOptsValidator } from 'convex-helpers/server/zod4';
 import { z } from 'zod';
 
 import type { Id } from './_generated/dataModel';
 import {
-  createAuthMutation,
-  createInternalMutation,
-  createPublicPaginatedQuery,
-  createPublicQuery,
-} from './functions';
+  authMutation,
+  optionalAuthQuery,
+  privateMutation,
+  publicQuery,
+} from '../lib/crpc';
 
 // ============================================
 // COMMENT QUERIES
 // ============================================
 
 // Get comments for a todo with nested replies
-export const getTodoComments = createPublicPaginatedQuery()({
-  args: {
-    todoId: zid('todos'),
-    includeReplies: z.boolean().default(true),
-    maxReplyDepth: z.number().min(0).max(5).default(3),
-  },
-  handler: async (ctx, args) => {
-    const todo = await ctx.table('todos').get(args.todoId);
+export const getTodoComments = optionalAuthQuery
+  .input(
+    z.object({
+      todoId: zid('todos'),
+      includeReplies: z.boolean().default(true),
+      maxReplyDepth: z.number().min(0).max(5).default(3),
+      paginationOpts: zodPaginationOptsValidator,
+    })
+  )
+  .query(async ({ ctx, input }) => {
+    const todo = await ctx.table('todos').get(input.todoId);
     if (!todo) {
       throw new ConvexError({
         code: 'NOT_FOUND',
@@ -33,22 +36,22 @@ export const getTodoComments = createPublicPaginatedQuery()({
     // Get top-level comments (no parent)
     return await ctx
       .table('todoComments')
-      .filter((q) => q.eq(q.field('todoId'), args.todoId))
+      .filter((q) => q.eq(q.field('todoId'), input.todoId))
       .filter((q) => q.eq(q.field('parentId'), undefined))
       .order('desc')
-      .paginate(args.paginationOpts)
+      .paginate(input.paginationOpts)
       .map(async (comment) => {
         // Get user info
         const user = await comment.edge('user');
 
         // Get replies if requested
         let replies: any[] = [];
-        if (args.includeReplies) {
+        if (input.includeReplies) {
           replies = await getNestedReplies(
             ctx,
             comment._id,
             0,
-            args.maxReplyDepth
+            input.maxReplyDepth
           );
         }
 
@@ -67,8 +70,7 @@ export const getTodoComments = createPublicPaginatedQuery()({
           replyCount: (await comment.edge('replies')).length,
         };
       });
-  },
-});
+  });
 
 // Helper to get nested replies recursively
 async function getNestedReplies(
@@ -117,57 +119,61 @@ async function getNestedReplies(
 }
 
 // Get single comment thread
-export const getCommentThread = createPublicQuery()({
-  args: {
-    commentId: zid('todoComments'),
-    maxDepth: z.number().min(0).max(10).default(10),
-  },
-  returns: z
-    .object({
-      comment: z.object({
-        _id: zid('todoComments'),
-        content: z.string(),
-        createdAt: z.number(),
-        todoId: zid('todos'),
-        todo: z.object({
-          title: z.string(),
-          completed: z.boolean(),
-        }),
-        user: z
-          .object({
-            _id: zid('user'),
-            name: z.string().optional(),
-            image: z.string().nullish(),
-          })
-          .nullable(),
-        parent: z
-          .object({
-            _id: zid('todoComments'),
-            content: z.string(),
-            user: z
-              .object({
-                name: z.string().optional(),
-              })
-              .nullable(),
-          })
-          .nullable(),
-        replies: z.array(z.any()),
-        ancestors: z.array(
-          z.object({
-            _id: zid('todoComments'),
-            content: z.string(),
-            user: z
-              .object({
-                name: z.string().optional(),
-              })
-              .nullable(),
-          })
-        ),
-      }),
+export const getCommentThread = publicQuery
+  .input(
+    z.object({
+      commentId: zid('todoComments'),
+      maxDepth: z.number().min(0).max(10).default(10),
     })
-    .nullable(),
-  handler: async (ctx, args) => {
-    const comment = await ctx.table('todoComments').get(args.commentId);
+  )
+  .output(
+    z
+      .object({
+        comment: z.object({
+          _id: zid('todoComments'),
+          content: z.string(),
+          createdAt: z.number(),
+          todoId: zid('todos'),
+          todo: z.object({
+            title: z.string(),
+            completed: z.boolean(),
+          }),
+          user: z
+            .object({
+              _id: zid('user'),
+              name: z.string().optional(),
+              image: z.string().nullish(),
+            })
+            .nullable(),
+          parent: z
+            .object({
+              _id: zid('todoComments'),
+              content: z.string(),
+              user: z
+                .object({
+                  name: z.string().optional(),
+                })
+                .nullable(),
+            })
+            .nullable(),
+          replies: z.array(z.any()),
+          ancestors: z.array(
+            z.object({
+              _id: zid('todoComments'),
+              content: z.string(),
+              user: z
+                .object({
+                  name: z.string().optional(),
+                })
+                .nullable(),
+            })
+          ),
+        }),
+      })
+      .nullable()
+  )
+  .query(async ({ ctx, input }) => {
+    const comment = await ctx.table('todoComments').get(input.commentId);
     if (!comment) {
       return null;
     }
@@ -177,7 +183,7 @@ export const getCommentThread = createPublicQuery()({
       comment.edge('user'),
       comment.edgeX('todo'),
       Promise.resolve(comment.parentId),
-      getNestedReplies(ctx, comment._id, 0, args.maxDepth),
+      getNestedReplies(ctx, comment._id, 0, input.maxDepth),
     ]);
 
     // Get parent if exists
@@ -235,21 +241,23 @@ export const getCommentThread = createPublicQuery()({
         ancestors,
       },
     };
-  },
-});
+  });
 
 // Get user's recent comments
-export const getUserComments = createPublicPaginatedQuery()({
-  args: {
-    userId: zid('user'),
-    includeTodo: z.boolean().default(true),
-  },
-  handler: async (ctx, args) => {
+export const getUserComments = optionalAuthQuery
+  .input(
+    z.object({
+      userId: zid('user'),
+      includeTodo: z.boolean().default(true),
+      paginationOpts: zodPaginationOptsValidator,
+    })
+  )
+  .query(async ({ ctx, input }) => {
     return await ctx
       .table('todoComments')
-      .filter((q) => q.eq(q.field('userId'), args.userId))
+      .filter((q) => q.eq(q.field('userId'), input.userId))
       .order('desc')
-      .paginate(args.paginationOpts)
+      .paginate(input.paginationOpts)
       .map(async (comment) => {
         const result: any = {
           _id: comment._id,
@@ -258,7 +266,7 @@ export const getUserComments = createPublicPaginatedQuery()({
           isReply: comment.parentId !== undefined,
         };
 
-        if (args.includeTodo) {
+        if (input.includeTodo) {
           const todo = await comment.edge('todo');
           result.todo = todo
             ? {
@@ -285,25 +293,25 @@ export const getUserComments = createPublicPaginatedQuery()({
 
         return result;
       });
-  },
-});
+  });
 
 // ============================================
 // COMMENT MUTATIONS
 // ============================================
 
 // Add comment to todo
-export const addComment = createAuthMutation({
-  rateLimit: 'todoComment/create',
-})({
-  args: {
-    todoId: zid('todos'),
-    content: z.string().min(1).max(1000),
-    parentId: zid('todoComments').optional(),
-  },
-  returns: zid('todoComments'),
-  handler: async (ctx, args) => {
-    const todo = await ctx.table('todos').getX(args.todoId);
+export const addComment = authMutation
+  .meta({ rateLimit: 'todoComment/create' })
+  .input(
+    z.object({
+      todoId: zid('todos'),
+      content: z.string().min(1).max(1000),
+      parentId: zid('todoComments').optional(),
+    })
+  )
+  .output(zid('todoComments'))
+  .mutation(async ({ ctx, input }) => {
+    const todo = await ctx.table('todos').getX(input.todoId);
 
     // Check access (todo must be public, owned by user, or user is project member)
     const hasAccess = await checkTodoAccess(ctx, todo);
@@ -315,9 +323,9 @@ export const addComment = createAuthMutation({
     }
 
     // Validate parent if provided
-    if (args.parentId) {
-      const parent = await ctx.table('todoComments').get(args.parentId);
-      if (!parent || parent.todoId !== args.todoId) {
+    if (input.parentId) {
+      const parent = await ctx.table('todoComments').get(input.parentId);
+      if (!parent || parent.todoId !== input.todoId) {
         throw new ConvexError({
           code: 'BAD_REQUEST',
           message: 'Invalid parent comment',
@@ -325,7 +333,7 @@ export const addComment = createAuthMutation({
       }
 
       // Check reply depth limit
-      const depth = await getCommentDepth(ctx, args.parentId);
+      const depth = await getCommentDepth(ctx, input.parentId);
       if (depth >= 5) {
         throw new ConvexError({
           code: 'BAD_REQUEST',
@@ -335,25 +343,25 @@ export const addComment = createAuthMutation({
     }
 
     return await ctx.table('todoComments').insert({
-      content: args.content,
-      todoId: args.todoId,
+      content: input.content,
+      todoId: input.todoId,
       userId: ctx.userId,
-      parentId: args.parentId,
+      parentId: input.parentId,
     });
-  },
-});
+  });
 
 // Update comment
-export const updateComment = createAuthMutation({
-  rateLimit: 'todoComment/update',
-})({
-  args: {
-    commentId: zid('todoComments'),
-    content: z.string().min(1).max(1000),
-  },
-  returns: z.null(),
-  handler: async (ctx, args) => {
-    const comment = await ctx.table('todoComments').getX(args.commentId);
+export const updateComment = authMutation
+  .meta({ rateLimit: 'todoComment/update' })
+  .input(
+    z.object({
+      commentId: zid('todoComments'),
+      content: z.string().min(1).max(1000),
+    })
+  )
+  .output(z.null())
+  .mutation(async ({ ctx, input }) => {
+    const comment = await ctx.table('todoComments').getX(input.commentId);
 
     // Only author can update
     if (comment.userId !== ctx.userId) {
@@ -372,21 +380,17 @@ export const updateComment = createAuthMutation({
       });
     }
 
-    await comment.patch({ content: args.content });
+    await comment.patch({ content: input.content });
     return null;
-  },
-});
+  });
 
 // Delete comment
-export const deleteComment = createAuthMutation({
-  rateLimit: 'todoComment/update', // Using update rate limit for delete
-})({
-  args: {
-    commentId: zid('todoComments'),
-  },
-  returns: z.null(),
-  handler: async (ctx, args) => {
-    const comment = await ctx.table('todoComments').getX(args.commentId);
+export const deleteComment = authMutation
+  .meta({ rateLimit: 'todoComment/update' }) // Using update rate limit for delete
+  .input(z.object({ commentId: zid('todoComments') }))
+  .output(z.null())
+  .mutation(async ({ ctx, input }) => {
+    const comment = await ctx.table('todoComments').getX(input.commentId);
 
     // Author or todo owner can delete
     const todo = await comment.edgeX('todo');
@@ -409,27 +413,29 @@ export const deleteComment = createAuthMutation({
     }
 
     return null;
-  },
-});
+  });
 
 // ============================================
 // COMMENT REACTIONS (BONUS)
 // ============================================
 
 // React to comment
-export const toggleReaction = createAuthMutation({
-  rateLimit: 'todoComment/reaction',
-})({
-  args: {
-    commentId: zid('todoComments'),
-    emoji: z.enum(['👍', '❤️', '😂', '🎉', '😕', '👎']),
-  },
-  returns: z.object({
-    added: z.boolean(),
-    counts: z.record(z.string(), z.number()),
-  }),
-  handler: async (ctx, args) => {
-    const _comment = await ctx.table('todoComments').getX(args.commentId);
+export const toggleReaction = authMutation
+  .meta({ rateLimit: 'todoComment/reaction' })
+  .input(
+    z.object({
+      commentId: zid('todoComments'),
+      emoji: z.enum(['👍', '❤️', '😂', '🎉', '😕', '👎']),
+    })
+  )
+  .output(
+    z.object({
+      added: z.boolean(),
+      counts: z.record(z.string(), z.number()),
+    })
+  )
+  .mutation(async ({ ctx, input }) => {
+    const _comment = await ctx.table('todoComments').getX(input.commentId);
 
     // Store reactions in a simple format (could be a separate table)
     // For demo, we'll use a map stored on the comment
@@ -440,25 +446,24 @@ export const toggleReaction = createAuthMutation({
       code: 'NOT_IMPLEMENTED',
       message: 'Reactions require a separate table - see schema design',
     });
-  },
-});
+  });
 
 // ============================================
 // INTERNAL FUNCTIONS
 // ============================================
 
 // Clean up orphaned comments
-export const cleanupOrphanedComments = createInternalMutation()({
-  args: {
-    batchSize: z.number().default(100),
-  },
-  returns: z.object({
-    deleted: z.number(),
-    hasMore: z.boolean(),
-  }),
-  handler: async (ctx, args) => {
+export const cleanupOrphanedComments = privateMutation
+  .input(z.object({ batchSize: z.number().default(100) }))
+  .output(
+    z.object({
+      deleted: z.number(),
+      hasMore: z.boolean(),
+    })
+  )
+  .mutation(async ({ ctx, input }) => {
     // Find comments where todo was deleted
-    const comments = await ctx.table('todoComments').take(args.batchSize);
+    const comments = await ctx.table('todoComments').take(input.batchSize);
 
     let deleted = 0;
     for (const comment of comments) {
@@ -471,10 +476,9 @@ export const cleanupOrphanedComments = createInternalMutation()({
 
     return {
       deleted,
-      hasMore: comments.length === args.batchSize,
+      hasMore: comments.length === input.batchSize,
     };
-  },
-});
+  });
 
 // ============================================
 // HELPER FUNCTIONS

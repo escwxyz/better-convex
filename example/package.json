@@ -10,7 +10,7 @@
     "dev:backend": "convex dev",
     "start": "next start",
     "studio": "convex dashboard",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
     "typecheck:watch": "tsc --noEmit --watch"
   },
   "dependencies": {

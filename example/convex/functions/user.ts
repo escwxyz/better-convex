@@ -1,110 +1,108 @@
-import { zid } from 'convex-helpers/server/zod4';
+import { zid } from 'convex-helpers/server/zod';
 import { z } from 'zod';
-import { createAuthMutation, createPublicQuery } from './functions';
+import { authMutation, optionalAuthQuery, publicQuery } from '../lib/crpc';
 
-// Check if user is authenticated
-export const getIsAuthenticated = createPublicQuery({
-  publicOnly: true,
-})({
-  returns: z.boolean(),
-  handler: async (ctx) => !!(await ctx.auth.getUserIdentity()),
-});
-
-// Get session user (minimal data)
-export const getSessionUser = createPublicQuery()({
-  returns: z.union([
-    z.object({
-      id: zid('user'),
-      activeOrganization: z
-        .object({
-          id: zid('organization'),
-          logo: z.string().nullish(),
-          name: z.string(),
-          role: z.string(),
-          slug: z.string(),
-        })
-        .nullable(),
-      image: z.string().nullish(),
-      isAdmin: z.boolean(),
-      name: z.string().optional(),
-      personalOrganizationId: zid('organization').optional(),
-      plan: z.string().optional(),
-    }),
-    z.null(),
-  ]),
-  handler: async ({ user: userEnt }) => {
-    if (!userEnt) {
-      return null;
-    }
-
-    const { doc, edge, edgeX, ...user } = userEnt;
-
-    return {
-      id: user.id,
-      activeOrganization: user.activeOrganization,
-      image: user.image,
-      isAdmin: user.isAdmin,
-      name: user.name,
-      plan: user.plan,
-      personalOrganizationId: user.personalOrganizationId,
-    };
-  },
-});
-
-// Get full user data for the authenticated user
-export const getCurrentUser = createPublicQuery()({
-  returns: z.union([
-    z.object({
-      id: zid('user'),
-      activeOrganization: z
-        .object({
-          id: zid('organization'),
-          logo: z.string().nullish(),
-          name: z.string(),
-          role: z.string(),
-          slug: z.string(),
-        })
-        .nullable(),
-      image: z.string().nullish(),
-      isAdmin: z.boolean(),
-      name: z.string().optional(),
-      personalOrganizationId: zid('organization').optional(),
-      plan: z.string().optional(),
-    }),
-    z.null(),
-  ]),
-  handler: async (ctx) => {
+/** Get session user - used by AuthSync and authAction */
+export const getSessionUser = optionalAuthQuery
+  .output(
+    z.union([
+      z.object({
+        id: zid('user'),
+        activeOrganization: z
+          .object({
+            id: zid('organization'),
+            logo: z.string().nullish(),
+            name: z.string(),
+            role: z.string(),
+            slug: z.string(),
+          })
+          .nullable(),
+        image: z.string().nullish(),
+        isAdmin: z.boolean(),
+        name: z.string().optional(),
+        personalOrganizationId: zid('organization').optional(),
+        plan: z.string().optional(),
+      }),
+      z.null(),
+    ])
+  )
+  .query(async ({ ctx }) => {
     const { user } = ctx;
-
     if (!user) {
       return null;
     }
 
     return {
       id: user.id,
-      activeOrganization: user.activeOrganization,
-      image: user.image,
-      isAdmin: user.isAdmin,
-      name: user.name,
-      plan: user.plan,
-      personalOrganizationId: user.personalOrganizationId,
+      activeOrganization: (user as any).activeOrganization ?? null,
+      image: (user as any).image,
+      isAdmin: (user as any).isAdmin ?? false,
+      name: (user as any).name,
+      personalOrganizationId: (user as any).personalOrganizationId,
+      plan: (user as any).plan,
     };
-  },
-});
+  });
 
-// Update user settings
-export const updateSettings = createAuthMutation()({
-  args: {
-    bio: z.string().optional(),
-    name: z.string().optional(),
-  },
-  returns: z.object({ success: z.boolean() }),
-  handler: async (ctx, args) => {
+/** Check if user is authenticated */
+export const getIsAuthenticated = publicQuery
+  .output(z.boolean())
+  .query(async ({ ctx }) => !!(await ctx.auth.getUserIdentity()));
+
+/** Get full user data for the authenticated user */
+export const getCurrentUser = optionalAuthQuery
+  .output(
+    z.union([
+      z.object({
+        id: zid('user'),
+        activeOrganization: z
+          .object({
+            id: zid('organization'),
+            logo: z.string().nullish(),
+            name: z.string(),
+            role: z.string(),
+            slug: z.string(),
+          })
+          .nullable(),
+        image: z.string().nullish(),
+        isAdmin: z.boolean(),
+        name: z.string().optional(),
+        personalOrganizationId: zid('organization').optional(),
+        plan: z.string().optional(),
+      }),
+      z.null(),
+    ])
+  )
+  .query(async ({ ctx }) => {
     const { user } = ctx;
-    const { bio, name } = args;
+    if (!user) {
+      return null;
+    }
 
-    // Build update object
-    const updateData: Record<string, any> = {};
+    return {
+      id: user.id,
+      activeOrganization: (user as any).activeOrganization ?? null,
+      image: (user as any).image,
+      isAdmin: (user as any).isAdmin ?? false,
+      name: (user as any).name,
+      personalOrganizationId: (user as any).personalOrganizationId,
+      plan: (user as any).plan,
+    };
+  });
+
+/** Update user settings */
+export const updateSettings = authMutation
+  .input(
+    z.object({
+      bio: z.string().optional(),
+      name: z.string().optional(),
+    })
+  )
+  .output(z.object({ success: z.boolean() }))
+  .mutation(async ({ ctx, input }) => {
+    const { userId } = ctx;
+    const { bio, name } = input;
+
+    const updateData: Record<string, string> = {};
 
     if (bio !== undefined) {
       updateData.bio = bio;
@@ -113,8 +111,7 @@ export const updateSettings = createAuthMutation()({
       updateData.name = name;
     }
 
-    await user.patch(updateData);
+    await ctx.db.patch(userId, updateData);
 
     return { success: true };
-  },
-});
+  });

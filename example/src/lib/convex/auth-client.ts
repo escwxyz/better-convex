@@ -1,11 +1,9 @@
-import type { auth } from '@convex/auth';
-import { ac, roles } from '@convex/authPermissions';
+import { ac, roles } from '@convex/auth-shared';
 import { convexClient } from '@convex-dev/better-auth/client/plugins';
 
 // import { polarClient } from '@polar-sh/better-auth';
 import {
   adminClient,
-  inferAdditionalFields,
   organizationClient,
 } from 'better-auth/client/plugins';
 import { createAuthClient } from 'better-auth/react';
@@ -13,7 +11,6 @@ import { createAuthClient } from 'better-auth/react';
 export const authClient = createAuthClient({
   baseURL: process.env.NEXT_PUBLIC_SITE_URL!,
   plugins: [
-    inferAdditionalFields<typeof auth>(),
     adminClient(),
     organizationClient({
       ac,

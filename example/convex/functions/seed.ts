@@ -1,10 +1,10 @@
 import { zid } from 'convex-helpers/server/zod4';
 import { z } from 'zod';
+import { getEnv } from '../lib/get-env';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { createUser } from './authHelpers';
-import { createAuthAction, createInternalMutation } from './functions';
-import { getEnv } from './helpers/getEnv';
+import { createUser } from '../lib/auth/auth-helpers';
+import { authAction, privateMutation } from '../lib/crpc';
 
 // Admin configuration - moved inside functions to avoid module-level execution
 const getAdminConfig = () => {
@@ -46,10 +46,9 @@ const getUsersData = () => [
 ];
 
 // Main seed function that orchestrates everything
-export const seed = createInternalMutation()({
-  args: {},
-  returns: z.null(),
-  handler: async (ctx) => {
+export const seed = privateMutation
+  .output(z.null())
+  .mutation(async ({ ctx }) => {
     // Step 1: Clean up existing seed data
     await ctx.runMutation(internal.seed.cleanupSeedData, {});
 
@@ -57,21 +56,17 @@ export const seed = createInternalMutation()({
     await ctx.runMutation(internal.seed.seedUsers, {});
 
     return null;
-  },
-});
+  });
 
 // Clean up existing seed data
-export const cleanupSeedData = createInternalMutation()({
-  args: {},
-  returns: z.null(),
-  handler: async (_ctx) => null,
-});
+export const cleanupSeedData = privateMutation
+  .output(z.null())
+  .mutation(async (_args) => null);
 
 // Seed users
-export const seedUsers = createInternalMutation()({
-  args: {},
-  returns: z.array(zid('user')),
-  handler: async (ctx) => {
+export const seedUsers = privateMutation
+  .output(z.array(zid('user')))
+  .mutation(async ({ ctx }) => {
     const userIds: Id<'user'>[] = [];
 
     // First, get the admin user if it exists
@@ -119,28 +114,31 @@ export const seedUsers = createInternalMutation()({
     }
 
     return userIds;
-  },
-});
+  });
 
 // Generate sample projects with todos for testing - AUTH ACTION
-export const generateSamples = createAuthAction()({
-  args: {
-    count: z.number().min(1).max(100).default(100),
-  },
-  returns: z.object({
-    created: z.number(),
-    todosCreated: z.number(),
-  }),
-  handler: async (ctx, args) => {
+export const generateSamples = authAction
+  .input(
+    z.object({
+      count: z.number().min(1).max(100).default(100),
+    })
+  )
+  .output(
+    z.object({
+      created: z.number(),
+      todosCreated: z.number(),
+    })
+  )
+  .action(async ({ ctx, input }) => {
     let totalCreated = 0;
     let totalTodosCreated = 0;
 
     // Process in batches of 5 projects at a time
     const batchSize = 5;
-    const numBatches = Math.ceil(args.count / batchSize);
+    const numBatches = Math.ceil(input.count / batchSize);
 
     for (let i = 0; i < numBatches; i++) {
-      const batchCount = Math.min(batchSize, args.count - i * batchSize);
+      const batchCount = Math.min(batchSize, input.count - i * batchSize);
 
       // Create projects in this batch using internal mutation
       const batchResult = await ctx.runMutation(
@@ -160,24 +158,27 @@ export const generateSamples = createAuthAction()({
       created: totalCreated,
       todosCreated: totalTodosCreated,
     };
-  },
-});
+  });
 
 // Internal mutation to generate a small batch of samples
-export const generateSamplesBatch = createInternalMutation()({
-  args: {
-    count: z.number(),
-    userId: zid('user'),
-    batchIndex: z.number(),
-  },
-  returns: z.object({
-    created: z.number(),
-    todosCreated: z.number(),
-  }),
-  handler: async (ctx, args) => {
+export const generateSamplesBatch = privateMutation
+  .input(
+    z.object({
+      count: z.number(),
+      userId: zid('user'),
+      batchIndex: z.number(),
+    })
+  )
+  .output(
+    z.object({
+      created: z.number(),
+      todosCreated: z.number(),
+    })
+  )
+  .mutation(async ({ ctx, input }) => {
     // First, ensure we have tags (create some if none exist)
     const existingTags = await ctx
-      .table('tags', 'createdBy', (q) => q.eq('createdBy', args.userId))
+      .table('tags', 'createdBy', (q) => q.eq('createdBy', input.userId))
       .take(1);
 
     if (existingTags.length === 0) {
@@ -194,14 +195,14 @@ export const generateSamplesBatch = createInternalMutation()({
         await ctx.table('tags').insert({
           name: tag.name,
           color: tag.color,
-          createdBy: args.userId,
+          createdBy: input.userId,
         });
       }
     }
 
     // Get user's tags for todo assignment (limit to prevent excessive data read)
     const tags = await ctx
-      .table('tags', 'createdBy', (q) => q.eq('createdBy', args.userId))
+      .table('tags', 'createdBy', (q) => q.eq('createdBy', input.userId))
       .take(10); // Reduced from 50 to minimize memory usage
 
     // Sample project names and descriptions
@@ -329,12 +330,12 @@ export const generateSamplesBatch = createInternalMutation()({
     };
 
     // Process projects and their todos one at a time to minimize memory usage
-    for (let i = 0; i < args.count; i++) {
+    for (let i = 0; i < input.count; i++) {
       // Use template or generate name
       let name: string;
       let description: string | undefined;
 
-      const projectIndex = args.batchIndex * 5 + i; // Global project index (updated for batch size 5)
+      const projectIndex = input.batchIndex * 5 + i; // Global project index (updated for batch size 5)
 
       if (projectIndex < projectTemplates.length * 2 && Math.random() > 0.3) {
         // Use template with variations
@@ -371,7 +372,7 @@ export const generateSamplesBatch = createInternalMutation()({
       const projectId = await ctx.table('projects').insert({
         name,
         description,
-        ownerId: args.userId,
+        ownerId: input.userId,
         isPublic,
         archived: isArchived,
       });
@@ -402,7 +403,7 @@ export const generateSamplesBatch = createInternalMutation()({
             completed: isCompleted,
             priority,
             projectId,
-            userId: args.userId,
+            userId: input.userId,
             tags: selectedTags,
             dueDate:
               Math.random() > 0.7 // Less due dates (30% instead of 60%)
@@ -417,8 +418,7 @@ export const generateSamplesBatch = createInternalMutation()({
     }
 
     return { created, todosCreated };
-  },
-});
+  });
 
 // Run the seed - this can be called from the Convex dashboard
 // npx convex run seed:seed

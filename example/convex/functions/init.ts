@@ -1,20 +1,18 @@
-import { createUser } from '@convex/authHelpers';
 import { z } from 'zod';
+import { getEnv } from '../lib/get-env';
 import { internal } from './_generated/api';
-import { createInternalMutation } from './functions';
-import { getEnv } from './helpers/getEnv';
+import { createUser } from '../lib/auth/auth-helpers';
+import { privateMutation } from '../lib/crpc';
 
 /**
  * Initialize the database on startup. This function runs automatically when
  * starting the dev server with --run init It checks if the database needs
  * seeding and runs the seed function if needed.
  */
-export default createInternalMutation({
-  devOnly: true,
-})({
-  args: {},
-  returns: z.null(),
-  handler: async (ctx) => {
+export default privateMutation
+  .meta({ dev: true })
+  .output(z.null())
+  .mutation(async ({ ctx }) => {
     // Initialize admin user if configured
     const env = getEnv();
     const adminEmails = env.ADMIN;
@@ -47,5 +45,4 @@ export default createInternalMutation({
     }
 
     return null;
-  },
-});
+  });

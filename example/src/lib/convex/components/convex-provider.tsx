@@ -1,76 +1,89 @@
 'use client';
 
-import type { api } from '@convex/api';
-import { ConvexBetterAuthProvider } from '@convex-dev/better-auth/react';
-import { ConvexReactClient, type Preloaded } from 'convex/react';
-import { createAtomStore } from 'jotai-x';
-import React, { type ReactNode } from 'react';
+import {
+  QueryClientProvider as TanstackQueryClientProvider,
+  useQuery,
+} from '@tanstack/react-query';
+import { ConvexAuthProvider } from 'better-convex/auth-client';
+import {
+  ConvexReactClient,
+  getConvexQueryClientSingleton,
+  getQueryClientSingleton,
+  useAuthStatus,
+  useAuthStore,
+  useSyncSession,
+} from 'better-convex/react';
+import { useRouter } from 'next/navigation';
+import type { ReactNode } from 'react';
+import { toast } from 'sonner';
 
-import { env } from '@/env';
 import { authClient, useSession } from '@/lib/convex/auth-client';
-import { AuthErrorBoundary } from '@/lib/convex/components/auth-error-boundary';
-import { QueryClientProvider } from '@/lib/react-query/query-client-provider';
+import { CRPCProvider, useCRPC } from '@/lib/convex/crpc';
+import { createQueryClient } from '@/lib/convex/query-client';
 
-const convex = new ConvexReactClient(env.NEXT_PUBLIC_CONVEX_URL, {
-  verbose: false,
-});
+const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-export const { AuthProvider, useAuthStore, useAuthValue } = createAtomStore(
-  {
-    preloadedUser: null as unknown as Preloaded<typeof api.user.getCurrentUser>,
-    token: null as string | null,
-  },
-  {
-    effect: AuthEffect,
-    name: 'auth',
-  }
-);
-
-export function ConvexProvider({
+export function BetterConvexProvider({
   children,
-  preloadedUser,
   token,
 }: {
   children: ReactNode;
-  preloadedUser?: Preloaded<typeof api.user.getCurrentUser>;
   token?: string;
 }) {
+  const router = useRouter();
+
   return (
-    <ConvexBetterAuthProvider authClient={authClient} client={convex}>
-      <QueryClientProvider convex={convex}>
-        <ConvexProviderInner preloadedUser={preloadedUser} token={token}>
-          {children}
-        </ConvexProviderInner>
-      </QueryClientProvider>
-    </ConvexBetterAuthProvider>
+    <ConvexAuthProvider
+      authClient={authClient}
+      client={convex}
+      initialToken={token}
+      onMutationUnauthorized={() => {
+        router.push('/login');
+      }}
+      onQueryUnauthorized={({ queryName }) => {
+        if (process.env.NODE_ENV === 'development') {
+          toast.error(`${queryName} requires authentication`);
+        } else {
+          router.push('/login');
+        }
+      }}
+    >
+      <QueryClientProvider>{children}</QueryClientProvider>
+    </ConvexAuthProvider>
   );
 }
 
-function ConvexProviderInner({
-  children,
-  preloadedUser,
-  token,
-}: {
-  children: ReactNode;
-  preloadedUser?: Preloaded<typeof api.user.getCurrentUser>;
-  token?: string;
-}) {
-  return (
-    <AuthProvider preloadedUser={preloadedUser} token={token ?? null}>
-      <AuthErrorBoundary>{children}</AuthErrorBoundary>
-    </AuthProvider>
-  );
-}
-
-function AuthEffect() {
-  const { data, isPending } = useSession();
+function QueryClientProvider({ children }: { children: ReactNode }) {
   const authStore = useAuthStore();
 
-  React.useEffect(() => {
-    if (!isPending) {
-      authStore.set('token', data?.session.token ?? null);
-    }
-  }, [data, authStore, isPending]);
+  const queryClient = getQueryClientSingleton(createQueryClient);
+  const convexQueryClient = getConvexQueryClientSingleton({
+    authStore,
+    convex,
+    queryClient,
+  });
+
+  return (
+    <TanstackQueryClientProvider client={queryClient}>
+      <CRPCProvider convexClient={convex} convexQueryClient={convexQueryClient}>
+        <AuthSync />
+        {children}
+      </CRPCProvider>
+    </TanstackQueryClientProvider>
+  );
+}
+
+/** Subscribe to user query when authenticated */
+function AuthSync() {
+  const { isAuthenticated } = useAuthStatus();
+  const crpc = useCRPC();
+  const session = useSession();
+
+  useSyncSession(session);
+
+  useQuery(
+    crpc.user.getSessionUser.queryOptions({}, { enabled: isAuthenticated })
+  );
 
   return null;
 }

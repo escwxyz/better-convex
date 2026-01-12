@@ -1,16 +1,17 @@
-import { useConvexAction, useConvexMutation } from '@convex-dev/react-query';
 import {
   type DefaultError,
   type QueryClient,
   type UseMutationOptions,
   useMutation,
 } from '@tanstack/react-query';
+import { useAuthStatus as useBetterConvexAuthStatus } from 'better-convex/react';
 import {
   type OptionalRestArgsOrSkip,
   type PaginatedQueryArgs,
   type PaginatedQueryItem,
   type PaginatedQueryReference,
-  useConvexAuth,
+  useAction,
+  useMutation as useConvexMutation,
   usePaginatedQuery,
   useQueries,
   useQuery,
@@ -25,8 +26,6 @@ import { useMemo, useRef, useSyncExternalStore } from 'react';
 import { toast } from 'sonner';
 import type { DeepPartial } from 'ts-essentials';
 
-import { useAuthValue } from '@/lib/convex/components/convex-provider';
-
 export const useAuthStatus = () => {
   // During SSR/prerendering, return loading state
   if (typeof window === 'undefined') {
@@ -37,14 +36,11 @@ export const useAuthStatus = () => {
     };
   }
 
-  // Token is ready to be used only after convex client auth is loaded
   // eslint-disable-next-line react-hooks/rules-of-hooks
-  const { isAuthenticated, isLoading } = useConvexAuth();
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const token = useAuthValue('token');
+  const { isAuthenticated, isLoading } = useBetterConvexAuthStatus();
 
   return {
-    hasSession: !!token,
+    hasSession: isAuthenticated,
     isAuthenticated,
     isLoading,
   };
@@ -337,7 +333,7 @@ export const usePublicAction = <
   >,
   queryClient?: QueryClient
 ) => {
-  const convexAction = useConvexAction(action);
+  const convexAction = useAction(action);
 
   return useMutation<
     FunctionReturnType<Action>,
@@ -359,7 +355,7 @@ export const useAuthAction: typeof usePublicAction = (
   queryClient
 ) => {
   const authGuard = useAuthGuard();
-  const convexAction = useConvexAction(action);
+  const convexAction = useAction(action);
 
   return useMutation(
     {

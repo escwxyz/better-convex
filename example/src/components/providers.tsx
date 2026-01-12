@@ -1,16 +1,16 @@
+import type { ReactNode } from 'react';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
-import { ConvexProvider } from '@/lib/convex/components/convex-provider';
-import { getSessionToken } from '@/lib/convex/server';
-import { QueryClientProvider } from '@/lib/react-query/query-client-provider';
+import { BetterConvexProvider } from '@/lib/convex/components/convex-provider';
+import { caller, HydrateClient } from '@/lib/convex/rsc';
 
-export async function Providers({ children }) {
-  const token = await getSessionToken();
+export async function Providers({ children }: { children: ReactNode }) {
+  const token = await caller.getToken();
 
   return (
-    <ConvexProvider token={token}>
-      <QueryClientProvider>
+    <BetterConvexProvider token={token}>
+      <HydrateClient>
         <NuqsAdapter>{children}</NuqsAdapter>
-      </QueryClientProvider>
-    </ConvexProvider>
+      </HydrateClient>
+    </BetterConvexProvider>
   );
 }

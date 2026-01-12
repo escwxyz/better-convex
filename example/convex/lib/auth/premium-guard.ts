@@ -1,4 +1,4 @@
-import type { SessionUser } from '@convex/authHelpers';
+import type { SessionUser } from './auth-helpers';
 import { ConvexError } from 'convex/values';
 
 export function premiumGuard(user: { plan?: SessionUser['plan'] }) {

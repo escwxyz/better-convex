@@ -1,61 +1,68 @@
-import type { TableNames } from '@convex/_generated/dataModel';
-
-import { getEnv } from '@convex/helpers/getEnv';
-import schema from '@convex/schema';
+/** biome-ignore-all lint/suspicious/noExplicitAny: dev */
+import { CRPCError } from 'better-convex/server';
 import { z } from 'zod';
-
+import { privateAction, privateMutation, privateQuery } from '../lib/crpc';
+import type { Ent } from '../lib/ents';
+import { getEnv } from '../lib/get-env';
+import { deletePolarCustomers } from '../lib/polar-helpers';
 import { internal } from './_generated/api';
-import {
-  createInternalAction,
-  createInternalMutation,
-  createInternalQuery,
-} from './functions';
-
-// import { deletePolarCustomers } from './polar/customer';
+import type { TableNames } from './_generated/dataModel';
+import schema from './schema';
 
 const DELETE_BATCH_SIZE = 64;
 
 // Clear all of the tables except...
 const excludedTables = new Set<TableNames>();
 
-export const reset = createInternalAction({
-  devOnly: true,
-})({
-  handler: async (ctx) => {
-    // Delete all Polar customers first (comprehensive cleanup)
-    // await deletePolarCustomers();
+/** Dev-only check helper */
+const assertDevOnly = () => {
+  if (getEnv().DEPLOY_ENV === 'production') {
+    throw new CRPCError({
+      code: 'FORBIDDEN',
+      message: 'This function is only available in development',
+    });
+  }
+};
 
-    for (const tableName of Object.keys(schema.tables)) {
-      if (excludedTables.has(tableName as TableNames)) {
-        continue;
-      }
+export const reset = privateAction.output(z.null()).action(async ({ ctx }) => {
+  assertDevOnly();
+  // Delete all Polar customers first (comprehensive cleanup)
+  await deletePolarCustomers();
 
-      await ctx.scheduler.runAfter(0, internal.reset.deletePage, {
-        cursor: null,
-        tableName,
-      });
+  for (const tableName of Object.keys(schema.tables)) {
+    if (excludedTables.has(tableName as TableNames)) {
+      continue;
     }
-  },
+
+    await ctx.scheduler.runAfter(0, internal.reset.deletePage, {
+      cursor: null,
+      tableName,
+    });
+  }
+
+  return null;
 });
 
-export const deletePage = createInternalMutation({
-  devOnly: true,
-})({
-  args: {
-    cursor: z.union([z.string(), z.null()]),
-    tableName: z.string(),
-  },
-  handler: async (ctx, args) => {
+export const deletePage = privateMutation
+  .input(
+    z.object({
+      cursor: z.union([z.string(), z.null()]),
+      tableName: z.string(),
+    })
+  )
+  .output(z.null())
+  .mutation(async ({ ctx, input }) => {
+    assertDevOnly();
     // Use ctx.table for proper trigger handling
     const results = await ctx
-      .table(args.tableName as TableNames)
-      .paginate({ cursor: args.cursor, numItems: DELETE_BATCH_SIZE });
+      .table(input.tableName as any)
+      .paginate({ cursor: input.cursor, numItems: DELETE_BATCH_SIZE });
 
     for (const row of results.page) {
       try {
         // Use ctx.table to delete, which will properly trigger aggregates
         await ctx
-          .table(args.tableName as TableNames)
+          .table(input.tableName as any)
           .getX(row._id)
           .delete();
       } catch {
@@ -66,24 +73,27 @@ export const deletePage = createInternalMutation({
     if (!results.isDone) {
       await ctx.scheduler.runAfter(0, internal.reset.deletePage, {
         cursor: results.continueCursor,
-        tableName: args.tableName,
+        tableName: input.tableName,
       });
     }
-  },
-});
 
-export const getAdminUsers = createInternalQuery()({
-  args: {},
-  returns: z.array(
-    z.object({
-      customerId: z.string().optional().nullable(),
-    })
-  ),
-  handler: async (ctx) => {
+    return null;
+  });
+
+export const getAdminUsers = privateQuery
+  .output(
+    z.array(
+      z.object({
+        customerId: z.string().optional().nullable(),
+      })
+    )
+  )
+  .query(async ({ ctx }) => {
+    assertDevOnly();
     const adminEmails = getEnv().ADMIN;
 
     // Get all admin users by their emails
-    const adminUsers: any[] = [];
+    const adminUsers: Ent<'user'>[] = [];
 
     for (const email of adminEmails) {
       const user = await ctx.table('user').get('email', email);
@@ -97,5 +107,4 @@ export const getAdminUsers = createInternalQuery()({
     return adminUsers
       .filter((user) => user.customerId)
       .map((user) => ({ customerId: user.customerId! }));
-  },
-});
+  });

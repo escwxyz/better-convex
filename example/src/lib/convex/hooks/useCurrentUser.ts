@@ -1,14 +1,13 @@
 import { api } from '@convex/api';
 
-import { useAuthValue } from '@/lib/convex/components/convex-provider';
-import { usePublicQuery } from '@/lib/convex/hooks/convex-hooks';
+import { useAuthStatus, usePublicQuery } from '@/lib/convex/hooks/convex-hooks';
 
 export const useCurrentUser = () => {
-  const token = useAuthValue('token');
+  const { isAuthenticated } = useAuthStatus();
 
   const { data, ...rest } = usePublicQuery(
     api.user.getCurrentUser,
-    token ? {} : 'skip',
+    isAuthenticated ? {} : 'skip',
     {
       placeholderData: {
         id: '0' as any,

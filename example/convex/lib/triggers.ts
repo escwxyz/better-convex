@@ -1,6 +1,6 @@
 import { Triggers } from 'convex-helpers/server/triggers';
 
-import type { DataModel } from './_generated/dataModel';
+import type { DataModel } from '../functions/_generated/dataModel';
 import {
   aggregateCommentsByTodo,
   aggregateProjectMembers,
@@ -9,7 +9,7 @@ import {
   aggregateTodosByStatus,
   aggregateTodosByUser,
   aggregateUsers,
-} from './aggregates';
+} from '../functions/aggregates';
 
 export const registerTriggers = () => {
   const triggers = new Triggers<DataModel>();

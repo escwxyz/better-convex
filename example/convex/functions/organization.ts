@@ -1,17 +1,13 @@
-import type { Id } from '@convex/_generated/dataModel';
+import type { Id } from './_generated/dataModel';
+import type { MutationCtx } from './_generated/server';
 
-import { hasPermission } from '@convex/authHelpers';
-import { listUserOrganizations } from '@convex/organizationHelpers';
+import { hasPermission } from '../lib/auth/auth-helpers';
+import { type AuthCtx, authMutation, authQuery } from '../lib/crpc';
+import { listUserOrganizations } from '../lib/organization-helpers';
 import { ConvexError } from 'convex/values';
 import { asyncMap } from 'convex-helpers';
 import { zid } from 'convex-helpers/server/zod4';
 import { z } from 'zod';
-
-import {
-  type AuthMutationCtx,
-  createAuthMutation,
-  createAuthQuery,
-} from './functions';
 
 // Maximum members per organization (including pending invitations)
 const MEMBER_LIMIT = 5;
@@ -20,25 +16,26 @@ const DEFAULT_LIST_LIMIT = 100;
 const DEFAULT_PLAN = 'free';
 
 // List all organizations for current user (excluding active organization)
-export const listOrganizations = createAuthQuery()({
-  args: {},
-  returns: z.object({
-    canCreateOrganization: z.boolean(),
-    organizations: z.array(
-      z.object({
-        id: zid('organization'),
-        createdAt: z.number(),
-        isPersonal: z.boolean(),
-        logo: z.string().nullish(),
-        name: z.string(),
-        plan: z.string(),
-        slug: z.string(),
-      })
-    ),
-  }),
-  handler: async (ctx) => {
+export const listOrganizations = authQuery
+  .output(
+    z.object({
+      canCreateOrganization: z.boolean(),
+      organizations: z.array(
+        z.object({
+          id: zid('organization'),
+          createdAt: z.number(),
+          isPersonal: z.boolean(),
+          logo: z.string().nullish(),
+          name: z.string(),
+          plan: z.string(),
+          slug: z.string(),
+        })
+      ),
+    })
+  )
+  .query(async ({ ctx }) => {
     // Get all organizations for user using helper
-    const orgs = await listUserOrganizations(ctx, ctx.user._id);
+    const orgs = await listUserOrganizations(ctx as any, ctx.userId);
 
     if (!orgs || orgs.length === 0) {
       return {
@@ -47,7 +44,7 @@ export const listOrganizations = createAuthQuery()({
       };
     }
 
-    const activeOrgId = ctx.user.activeOrganization?.id;
+    const activeOrgId = (ctx.user as any).activeOrganization?.id;
 
     // Calculate if user can create organization
     const canCreateOrganization = true;
@@ -59,7 +56,7 @@ export const listOrganizations = createAuthQuery()({
     const enrichedOrgs = filteredOrgs.map((org) => ({
       id: org._id,
       createdAt: org._creationTime,
-      isPersonal: org._id === ctx.user.personalOrganizationId,
+      isPersonal: org._id === (ctx.user as any).personalOrganizationId,
       logo: org.logo || null,
       name: org.name,
       plan: DEFAULT_PLAN,
@@ -70,23 +67,16 @@ export const listOrganizations = createAuthQuery()({
       canCreateOrganization,
       organizations: enrichedOrgs,
     };
-  },
-});
+  });
 
 // Create a new organization (max 1 without subscription)
-export const createOrganization = createAuthMutation({
-  rateLimit: 'organization/create',
-})({
-  args: {
-    name: z.string().min(1).max(100),
-  },
-  returns: z.object({
-    id: zid('organization'),
-    slug: z.string(),
-  }),
-  handler: async (ctx, args) => {
+export const createOrganization = authMutation
+  .meta({ rateLimit: 'organization/create' })
+  .input(z.object({ name: z.string().min(1).max(100) }))
+  .output(z.object({ id: zid('organization'), slug: z.string() }))
+  .mutation(async ({ ctx, input }) => {
     // Generate unique slug
-    let slug = args.name;
+    let slug = input.name;
     let attempt = 0;
 
     while (attempt < 10) {
@@ -111,13 +101,13 @@ export const createOrganization = createAuthMutation({
     }
 
     // Create organization via Better Auth
-    const org = await ctx.auth.api.createOrganization({
+    const org = await (ctx as any).auth.api.createOrganization({
       body: {
         monthlyCredits: 0,
-        name: args.name,
+        name: input.name,
         slug,
       },
-      headers: ctx.auth.headers,
+      headers: (ctx as any).auth.headers,
     });
 
     if (!org) {
@@ -128,7 +118,7 @@ export const createOrganization = createAuthMutation({
     }
 
     // Set as active organization
-    await setActiveOrganizationHandler(ctx, {
+    await setActiveOrganizationHandler(ctx as any, {
       organizationId: org.id as Id<'organization'>,
     });
 
@@ -136,22 +126,24 @@ export const createOrganization = createAuthMutation({
       id: org.id as Id<'organization'>,
       slug: org.slug,
     };
-  },
-});
+  });
 
 // Update organization details
-export const updateOrganization = createAuthMutation({
-  rateLimit: 'organization/update',
-})({
-  args: {
-    logo: z.string().url().optional(),
-    name: z.string().min(1).max(100).optional(),
-    slug: z.string().optional(),
-  },
-  returns: z.null(),
-  handler: async (ctx, args) => {
+export const updateOrganization = authMutation
+  .meta({ rateLimit: 'organization/update' })
+  .input(
+    z.object({
+      logo: z.string().url().optional(),
+      name: z.string().min(1).max(100).optional(),
+      slug: z.string().optional(),
+    })
+  )
+  .output(z.null())
+  .mutation(async ({ ctx, input }) => {
+    const user = ctx.user as any;
+
     // Check active organization exists first
-    if (!ctx.user.activeOrganization?.id) {
+    if (!user.activeOrganization?.id) {
       throw new ConvexError({
         code: 'UNAUTHORIZED',
         message: 'No active organization',
@@ -159,23 +151,23 @@ export const updateOrganization = createAuthMutation({
     }
 
     // Then check permissions
-    await hasPermission(ctx, {
+    await hasPermission(ctx as any, {
       permissions: { organization: ['update'] },
     });
 
-    let slug = args.slug;
+    let slug = input.slug;
 
     // If slug is provided, validate it
-    if (args.slug) {
-      if (ctx.user.activeOrganization.id === ctx.user.personalOrganizationId) {
+    if (input.slug) {
+      if (user.activeOrganization.id === user.personalOrganizationId) {
         slug = undefined;
       } else {
-        slugSchema.parse(args.slug);
+        slugSchema.parse(input.slug);
 
         // Check if slug is taken
         const existingOrg = await ctx.table('organization').get('slug', slug!);
 
-        if (existingOrg && existingOrg._id !== ctx.user.activeOrganization.id) {
+        if (existingOrg && existingOrg._id !== user.activeOrganization.id) {
           throw new ConvexError({
             code: 'BAD_REQUEST',
             message: 'This slug is already taken',
@@ -186,16 +178,15 @@ export const updateOrganization = createAuthMutation({
 
     await ctx
       .table('organization')
-      .getX(ctx.user.activeOrganization.id as Id<'organization'>)
+      .getX(user.activeOrganization.id as Id<'organization'>)
       .patch({
-        logo: args.logo,
-        name: args.name,
+        logo: input.logo,
+        name: input.name,
         ...(slug ? { slug } : {}),
       });
 
     return null;
-  },
-});
+  });
 
 const slugSchema = z
   .string()
@@ -204,12 +195,12 @@ const slugSchema = z
   .regex(/^[a-z0-9-]+$/);
 
 const setActiveOrganizationHandler = async (
-  ctx: AuthMutationCtx,
+  ctx: AuthCtx<MutationCtx>,
   args: { organizationId: Id<'organization'> }
 ) => {
-  await ctx.auth.api.setActiveOrganization({
+  await (ctx as any).auth.api.setActiveOrganization({
     body: { organizationId: args.organizationId },
-    headers: ctx.auth.headers,
+    headers: (ctx as any).auth.headers,
   });
 
   // Skip updating lastActiveOrganizationId to avoid aggregate issues
@@ -219,28 +210,26 @@ const setActiveOrganizationHandler = async (
 };
 
 // Set active organization
-export const setActiveOrganization = createAuthMutation({
-  rateLimit: 'organization/setActive',
-})({
-  args: {
-    organizationId: zid('organization'),
-  },
-  returns: z.null(),
-  handler: async (ctx, args) => setActiveOrganizationHandler(ctx, args),
-});
+export const setActiveOrganization = authMutation
+  .meta({ rateLimit: 'organization/setActive' })
+  .input(z.object({ organizationId: zid('organization') }))
+  .output(z.null())
+  .mutation(async ({ ctx, input }) =>
+    setActiveOrganizationHandler(ctx as any, input)
+  );
 
 // Accept invitation
-export const acceptInvitation = createAuthMutation({})({
-  args: {
-    invitationId: zid('invitation'),
-  },
-  returns: z.null(),
-  handler: async (ctx, args) => {
+export const acceptInvitation = authMutation
+  .input(z.object({ invitationId: zid('invitation') }))
+  .output(z.null())
+  .mutation(async ({ ctx, input }) => {
+    const user = ctx.user as any;
+
     // Validate that the invitation is for the current user's email (optimized)
-    const invitation = await ctx.table('invitation').get(args.invitationId);
+    const invitation = await ctx.table('invitation').get(input.invitationId);
 
     // Additional validation that it's for the current user
-    if (invitation && invitation.email !== ctx.user.email) {
+    if (invitation && invitation.email !== user.email) {
       throw new ConvexError({
         code: 'FORBIDDEN',
         message: 'This invitation is not found for your email address',
@@ -259,29 +248,27 @@ export const acceptInvitation = createAuthMutation({})({
       });
     }
 
-    await ctx.auth.api.acceptInvitation({
-      body: { invitationId: args.invitationId },
-      headers: ctx.auth.headers,
+    await (ctx as any).auth.api.acceptInvitation({
+      body: { invitationId: input.invitationId },
+      headers: (ctx as any).auth.headers,
     });
 
     return null;
-  },
-});
+  });
 
 // Reject invitation
-export const rejectInvitation = createAuthMutation({
-  rateLimit: 'organization/rejectInvite',
-})({
-  args: {
-    invitationId: zid('invitation'),
-  },
-  returns: z.null(),
-  handler: async (ctx, args) => {
+export const rejectInvitation = authMutation
+  .meta({ rateLimit: 'organization/rejectInvite' })
+  .input(z.object({ invitationId: zid('invitation') }))
+  .output(z.null())
+  .mutation(async ({ ctx, input }) => {
+    const user = ctx.user as any;
+
     // Get the specific invitation directly
-    const invitation = await ctx.table('invitation').get(args.invitationId);
+    const invitation = await ctx.table('invitation').get(input.invitationId);
 
     // Additional validation that it's for the current user
-    if (invitation && invitation.email !== ctx.user.email) {
+    if (invitation && invitation.email !== user.email) {
       throw new ConvexError({
         code: 'FORBIDDEN',
         message: 'This invitation is not found for your email address',
@@ -300,49 +287,46 @@ export const rejectInvitation = createAuthMutation({
       });
     }
 
-    await ctx.auth.api.rejectInvitation({
-      body: { invitationId: args.invitationId },
-      headers: ctx.auth.headers,
+    await (ctx as any).auth.api.rejectInvitation({
+      body: { invitationId: input.invitationId },
+      headers: (ctx as any).auth.headers,
     });
 
     return null;
-  },
-});
+  });
 
 // Remove member from organization
-export const removeMember = createAuthMutation({
-  rateLimit: 'organization/removeMember',
-})({
-  args: {
-    memberId: zid('member'),
-  },
-  returns: z.null(),
-  handler: async (ctx, args) => {
-    // Permission: member delete
-    await hasPermission(ctx, { permissions: { member: ['delete'] } });
+export const removeMember = authMutation
+  .meta({ rateLimit: 'organization/removeMember' })
+  .input(z.object({ memberId: zid('member') }))
+  .output(z.null())
+  .mutation(async ({ ctx, input }) => {
+    const user = ctx.user as any;
 
-    await ctx.auth.api.removeMember({
+    // Permission: member delete
+    await hasPermission(ctx as any, { permissions: { member: ['delete'] } });
+
+    await (ctx as any).auth.api.removeMember({
       body: {
-        memberIdOrEmail: args.memberId,
-        organizationId: ctx.user.activeOrganization?.id,
+        memberIdOrEmail: input.memberId,
+        organizationId: user.activeOrganization?.id,
       },
-      headers: ctx.auth.headers,
+      headers: (ctx as any).auth.headers,
     });
 
     return null;
-  },
-});
+  });
 
 // Leave organization (self-leave)
-export const leaveOrganization = createAuthMutation({
-  rateLimit: 'organization/leave',
-})({
-  args: {},
-  returns: z.null(),
-  handler: async (ctx) => {
+export const leaveOrganization = authMutation
+  .meta({ rateLimit: 'organization/leave' })
+  .output(z.null())
+  .mutation(async ({ ctx }) => {
+    const user = ctx.user as any;
+
     // Prevent leaving personal organizations (similar to personal org deletion protection)
     // Personal organizations typically have a specific naming pattern or metadata
-    if (ctx.user.activeOrganization?.id === ctx.user.personalOrganizationId) {
+    if (user.activeOrganization?.id === user.personalOrganizationId) {
       throw new ConvexError({
         code: 'BAD_REQUEST',
         message:
@@ -351,12 +335,12 @@ export const leaveOrganization = createAuthMutation({
     }
     // Prevent the last owner from leaving the organization
     // (Organizations must have at least one owner)
-    if (ctx.user.activeOrganization?.role === 'owner') {
+    if (user.activeOrganization?.role === 'owner') {
       // Use the compound index to efficiently find owners
       const owners = await ctx
         .table('member', 'organizationId_role', (q) =>
           q
-            .eq('organizationId', ctx.user.activeOrganization!.id)
+            .eq('organizationId', user.activeOrganization!.id)
             .eq('role', 'owner')
         )
         .take(2); // We only need to know if there's more than one owner
@@ -370,52 +354,54 @@ export const leaveOrganization = createAuthMutation({
       }
     }
 
-    await ctx.auth.api.leaveOrganization({
-      body: { organizationId: ctx.user.activeOrganization!.id },
-      headers: ctx.auth.headers,
+    await (ctx as any).auth.api.leaveOrganization({
+      body: { organizationId: user.activeOrganization!.id },
+      headers: (ctx as any).auth.headers,
     });
 
     // Automatically switch to personal organization
-    await setActiveOrganizationHandler(ctx, {
-      organizationId: ctx.user.personalOrganizationId!,
+    await setActiveOrganizationHandler(ctx as any, {
+      organizationId: user.personalOrganizationId!,
     });
 
     return null;
-  },
-});
+  });
 
 // Update member role
-export const updateMemberRole = createAuthMutation({
-  rateLimit: 'organization/updateRole',
-})({
-  args: {
-    memberId: zid('member'),
-    role: z.enum(['owner', 'member']),
-  },
-  returns: z.null(),
-  handler: async (ctx, args) => {
+export const updateMemberRole = authMutation
+  .meta({ rateLimit: 'organization/updateRole' })
+  .input(
+    z.object({
+      memberId: zid('member'),
+      role: z.enum(['owner', 'member']),
+    })
+  )
+  .output(z.null())
+  .mutation(async ({ ctx, input }) => {
     // Permission: member update
-    await hasPermission(ctx, { permissions: { member: ['update'] } });
+    await hasPermission(ctx as any, { permissions: { member: ['update'] } });
 
     // Update member role directly
-    await ctx.table('member').getX(args.memberId).patch({ role: args.role });
+    await ctx.table('member').getX(input.memberId).patch({ role: input.role });
 
     return null;
-  },
-});
+  });
 
 // Delete organization (owner only)
-export const deleteOrganization = createAuthMutation({})({
-  args: {},
-  returns: z.null(),
-  handler: async (ctx) => {
-    // Permission: organization delete
-    await hasPermission(ctx, { permissions: { organization: ['delete'] } });
+export const deleteOrganization = authMutation
+  .output(z.null())
+  .mutation(async ({ ctx }) => {
+    const user = ctx.user as any;
 
-    const organizationId = ctx.user.activeOrganization?.id;
+    // Permission: organization delete
+    await hasPermission(ctx as any, {
+      permissions: { organization: ['delete'] },
+    });
+
+    const organizationId = user.activeOrganization?.id;
 
     // Prevent deletion of personal organizations
-    if (organizationId === ctx.user.personalOrganizationId) {
+    if (organizationId === user.personalOrganizationId) {
       throw new ConvexError({
         code: 'FORBIDDEN',
         message:
@@ -423,42 +409,43 @@ export const deleteOrganization = createAuthMutation({})({
       });
     }
 
-    await setActiveOrganizationHandler(ctx, {
-      organizationId: ctx.user.personalOrganizationId!,
+    await setActiveOrganizationHandler(ctx as any, {
+      organizationId: user.personalOrganizationId!,
     });
 
     // Delete organization via Better Auth
-    await ctx.auth.api.deleteOrganization({
+    await (ctx as any).auth.api.deleteOrganization({
       body: { organizationId: organizationId! },
-      headers: ctx.auth.headers,
+      headers: (ctx as any).auth.headers,
     });
 
     return null;
-  },
-});
+  });
 
 // Get organization details by slug
-export const getOrganization = createAuthQuery()({
-  args: {
-    slug: z.string(),
-  },
-  returns: z
-    .object({
-      id: zid('organization'),
-      createdAt: z.number(),
-      isActive: z.boolean(),
-      isPersonal: z.boolean(),
-      logo: z.string().nullish(),
-      membersCount: z.number(),
-      name: z.string(),
-      plan: z.string(),
-      role: z.string().optional(),
-      slug: z.string(),
-    })
-    .nullable(),
-  handler: async (ctx, args) => {
+export const getOrganization = authQuery
+  .input(z.object({ slug: z.string() }))
+  .output(
+    z
+      .object({
+        id: zid('organization'),
+        createdAt: z.number(),
+        isActive: z.boolean(),
+        isPersonal: z.boolean(),
+        logo: z.string().nullish(),
+        membersCount: z.number(),
+        name: z.string(),
+        plan: z.string(),
+        role: z.string().optional(),
+        slug: z.string(),
+      })
+      .nullable()
+  )
+  .query(async ({ ctx, input }) => {
+    const user = ctx.user as any;
+
     // Get organization by slug using index
-    const org = await ctx.table('organization').get('slug', args.slug);
+    const org = await ctx.table('organization').get('slug', input.slug);
 
     if (!org) {
       return null;
@@ -472,15 +459,15 @@ export const getOrganization = createAuthQuery()({
       .take(DEFAULT_LIST_LIMIT);
 
     // Get current user's role
-    const currentMember = members.find((m) => m.userId === ctx.user._id);
+    const currentMember = members.find((m) => m.userId === ctx.userId);
 
     const plan = DEFAULT_PLAN;
 
     return {
       id: org._id,
       createdAt: org.createdAt as any,
-      isActive: org._id === ctx.user.activeOrganization?.id,
-      isPersonal: org._id === ctx.user.personalOrganizationId,
+      isActive: org._id === user.activeOrganization?.id,
+      isPersonal: org._id === user.personalOrganizationId,
       logo: org.logo || null,
       membersCount: members.length || 1,
       name: org.name,
@@ -488,47 +475,52 @@ export const getOrganization = createAuthQuery()({
       role: currentMember?.role,
       slug: org.slug,
     };
-  },
-});
+  });
 
 // Get organization overview with optional invitation details
-export const getOrganizationOverview = createAuthQuery()({
-  args: {
-    inviteId: zid('invitation').optional(),
-    slug: z.string(),
-  },
-  returns: z
-    .object({
-      id: zid('organization'),
-      createdAt: z.number(),
-      invitation: z
-        .object({
-          id: zid('invitation'),
-          email: z.string(),
-          expiresAt: z.number(),
-          inviterEmail: z.string(),
-          inviterId: zid('user'),
-          inviterName: z.string(),
-          inviterUsername: z.string().nullable(),
-          organizationId: zid('organization'),
-          organizationName: z.string(),
-          organizationSlug: z.string(),
-          role: z.string(),
-          status: z.string(),
-        })
-        .nullable(),
-      isActive: z.boolean(),
-      isPersonal: z.boolean(),
-      logo: z.string().nullish(),
-      name: z.string(),
-      plan: z.string().optional(),
-      role: z.string().optional(),
+export const getOrganizationOverview = authQuery
+  .input(
+    z.object({
+      inviteId: zid('invitation').optional(),
       slug: z.string(),
     })
-    .nullable(),
-  handler: async (ctx, args) => {
+  )
+  .output(
+    z
+      .object({
+        id: zid('organization'),
+        createdAt: z.number(),
+        invitation: z
+          .object({
+            id: zid('invitation'),
+            email: z.string(),
+            expiresAt: z.number(),
+            inviterEmail: z.string(),
+            inviterId: zid('user'),
+            inviterName: z.string(),
+            inviterUsername: z.string().nullable(),
+            organizationId: zid('organization'),
+            organizationName: z.string(),
+            organizationSlug: z.string(),
+            role: z.string(),
+            status: z.string(),
+          })
+          .nullable(),
+        isActive: z.boolean(),
+        isPersonal: z.boolean(),
+        logo: z.string().nullish(),
+        name: z.string(),
+        plan: z.string().optional(),
+        role: z.string().optional(),
+        slug: z.string(),
+      })
+      .nullable()
+  )
+  .query(async ({ ctx, input }) => {
+    const user = ctx.user as any;
+
     // Get organization details
-    const org = await ctx.table('organization').get('slug', args.slug);
+    const org = await ctx.table('organization').get('slug', input.slug);
 
     if (!org) {
       return null;
@@ -537,21 +529,21 @@ export const getOrganizationOverview = createAuthQuery()({
     const organizationData = {
       id: org._id,
       createdAt: org.createdAt,
-      isActive: ctx.user.activeOrganization?.id === org._id,
-      isPersonal: org._id === ctx.user.personalOrganizationId,
+      isActive: user.activeOrganization?.id === org._id,
+      isPersonal: org._id === user.personalOrganizationId,
       logo: org.logo,
       name: org.name,
       plan: undefined,
-      role: ctx.user.activeOrganization?.role,
+      role: user.activeOrganization?.role,
       slug: org.slug,
     };
 
     // Handle invitation - either by ID or auto-find by user email
     const invitationData = await (async () => {
       const invitation = await (async () => {
-        if (args.inviteId) {
+        if (input.inviteId) {
           // If inviteId is provided, fetch specific invitation
-          const inv = await ctx.table('invitation').get(args.inviteId);
+          const inv = await ctx.table('invitation').get(input.inviteId);
 
           if (!inv || inv.organizationId !== org._id) {
             return null;
@@ -565,7 +557,7 @@ export const getOrganizationOverview = createAuthQuery()({
         return await ctx
           .table('invitation', 'email_organizationId_status', (q) =>
             q
-              .eq('email', ctx.user.email)
+              .eq('email', user.email)
               .eq('organizationId', org._id)
               .eq('status', 'pending')
           )
@@ -601,35 +593,35 @@ export const getOrganizationOverview = createAuthQuery()({
       ...organizationData,
       invitation: invitationData,
     };
-  },
-});
+  });
 
 // List members by organization slug
-export const listMembers = createAuthQuery()({
-  args: {
-    slug: z.string(),
-  },
-  returns: z.object({
-    currentUserRole: z.string().optional(),
-    isPersonal: z.boolean(),
-    members: z.array(
-      z.object({
-        id: zid('member'),
-        createdAt: z.number(),
-        organizationId: zid('organization'),
-        role: z.string().optional(),
-        user: z.object({
-          id: zid('user'),
-          email: z.string(),
-          image: z.string().nullish(),
-          name: z.string().nullable(),
-        }),
-        userId: zid('user'),
-      })
-    ),
-  }),
-  handler: async (ctx, args) => {
-    const org = await ctx.table('organization').get('slug', args.slug);
+export const listMembers = authQuery
+  .input(z.object({ slug: z.string() }))
+  .output(
+    z.object({
+      currentUserRole: z.string().optional(),
+      isPersonal: z.boolean(),
+      members: z.array(
+        z.object({
+          id: zid('member'),
+          createdAt: z.number(),
+          organizationId: zid('organization'),
+          role: z.string().optional(),
+          user: z.object({
+            id: zid('user'),
+            email: z.string(),
+            image: z.string().nullish(),
+            name: z.string().nullable(),
+          }),
+          userId: zid('user'),
+        })
+      ),
+    })
+  )
+  .query(async ({ ctx, input }) => {
+    const user = ctx.user as any;
+    const org = await ctx.table('organization').get('slug', input.slug);
 
     if (!org) {
       return {
@@ -637,7 +629,7 @@ export const listMembers = createAuthQuery()({
         members: [],
       };
     }
-    if (ctx.user.activeOrganization?.id !== org._id) {
+    if (user.activeOrganization?.id !== org._id) {
       throw new ConvexError({
         code: 'FORBIDDEN',
         message: 'You are not a member of this organization',
@@ -650,7 +642,7 @@ export const listMembers = createAuthQuery()({
 
     if (!members || members.length === 0) {
       return {
-        isPersonal: org._id === ctx.user.personalOrganizationId,
+        isPersonal: org._id === user.personalOrganizationId,
         members: [],
       };
     }
@@ -658,7 +650,7 @@ export const listMembers = createAuthQuery()({
     // Enrich with user data using member's edge to user
     const enrichedMembers = await asyncMap(members, async (member) => {
       // Use member's edge to get user (member always has a user)
-      const user = await member.edgeX('user');
+      const memberUser = await member.edgeX('user');
 
       return {
         id: member._id,
@@ -666,42 +658,43 @@ export const listMembers = createAuthQuery()({
         organizationId: org._id,
         role: member.role,
         user: {
-          id: user._id,
-          email: user.email,
-          image: user.image,
-          name: user.name,
+          id: memberUser._id,
+          email: memberUser.email,
+          image: memberUser.image,
+          name: memberUser.name,
         },
         userId: member.userId,
       };
     });
 
     return {
-      currentUserRole: ctx.user.activeOrganization?.role,
-      isPersonal: org._id === ctx.user.personalOrganizationId,
+      currentUserRole: user.activeOrganization?.role,
+      isPersonal: org._id === user.personalOrganizationId,
       members: enrichedMembers,
     };
-  },
-});
+  });
 
 // List pending invitations by organization slug
-export const listPendingInvitations = createAuthQuery()({
-  args: {
-    slug: z.string(),
-  },
-  returns: z.array(
-    z.object({
-      id: zid('invitation'),
-      createdAt: z.number(),
-      email: z.string(),
-      expiresAt: z.number(),
-      organizationId: zid('organization'),
-      role: z.string(),
-      status: z.string(),
-    })
-  ),
-  handler: async (ctx, args) => {
+export const listPendingInvitations = authQuery
+  .input(z.object({ slug: z.string() }))
+  .output(
+    z.array(
+      z.object({
+        id: zid('invitation'),
+        createdAt: z.number(),
+        email: z.string(),
+        expiresAt: z.number(),
+        organizationId: zid('organization'),
+        role: z.string(),
+        status: z.string(),
+      })
+    )
+  )
+  .query(async ({ ctx, input }) => {
+    const user = ctx.user as any;
+
     // Get organization by slug using index
-    const org = await ctx.table('organization').get('slug', args.slug);
+    const org = await ctx.table('organization').get('slug', input.slug);
 
     if (!org) {
       return [];
@@ -709,12 +702,12 @@ export const listPendingInvitations = createAuthQuery()({
 
     // Permission: invitation management (use create permission as a proxy for managing invites)
     const canManageInvites = await hasPermission(
-      ctx,
+      ctx as any,
       { permissions: { invitation: ['create'] } },
       false
     );
 
-    if (!canManageInvites || ctx.user.activeOrganization?.id !== org._id) {
+    if (!canManageInvites || user.activeOrganization?.id !== org._id) {
       return [];
     }
 
@@ -736,26 +729,30 @@ export const listPendingInvitations = createAuthQuery()({
       }));
 
     return pendingInvitations;
-  },
-});
+  });
 
 // Invite member to organization by slug
-export const inviteMember = createAuthMutation({
-  rateLimit: 'organization/invite',
-})({
-  args: {
-    email: z.string().email(),
-    role: z.enum(['owner', 'member']),
-  },
-  returns: z.null(),
-  handler: async (ctx, args) => {
+export const inviteMember = authMutation
+  .meta({ rateLimit: 'organization/invite' })
+  .input(
+    z.object({
+      email: z.string().email(),
+      role: z.enum(['owner', 'member']),
+    })
+  )
+  .output(z.null())
+  .mutation(async ({ ctx, input }) => {
+    const user = ctx.user as any;
+
     // Premium guard for invitations
     // premiumGuard(ctx.user);
 
     // Permission: invitation create
-    await hasPermission(ctx, { permissions: { invitation: ['create'] } });
+    await hasPermission(ctx as any, {
+      permissions: { invitation: ['create'] },
+    });
 
-    const orgId = ctx.user.activeOrganization?.id;
+    const orgId = user.activeOrganization?.id;
 
     if (!orgId) {
       throw new ConvexError({
@@ -801,7 +798,7 @@ export const inviteMember = createAuthMutation({
     const existingInvitations = await ctx
       .table('invitation', 'email_organizationId_status', (q) =>
         q
-          .eq('email', args.email)
+          .eq('email', input.email)
           .eq('organizationId', orgId)
           .eq('status', 'pending')
       )
@@ -827,10 +824,10 @@ export const inviteMember = createAuthMutation({
     for (const member of existingMember) {
       const memberUser = await ctx.table('user').get(member.userId);
 
-      if (memberUser?.email === args.email) {
+      if (memberUser?.email === input.email) {
         throw new ConvexError({
           code: 'CONFLICT',
-          message: `${args.email} is already a member of this organization`,
+          message: `${input.email} is already a member of this organization`,
         });
       }
     }
@@ -838,13 +835,13 @@ export const inviteMember = createAuthMutation({
     // Create new invitation via Better Auth API (triggers configured email)
     // Create new invitation directly
     try {
-      const { id: invitationId } = await ctx.auth.api.createInvitation({
+      const { id: invitationId } = await (ctx as any).auth.api.createInvitation({
         body: {
-          email: args.email,
+          email: input.email,
           organizationId: orgId,
-          role: args.role,
+          role: input.role,
         },
-        headers: ctx.auth.headers,
+        headers: (ctx as any).auth.headers,
       });
 
       if (!invitationId) {
@@ -861,24 +858,23 @@ export const inviteMember = createAuthMutation({
     }
 
     return null;
-  },
-});
+  });
 
 // Cancel invitation
-export const cancelInvitation = createAuthMutation({
-  rateLimit: 'organization/cancelInvite',
-})({
-  args: {
-    invitationId: zid('invitation'),
-  },
-  returns: z.null(),
-  handler: async (ctx, args) => {
-    const invitation = await ctx.table('invitation').get(args.invitationId);
+export const cancelInvitation = authMutation
+  .meta({ rateLimit: 'organization/cancelInvite' })
+  .input(z.object({ invitationId: zid('invitation') }))
+  .output(z.null())
+  .mutation(async ({ ctx, input }) => {
+    const user = ctx.user as any;
+    const invitation = await ctx.table('invitation').get(input.invitationId);
 
     // Permission: invitation cancel and ownership of current active org
-    await hasPermission(ctx, { permissions: { invitation: ['cancel'] } });
+    await hasPermission(ctx as any, {
+      permissions: { invitation: ['cancel'] },
+    });
 
-    if (ctx.user.activeOrganization?.id !== invitation?.organizationId) {
+    if (user.activeOrganization?.id !== invitation?.organizationId) {
       throw new ConvexError({
         code: 'FORBIDDEN',
         message: 'You do not have permission to cancel this invitation',
@@ -887,9 +883,9 @@ export const cancelInvitation = createAuthMutation({
 
     // Cancel the invitation in Better Auth
     try {
-      await ctx.auth.api.cancelInvitation({
-        body: { invitationId: args.invitationId },
-        headers: ctx.auth.headers,
+      await (ctx as any).auth.api.cancelInvitation({
+        body: { invitationId: input.invitationId },
+        headers: (ctx as any).auth.headers,
       });
     } catch (error: any) {
       if (error.message?.includes('not found')) {
@@ -909,5 +905,4 @@ export const cancelInvitation = createAuthMutation({
     // The invitation being cancelled is the primary action
 
     return null;
-  },
-});
+  });

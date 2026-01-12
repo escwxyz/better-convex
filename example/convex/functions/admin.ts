@@ -1,57 +1,52 @@
 import { ConvexError } from 'convex/values';
-import { zid } from 'convex-helpers/server/zod4';
+import { zid, zodPaginationOptsValidator } from 'convex-helpers/server/zod4';
 import { z } from 'zod';
 
+import { authMutation, authQuery } from '../lib/crpc';
 import { aggregateUsers } from './aggregates';
-import {
-  createAuthMutation,
-  createAuthPaginatedQuery,
-  createAuthQuery,
-} from './functions';
 
 // Admin operations that work with our application's user role system
 // Better Auth's admin plugin handles banning, sessions, etc. through the client
 
 // Check if a user has admin privileges in our system
-export const checkUserAdminStatus = createAuthQuery({
-  role: 'admin',
-})({
-  args: {
-    userId: zid('user'),
-  },
-  returns: z.object({
-    isAdmin: z.boolean(),
-    role: z.string().nullish(),
-  }),
-  handler: async (ctx, args) => {
-    const user = await ctx.table('user').getX(args.userId);
+export const checkUserAdminStatus = authQuery
+  .meta({ role: 'admin' })
+  .input(z.object({ userId: zid('user') }))
+  .output(
+    z.object({
+      isAdmin: z.boolean(),
+      role: z.string().nullish(),
+    })
+  )
+  .query(async ({ ctx, input }) => {
+    const user = await ctx.table('user').getX(input.userId);
 
     return {
       isAdmin: user.role === 'admin',
       role: user.role,
     };
-  },
-});
+  });
 
 // Update user role
-export const updateUserRole = createAuthMutation({
-  role: 'admin',
-})({
-  args: {
-    role: z.enum(['user', 'admin']),
-    userId: zid('user'),
-  },
-  returns: z.boolean(),
-  handler: async (ctx, args) => {
+export const updateUserRole = authMutation
+  .meta({ role: 'admin' })
+  .input(
+    z.object({
+      role: z.enum(['user', 'admin']),
+      userId: zid('user'),
+    })
+  )
+  .output(z.boolean())
+  .mutation(async ({ ctx, input }) => {
     // Only admin can promote to admin
-    if (args.role === 'admin' && !ctx.user.isAdmin) {
+    if (input.role === 'admin' && !ctx.user.isAdmin) {
       throw new ConvexError({
         code: 'FORBIDDEN',
         message: 'Only admin can promote users to admin',
       });
     }
 
-    const targetUser = await ctx.table('user').getX(args.userId);
+    const targetUser = await ctx.table('user').getX(input.userId);
 
     // Can't demote admin unless you are admin
     if (targetUser.role === 'admin' && !ctx.user.isAdmin) {
@@ -62,27 +57,29 @@ export const updateUserRole = createAuthMutation({
     }
 
     await targetUser.patch({
-      role: args.role.toLowerCase(),
+      role: input.role.toLowerCase(),
     });
 
     return true;
-  },
-});
+  });
 
 // Grant admin access to a user based on their email (for admin setup)
-export const grantAdminByEmail = createAuthMutation({
-  role: 'admin',
-})({
-  args: {
-    email: z.string().email(),
-    role: z.enum(['admin']),
-  },
-  returns: z.object({
-    success: z.boolean(),
-    userId: zid('user').optional(),
-  }),
-  handler: async (ctx, args) => {
-    const user = await ctx.table('user').get('email', args.email);
+export const grantAdminByEmail = authMutation
+  .meta({ role: 'admin' })
+  .input(
+    z.object({
+      email: z.string().email(),
+      role: z.enum(['admin']),
+    })
+  )
+  .output(
+    z.object({
+      success: z.boolean(),
+      userId: zid('user').optional(),
+    })
+  )
+  .mutation(async ({ ctx, input }) => {
+    const user = await ctx.table('user').get('email', input.email);
 
     if (!user) {
       return {
@@ -91,33 +88,35 @@ export const grantAdminByEmail = createAuthMutation({
     }
 
     await user.patch({
-      role: args.role.toLowerCase(),
+      role: input.role.toLowerCase(),
     });
 
     return {
       success: true,
       userId: user._id,
     };
-  },
-});
+  });
 
 // Get all users with pagination for admin dashboard
-export const getAllUsers = createAuthPaginatedQuery()({
-  args: {
-    role: z.enum(['all', 'user', 'admin']).optional(),
-    search: z.string().optional(),
-  },
-  handler: async (ctx, args) => {
+export const getAllUsers = authQuery
+  .input(
+    z.object({
+      role: z.enum(['all', 'user', 'admin']).optional(),
+      search: z.string().optional(),
+      paginationOpts: zodPaginationOptsValidator,
+    })
+  )
+  .query(async ({ ctx, input }) => {
     // Build query
     const query = ctx.table('user');
 
     // Filter by search term if provided
-    if (args.search) {
-      const searchLower = args.search.toLowerCase();
+    if (input.search) {
+      const searchLower = input.search.toLowerCase();
 
       // For now, just paginate and filter in memory
       // You can add a search index later for better performance
-      const result = await query.paginate(args.paginationOpts);
+      const result = await query.paginate(input.paginationOpts);
 
       const enrichedPage = await Promise.all(
         result.page.map(async (user) => {
@@ -151,7 +150,7 @@ export const getAllUsers = createAuthPaginatedQuery()({
     }
 
     // Regular pagination without search
-    const result = await query.paginate(args.paginationOpts);
+    const result = await query.paginate(input.paginationOpts);
 
     const enrichedPage = await Promise.all(
       result.page.map(async (user) => {
@@ -165,7 +164,7 @@ export const getAllUsers = createAuthPaginatedQuery()({
         };
 
         // Filter by role if specified
-        if (args.role && args.role !== 'all' && userData.role !== args.role) {
+        if (input.role && input.role !== 'all' && userData.role !== input.role) {
           return null;
         }
 
@@ -177,33 +176,32 @@ export const getAllUsers = createAuthPaginatedQuery()({
       ...result,
       page: enrichedPage.filter(Boolean),
     };
-  },
-});
+  });
 
 // Get admin dashboard statistics
-export const getDashboardStats = createAuthQuery({
-  role: 'admin',
-})({
-  args: {},
-  returns: z.object({
-    recentUsers: z.array(
-      z.object({
-        _id: zid('user'),
-        _creationTime: z.number(),
-        image: z.string().nullish(),
-        name: z.string().optional(),
-      })
-    ),
-    totalAdmins: z.number(),
-    totalUsers: z.number(),
-    userGrowth: z.array(
-      z.object({
-        count: z.number(),
-        date: z.string(),
-      })
-    ),
-  }),
-  handler: async (ctx) => {
+export const getDashboardStats = authQuery
+  .meta({ role: 'admin' })
+  .output(
+    z.object({
+      recentUsers: z.array(
+        z.object({
+          _id: zid('user'),
+          _creationTime: z.number(),
+          image: z.string().nullish(),
+          name: z.string().optional(),
+        })
+      ),
+      totalAdmins: z.number(),
+      totalUsers: z.number(),
+      userGrowth: z.array(
+        z.object({
+          count: z.number(),
+          date: z.string(),
+        })
+      ),
+    })
+  )
+  .query(async ({ ctx }) => {
     // Get recent users
     const recentUsers = await ctx
       .table('user')
@@ -271,5 +269,4 @@ export const getDashboardStats = createAuthQuery({
       totalUsers,
       userGrowth,
     };
-  },
-});
+  });

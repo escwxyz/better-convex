@@ -17,8 +17,9 @@ import {
   query,
 } from '../functions/_generated/server';
 import { type CtxWithTable, getCtxWithTable } from './ents';
-import { rateLimitGuard } from '../functions/helpers/rateLimiter';
-import { registerTriggers } from '../functions/triggers';
+import { rateLimitGuard } from './rate-limiter';
+import { registerTriggers } from './triggers';
+import { getAuth } from '../functions/auth';
 
 // =============================================================================
 // Types
@@ -67,12 +68,11 @@ type Meta = {
   dev?: boolean;
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: convex type incompatibilities
 const c = initCRPC
   .dataModel<DataModel>()
   .context({
-    query: (ctx: any) => getCtxWithTable(ctx),
-    mutation: (ctx: any) => getCtxWithTable(ctx),
+    query: (ctx) => getCtxWithTable(ctx),
+    mutation: (ctx) => getCtxWithTable(ctx),
   })
   .meta<Meta>()
   .create({
@@ -114,8 +114,7 @@ const devMiddleware = c.middleware<object>(({ meta, next, ctx }) => {
 });
 
 /** Rate limit middleware - applies rate limiting based on meta.rateLimit and user tier */
-// biome-ignore lint/suspicious/noExplicitAny: convex type incompatibilities
-const rateLimitMiddleware = c.middleware<any>(async ({ ctx, meta, next }: any) => {
+const rateLimitMiddleware = c.middleware<any>(async ({ ctx, meta, next }) => {
   await rateLimitGuard({
     ...ctx,
     rateLimitKey: meta.rateLimit ?? 'default',
@@ -125,8 +124,7 @@ const rateLimitMiddleware = c.middleware<any>(async ({ ctx, meta, next }: any) =
 });
 
 /** Role middleware - checks admin role from meta after auth middleware */
-// biome-ignore lint/suspicious/noExplicitAny: convex type incompatibilities
-const roleMiddleware = c.middleware<any>(({ ctx, meta, next }: any) => {
+const roleMiddleware = c.middleware<any>(({ ctx, meta, next }) => {
   if (meta.role === 'admin' && !ctx.user?.isAdmin) {
     throw new CRPCError({ code: 'FORBIDDEN', message: 'Admin access required' });
   }
@@ -147,24 +145,23 @@ export const privateQuery = c.query.internal();
 export const optionalAuthQuery = c.query
   .meta({ auth: 'optional' })
   .use(devMiddleware)
-  // biome-ignore lint/suspicious/noExplicitAny: convex type incompatibilities
-  .use(async ({ ctx, next }: any) => {
+  .use(async ({ ctx, next }) => {
     const session = await getSession(ctx);
-    if (!session) {
-      return next({ ctx: { ...ctx, user: null, userId: null } });
-    }
 
-    const user = await ctx.table('user').getX(session.userId);
+    const user = session ? await ctx.table('user').getX(session.userId) : null;
 
     return next({
       ctx: {
         ...ctx,
-        auth: {
-          ...ctx.auth,
-          headers: await getHeaders(ctx, session),
-        },
-        user: { id: user._id, session, ...user.doc() },
-        userId: user._id,
+        auth: user
+          ? {
+              ...ctx.auth,
+              ...getAuth(ctx),
+              headers: await getHeaders(ctx, session),
+            }
+          : ctx.auth,
+        user,
+        userId: user?._id ?? null,
       },
     });
   });
@@ -173,8 +170,7 @@ export const optionalAuthQuery = c.query
 export const authQuery = c.query
   .meta({ auth: 'required' })
   .use(devMiddleware)
-  // biome-ignore lint/suspicious/noExplicitAny: convex type incompatibilities
-  .use(async ({ ctx, next }: any) => {
+  .use(async ({ ctx, next }) => {
     const session = await getSession(ctx);
     if (!session) {
       throw new CRPCError({ code: 'UNAUTHORIZED', message: 'Not authenticated' });
@@ -212,24 +208,23 @@ export const privateMutation = c.mutation.internal();
 export const optionalAuthMutation = c.mutation
   .meta({ auth: 'optional' })
   .use(devMiddleware)
-  // biome-ignore lint/suspicious/noExplicitAny: convex type incompatibilities
-  .use(async ({ ctx, next }: any) => {
+  .use(async ({ ctx, next }) => {
     const session = await getSession(ctx);
-    if (!session) {
-      return next({ ctx: { ...ctx, user: null, userId: null } });
-    }
 
-    const user = await ctx.table('user').getX(session.userId);
+    const user = session ? await ctx.table('user').getX(session.userId) : null;
 
     return next({
       ctx: {
         ...ctx,
-        auth: {
-          ...ctx.auth,
-          headers: await getHeaders(ctx, session),
-        },
-        user: { id: user._id, session, ...user.doc() },
-        userId: user._id,
+        auth: user
+          ? {
+              ...ctx.auth,
+              ...getAuth(ctx),
+              headers: await getHeaders(ctx, session),
+            }
+          : ctx.auth,
+        user,
+        userId: user?._id ?? null,
       },
     });
   })
@@ -239,8 +234,7 @@ export const optionalAuthMutation = c.mutation
 export const authMutation = c.mutation
   .meta({ auth: 'required' })
   .use(devMiddleware)
-  // biome-ignore lint/suspicious/noExplicitAny: convex type incompatibilities
-  .use(async ({ ctx, next }: any) => {
+  .use(async ({ ctx, next }) => {
     const session = await getSession(ctx);
     if (!session) {
       throw new CRPCError({ code: 'UNAUTHORIZED', message: 'Not authenticated' });
@@ -277,8 +271,7 @@ export const privateAction = c.action.internal();
 export const authAction = c.action
   .meta({ auth: 'required' })
   .use(devMiddleware)
-  // biome-ignore lint/suspicious/noExplicitAny: convex type incompatibilities
-  .use(async ({ ctx, next }: any) => {
+  .use(async ({ ctx, next }) => {
     const rawUser = await ctx.runQuery(api.user.getSessionUser, {});
     if (!rawUser) {
       throw new CRPCError({ code: 'UNAUTHORIZED', message: 'Not authenticated' });
