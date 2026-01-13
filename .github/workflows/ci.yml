@@ -57,6 +57,3 @@ jobs:
 
       - name: 🔬 Run Biome & ESLint & Typecheck
         run: bun check
-
-      - name: 🕵️ Build
-        run: bun run build
