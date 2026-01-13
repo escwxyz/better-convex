@@ -1,5 +1,5 @@
 # Default agents to apply when --agents flag is not specified
-default_agents = ["claude", "cursor", "codex"]
+default_agents = ["claude"]
 
 # --- Fork Configuration ---
 
@@ -24,6 +24,10 @@ enabled = true
 enabled = true
 merge_strategy = "merge"
 
+[mcp_servers.playwriter]
+command = "npx"
+args = ["playwriter@latest"]
+
 # --- Agent-Specific Configuration ---
 
 # Claude Code (primary agent)
@@ -33,12 +37,12 @@ output_path = "CLAUDE.md"
 
 # Cursor (secondary agent)
 [agents.cursor]
-enabled = true
+enabled = false
 # Uses AGENTS.md by default
 
 # OpenAI Codex CLI
 [agents.codex]
-enabled = true
+enabled = false
 output_path_config = ".codex/config.toml"
 # Uses AGENTS.md by default
 

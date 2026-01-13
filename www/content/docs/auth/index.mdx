@@ -1,0 +1,83 @@
+---
+title: Overview
+description: Better Auth integration with Convex for type-safe authentication
+---
+
+## Overview
+
+better-convex provides a seamless integration between [Better Auth](https://better-auth.com) and Convex, giving you:
+
+- **Convex as database adapter** - Store auth data in Convex tables
+- **Type-safe triggers** - Hooks for user/session lifecycle events
+- **React hooks** - `useAuth`, `useAuthGuard`, and conditional rendering
+- **Next.js integration** - Server-side caller with JWT caching
+
+## Key Concepts
+
+### Local vs Component Installation
+
+| Approach | Schema Location | Database Access |
+|----------|-----------------|-----------------|
+| Component (`@convex-dev/better-auth`) | Component schema | Via `ctx.runQuery`/`ctx.runMutation` |
+| **Local** (`better-convex/auth`) | Your app schema | Direct `ctx.db` access |
+
+better-convex uses the **local approach**:
+- Auth tables live in your app schema
+- Triggers can directly access and modify your app tables
+- Single transaction for complex operations
+
+### Two Adapters
+
+| Adapter | Used In | Access |
+|---------|---------|--------|
+| `adapter` via `getAuth(ctx)` | Queries, mutations | Direct DB access |
+| `httpAdapter` via `createAuth(ctx)` | HTTP routes, actions | HTTP context |
+
+```ts
+// Queries/mutations: direct DB access
+const auth = getAuth(ctx);
+
+// HTTP routes/actions: HTTP adapter
+const auth = createAuth(ctx);
+```
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                      Your App                           │
+├─────────────────────────────────────────────────────────┤
+│  ConvexAuthProvider                                     │
+│    └─ Better Auth Client (token management)             │
+│       └─ AuthProvider (auth state store)                │
+├─────────────────────────────────────────────────────────┤
+│  Better Auth                                            │
+│    └─ Convex Adapter (httpAdapter / adapter)            │
+├─────────────────────────────────────────────────────────┤
+│  Convex Database                                        │
+│    └─ user, session, account tables (in app schema)     │
+└─────────────────────────────────────────────────────────┘
+```
+
+## Key Components
+
+### Server
+
+- **`createClient`** - Create auth client with Convex adapter and triggers
+- **`createApi`** - Generate Convex functions for Better Auth CRUD operations
+- **`convexBetterAuth`** - Next.js integration with caller factory
+
+### Client
+
+- **`ConvexAuthProvider`** - Combined provider for auth state
+- **`useAuth`** - Get auth loading/authenticated state
+- **`useAuthGuard`** - Guard mutations requiring auth
+- **`Authenticated`** / **`Unauthenticated`** - Conditional rendering
+
+## Next Steps
+
+<Cards>
+  <Card title="Server" href="/docs/auth/server" />
+  <Card title="Client" href="/docs/auth/client" />
+  <Card title="Triggers" href="/docs/auth/triggers" />
+</Cards>

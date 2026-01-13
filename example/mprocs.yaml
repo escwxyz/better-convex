@@ -1,0 +1,8 @@
+procs:
+  convex:
+    cmd: ['bun', 'convex:dev']
+  next:
+    cmd: ['bun', 'dev:app']
+  typecheck:
+    cmd: ['bun', 'typecheck:watch']
+    autostart: false

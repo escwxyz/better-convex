@@ -24,15 +24,14 @@
         "For EACH todo: Check if its condition applies - if NO, mark completed immediately and skip to next",
         "If condition applies: mark in_progress → complete the check → mark completed",
         "Work through every todo even if some don't apply (conditions are per-todo, not global)",
-        "We manually start session with `npm run logs && npm run typecheck:watch` as Background Bash Shell - read output when checking errors",
-        "Run `npm run typecheck` only when Background Bash Shells are not visible/running",
         "NEVER make git commits unless user explicitly asked",
-        "NEVER run `npm run dev` or `npm run build` unless explicitly asked"
+        "NEVER run `bun dev` or `bun run build` unless explicitly asked",
+        "Browser check: USE for new feature flows, e2e interactions, styling/layout, visual bugs, state changes, debugging. SKIP for trivial markup, simple text/button additions, non-UI changes"
       ],
       "todos": [
-        "TypeScript check (ONLY if updated ts files): Verify no `any` used (pause and ask user if `any` seems required)",
-        "Typecheck (ONLY if updated ts files): Read typecheck:watch output OR run `npm run typecheck` - verify passes",
-        "Lint: Run `npm run lint:fix` - verify passes"
+        "Use playwriter MCP when Browser check",
+        "Typecheck (ONLY if updated ts files): NEVER run `tsc --noEmit` directly. Instead: (1) Use TaskOutput to check if typecheck task exists; (2) If not running, start `bun typecheck:watch` as background task with run_in_background=true; (3) Use TaskOutput to read results from the background task",
+        "Lint: Run `bun lint:fix` - verify passes"
       ]
     }
   ],

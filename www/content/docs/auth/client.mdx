@@ -1,0 +1,421 @@
+---
+title: Client
+description: Client-side authentication with sign in, sign out, and auth hooks
+---
+
+## Overview
+
+Client-side auth utilities for React components. Includes sign in/out flows, auth state hooks, and conditional rendering components.
+
+## Setup
+
+Create an auth client with mutation hooks:
+
+```ts title="src/lib/convex/auth-client.ts"
+import { convexClient } from '@convex-dev/better-auth/client/plugins';
+import { inferAdditionalFields } from 'better-auth/client/plugins';
+import { createAuthClient } from 'better-auth/react';
+import { createAuthMutations } from 'better-convex/react';
+
+import type { Auth } from '@convex/auth-shared';
+
+export const authClient = createAuthClient({
+  baseURL: process.env.NEXT_PUBLIC_SITE_URL!,
+  plugins: [inferAdditionalFields<Auth>(), convexClient()],
+});
+
+export const {
+  useSignInMutationOptions,
+  useSignInSocialMutationOptions,
+  useSignOutMutationOptions,
+  useSignUpMutationOptions,
+} = createAuthMutations(authClient);
+```
+
+## Sign In
+
+### Social Providers
+
+```tsx title="src/components/login-form.tsx"
+'use client';
+
+import { useMutation } from '@tanstack/react-query';
+import { useSignInSocialMutationOptions } from '@/lib/convex/auth-client';
+
+function LoginForm() {
+  const signInSocial = useMutation(useSignInSocialMutationOptions());
+
+  const handleGoogleSignIn = () => {
+    signInSocial.mutate({
+      callbackURL: window.location.origin,
+      provider: 'google',
+    });
+  };
+
+  const handleGithubSignIn = () => {
+    signInSocial.mutate({
+      callbackURL: window.location.origin,
+      provider: 'github',
+    });
+  };
+
+  return (
+    <div>
+      <button disabled={signInSocial.isPending} onClick={handleGoogleSignIn}>
+        Continue with Google
+      </button>
+      <button disabled={signInSocial.isPending} onClick={handleGithubSignIn}>
+        Continue with GitHub
+      </button>
+    </div>
+  );
+}
+```
+
+### Email/Password
+
+First enable email/password in your Convex auth config:
+
+```ts title="convex/functions/auth.ts"
+const createAuthOptions = (ctx: GenericCtx) =>
+  ({
+    emailAndPassword: {
+      enabled: true,
+    },
+    // ... rest of config
+  }) satisfies BetterAuthOptions;
+```
+
+Then use the sign in/up hooks:
+
+```tsx title="src/components/login-form.tsx"
+'use client';
+
+import { useMutation } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import {
+  useSignInMutationOptions,
+  useSignUpMutationOptions,
+} from '@/lib/convex/auth-client';
+
+function EmailLoginForm() {
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const router = useRouter();
+
+  const signIn = useMutation(
+    useSignInMutationOptions({
+      onSuccess: () => router.push('/'),
+    })
+  );
+  const signUp = useMutation(
+    useSignUpMutationOptions({
+      onSuccess: () => router.push('/'),
+    })
+  );
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (mode === 'signup') {
+      signUp.mutate({
+        callbackURL: window.location.origin,
+        email,
+        name,
+        password,
+      });
+    } else {
+      signIn.mutate({
+        callbackURL: window.location.origin,
+        email,
+        password,
+      });
+    }
+  };
+
+  const isPending = signIn.isPending || signUp.isPending;
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {mode === 'signup' && (
+        <input
+          type="text"
+          placeholder="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
+      )}
+      <input
+        type="email"
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+      />
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        required
+        minLength={8}
+      />
+      <button type="submit" disabled={isPending}>
+        {mode === 'signup' ? 'Sign Up' : 'Sign In'}
+      </button>
+      <button type="button" onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}>
+        {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+      </button>
+    </form>
+  );
+}
+```
+
+<Callout type="info">
+Unlike OAuth (which redirects server-side), email/password auth requires a client-side redirect via `onSuccess`.
+</Callout>
+
+## Sign Out
+
+```tsx title="src/components/logout-button.tsx"
+'use client';
+
+import { useMutation } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { useSignOutMutationOptions } from '@/lib/convex/auth-client';
+
+function LogoutButton() {
+  const router = useRouter();
+  const signOut = useMutation(
+    useSignOutMutationOptions({
+      onSuccess: () => router.push('/login'),
+      onError: () => toast.error('Failed to sign out'),
+    })
+  );
+
+  return (
+    <button disabled={signOut.isPending} onClick={() => signOut.mutate()}>
+      {signOut.isPending ? 'Signing out...' : 'Sign out'}
+    </button>
+  );
+}
+```
+
+### Why createAuthMutations?
+
+The hooks provide two key features:
+
+1. **Auth query cleanup**: `useSignOutMutationOptions` automatically calls `unsubscribeAuthQueries()` before `signOut()` to prevent `UNAUTHORIZED` errors from subscribed queries during logout.
+
+2. **Proper loading state**: The mutation's `isPending` stays `true` until the auth token is actually cleared (not just when the API call completes). This prevents UI flicker where the button shows "Sign out" briefly before redirecting.
+
+## Client Hooks
+
+### useAuth
+
+Get comprehensive auth state:
+
+```tsx title="src/components/auth-status.tsx"
+import { useAuth } from 'better-convex/auth-client';
+
+function AuthStatus() {
+  const { hasSession, isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) return <Spinner />;
+
+  return (
+    <div>
+      {isAuthenticated ? 'Logged in' : 'Logged out'}
+    </div>
+  );
+}
+```
+
+| Property | Description |
+|----------|-------------|
+| `hasSession` | Has a session token (may not be verified) |
+| `isAuthenticated` | Token exists AND Convex auth verified |
+| `isLoading` | Convex auth is still loading |
+
+### useMaybeAuth
+
+Check if user maybe has auth (optimistic, has token):
+
+```tsx
+import { useMaybeAuth } from 'better-convex/auth-client';
+
+function Component() {
+  const isAuth = useMaybeAuth();
+  return isAuth ? <LoggedInUI /> : <LoginButton />;
+}
+```
+
+### useIsAuth
+
+Check if user is authenticated (server-verified):
+
+```tsx
+import { useIsAuth } from 'better-convex/auth-client';
+
+function SecureComponent() {
+  const isAuth = useIsAuth();
+  return isAuth ? <SensitiveData /> : <Loading />;
+}
+```
+
+### useAuthGuard
+
+Guard mutations that require authentication:
+
+```tsx title="src/components/create-post.tsx"
+import { useAuthGuard } from 'better-convex/auth-client';
+import { useMutation } from '@tanstack/react-query';
+
+function CreatePostButton() {
+  const guard = useAuthGuard();
+  const createPost = useMutation(crpc.post.create.mutationOptions());
+
+  const handleClick = () => {
+    // Returns true if blocked (not authenticated)
+    if (guard()) return;
+
+    // User is authenticated, safe to mutate
+    createPost.mutate({ title: 'New Post' });
+  };
+
+  return <button onClick={handleClick}>Create Post</button>;
+}
+```
+
+With callback:
+
+```tsx
+const handleClick = () => {
+  guard(async () => {
+    // Only runs if authenticated
+    await createPost.mutateAsync({ title: 'New Post' });
+    toast.success('Post created!');
+  });
+};
+```
+
+## Conditional Rendering
+
+### MaybeAuthenticated
+
+Render children only when has session (optimistic):
+
+```tsx
+import { MaybeAuthenticated } from 'better-convex/auth-client';
+
+function App() {
+  return (
+    <MaybeAuthenticated>
+      <Dashboard />
+    </MaybeAuthenticated>
+  );
+}
+```
+
+### Authenticated
+
+Render children only when server-verified:
+
+```tsx
+import { Authenticated } from 'better-convex/auth-client';
+
+function App() {
+  return (
+    <Authenticated>
+      <SensitiveData />
+    </Authenticated>
+  );
+}
+```
+
+### MaybeUnauthenticated
+
+Render children only when no session (optimistic):
+
+```tsx
+import { MaybeAuthenticated, MaybeUnauthenticated } from 'better-convex/auth-client';
+
+function App() {
+  return (
+    <>
+      <MaybeAuthenticated>
+        <Dashboard />
+      </MaybeAuthenticated>
+      <MaybeUnauthenticated>
+        <LoginPage />
+      </MaybeUnauthenticated>
+    </>
+  );
+}
+```
+
+### Unauthenticated
+
+Render children only when not server-verified (waits for loading):
+
+```tsx
+import { Unauthenticated } from 'better-convex/auth-client';
+
+function App() {
+  return (
+    <Unauthenticated>
+      <LoginPage />
+    </Unauthenticated>
+  );
+}
+```
+
+## Provider Configuration
+
+Configure auth callbacks in the provider:
+
+```tsx title="src/app.tsx"
+import { ConvexAuthProvider } from 'better-convex/auth-client';
+
+function App() {
+  return (
+    <ConvexAuthProvider
+      client={convexClient}
+      authClient={authClient}
+      initialToken={serverToken}
+      onMutationUnauthorized={() => {
+        // Custom handler for unauthorized mutations
+        openLoginModal();
+      }}
+      onQueryUnauthorized={({ queryName }) => {
+        // Custom handler for unauthorized queries
+        console.log(`Unauthorized query: ${queryName}`);
+      }}
+    >
+      {children}
+    </ConvexAuthProvider>
+  );
+}
+```
+
+### Props
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `client` | `ConvexReactClient` | Convex client instance |
+| `authClient` | `AuthClient` | Better Auth client instance |
+| `initialToken` | `string?` | Initial session token (from SSR) |
+| `onMutationUnauthorized` | `() => void` | Called when mutation is blocked |
+| `onQueryUnauthorized` | `({ queryName }) => void` | Called when query is blocked |
+
+## Next Steps
+
+<Cards>
+  <Card title="Helpers" href="/docs/auth/server#helpers" />
+  <Card title="Triggers" href="/docs/auth/triggers" />
+</Cards>
