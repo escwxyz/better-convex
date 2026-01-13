@@ -1,5 +1,5 @@
 ---
-title: Setup
+title: Server
 description: Set up Better Auth with Convex database adapter
 ---
 
@@ -518,10 +518,98 @@ Social providers (optional):
 
 Run `npx better-convex env sync` to sync all variables to Convex.
 
+## Helpers
+
+Server helpers extract user identity and session data from Convex context. Use these in queries and mutations to authenticate requests.
+
+### getAuthUserIdentity
+
+Get the full user identity from context:
+
+```ts
+import { getAuthUserIdentity } from 'better-convex/auth';
+
+const identity = await getAuthUserIdentity(ctx);
+
+if (identity) {
+  identity.userId;    // Id<'user'>
+  identity.sessionId; // Id<'session'>
+  identity.subject;   // string (user ID as string)
+}
+```
+
+### getAuthUserId
+
+Get just the user ID:
+
+<Tabs groupId="db" items={["ctx.db", "ctx.table"]} persist>
+  <Tab value="ctx.db">
+    ```ts
+    import { getAuthUserId } from 'better-convex/auth';
+
+    const userId = await getAuthUserId(ctx);
+
+    if (!userId) {
+      throw new CRPCError({ code: 'UNAUTHORIZED' });
+    }
+
+    // userId is Id<'user'>
+    const user = await ctx.db.get(userId);
+    ```
+  </Tab>
+  <Tab value="ctx.table">
+    ```ts
+    import { getAuthUserId } from 'better-convex/auth';
+
+    const userId = await getAuthUserId(ctx);
+
+    if (!userId) {
+      throw new CRPCError({ code: 'UNAUTHORIZED' });
+    }
+
+    // userId is Id<'user'>
+    const user = await ctx.table('user').get(userId);
+    ```
+  </Tab>
+</Tabs>
+
+### getSession
+
+Get the current session document:
+
+```ts
+import { getSession } from 'better-convex/auth';
+
+const session = await getSession(ctx);
+
+if (session) {
+  session._id;                  // Id<'session'>
+  session.userId;               // Id<'user'>
+  session.activeOrganizationId; // Id<'organization'> | null
+  session.expiresAt;            // number
+}
+```
+
+### getHeaders
+
+Build headers from session for external API calls:
+
+```ts
+import { getHeaders } from 'better-convex/auth';
+
+const headers = await getHeaders(ctx);
+// Headers { authorization: 'Bearer ...', x-forwarded-for: '...' }
+
+// Use with fetch
+const response = await fetch('https://api.example.com', {
+  headers,
+});
+```
+
 ## Next Steps
 
 <Cards>
   <Card title="Templates" href="/docs/templates#authts" />
+  <Card title="Client" href="/docs/auth/client" />
   <Card title="Triggers" href="/docs/auth/triggers" />
-  <Card title="Helpers" href="/docs/auth/helpers" />
 </Cards>

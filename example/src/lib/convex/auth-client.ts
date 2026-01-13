@@ -24,8 +24,7 @@ export const authClient = createAuthClient({
 });
 
 // Export hooks from the auth client
-export const { useActiveOrganization, useListOrganizations, useSession } =
-  authClient;
+export const { useActiveOrganization, useListOrganizations } = authClient;
 
 // Export mutation hooks
 export const {

@@ -1,8 +1,7 @@
 - In all interactions and commit messages, be extremely concise and sacrifice grammar for the sake of concision
 - ALWAYS read and understand relevant files before proposing edits. Do not speculate about code you have not inspected
 - ALWAYS use AskUserQuestion tool when asking questions to the user
-- When using playwriter, never close pages and ask user to start dev server if needed
-- When playwriter browser disconnects, use AskUserQuestion: (1) I connected the extension (2) Skip browser test
+- When playwriter browser requires start dev, auth or disconnects, use AskUserQuestion: (1) Connected (2) Skip browser test. Never close browser when done.
 
 ## PR Comments
 

@@ -3,70 +3,185 @@
 import { useMutation } from '@tanstack/react-query';
 import type { LucideProps } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useQueryState } from 'nuqs';
-import type * as React from 'react';
+import * as React from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { env } from '@/env';
-import { useSignInSocialMutationOptions } from '@/lib/convex/auth-client';
+import {
+  useSignInMutationOptions,
+  useSignInSocialMutationOptions,
+  useSignUpMutationOptions,
+} from '@/lib/convex/auth-client';
 import { cn } from '@/lib/utils';
 
 const authRoutes = ['/login', '/signup'];
 
 export function SignForm() {
+  const [mode, setMode] = React.useState<'signin' | 'signup'>('signin');
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [name, setName] = React.useState('');
+
   let [callbackUrl] = useQueryState('callbackUrl');
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   if (!(callbackUrl || authRoutes.includes(pathname))) {
     callbackUrl = encodeURL(pathname, searchParams.toString());
   }
 
+  const getRedirectPath = () =>
+    callbackUrl ? decodeURIComponent(callbackUrl) : '/';
+
   const signInSocial = useMutation(useSignInSocialMutationOptions());
+  const signIn = useMutation(
+    useSignInMutationOptions({
+      onSuccess: () => router.push(getRedirectPath() as '/'),
+    })
+  );
+  const signUp = useMutation(
+    useSignUpMutationOptions({
+      onSuccess: () => router.push(getRedirectPath() as '/'),
+    })
+  );
+
+  const getCallbackUrl = () => {
+    const callback = callbackUrl ? decodeURIComponent(callbackUrl) : '/';
+    return `${env.NEXT_PUBLIC_SITE_URL}${callback}`;
+  };
+
+  const handleEmailAuth = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (mode === 'signup') {
+      signUp.mutate({
+        callbackURL: getCallbackUrl(),
+        email,
+        name,
+        password,
+      });
+    } else {
+      signIn.mutate({
+        callbackURL: getCallbackUrl(),
+        email,
+        password,
+      });
+    }
+  };
 
   const handleGoogleSignIn = () => {
-    const callback = callbackUrl ? decodeURIComponent(callbackUrl) : '/';
-
     signInSocial.mutate({
-      callbackURL: `${env.NEXT_PUBLIC_SITE_URL}${callback}`,
+      callbackURL: getCallbackUrl(),
       provider: 'google',
     });
   };
 
   const handleGithubSignIn = () => {
-    const callback = callbackUrl ? decodeURIComponent(callbackUrl) : '/';
-
     signInSocial.mutate({
-      callbackURL: `${env.NEXT_PUBLIC_SITE_URL}${callback}`,
+      callbackURL: getCallbackUrl(),
       provider: 'github',
     });
   };
 
+  const isPending =
+    signInSocial.isPending || signIn.isPending || signUp.isPending;
+
   return (
-    <div className={cn('mx-auto grid max-w-[268px] gap-3')}>
-      <Button
-        className="w-full"
-        disabled={signInSocial.isPending}
-        onClick={handleGoogleSignIn}
-        size="lg"
-        variant="outline"
-      >
-        <GoogleIcon />
-        Continue with Google
-      </Button>
+    <div className={cn('mx-auto grid w-full max-w-[320px] gap-4')}>
+      <form className="grid gap-4" onSubmit={handleEmailAuth}>
+        {mode === 'signup' && (
+          <div className="grid gap-2">
+            <Label htmlFor="name">Name</Label>
+            <Input
+              disabled={isPending}
+              id="name"
+              onChange={(e) => setName(e.target.value)}
+              placeholder="John Doe"
+              required
+              value={name}
+            />
+          </div>
+        )}
+        <div className="grid gap-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            disabled={isPending}
+            id="email"
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            required
+            type="email"
+            value={email}
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            disabled={isPending}
+            id="password"
+            minLength={8}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            required
+            type="password"
+            value={password}
+          />
+        </div>
+        <Button className="w-full" disabled={isPending} size="lg" type="submit">
+          {mode === 'signup' ? 'Sign Up' : 'Sign In'}
+        </Button>
+      </form>
 
-      <Button
-        className="w-full"
-        disabled={signInSocial.isPending}
-        onClick={handleGithubSignIn}
-        size="lg"
-        variant="default"
+      <button
+        className="text-center text-muted-foreground text-sm hover:underline"
+        onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
+        type="button"
       >
-        <GitHubIcon />
-        Continue with Github
-      </Button>
+        {mode === 'signin'
+          ? "Don't have an account? Sign up"
+          : 'Already have an account? Sign in'}
+      </button>
 
-      <div className="my-3 max-w-xs text-balance text-center text-muted-foreground text-xs">
+      <div className="relative my-2">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">
+            Or continue with
+          </span>
+        </div>
+      </div>
+
+      <div className="grid gap-3">
+        <Button
+          className="w-full"
+          disabled={isPending}
+          onClick={handleGoogleSignIn}
+          size="lg"
+          variant="outline"
+        >
+          <GoogleIcon />
+          Continue with Google
+        </Button>
+
+        <Button
+          className="w-full"
+          disabled={isPending}
+          onClick={handleGithubSignIn}
+          size="lg"
+          variant="outline"
+        >
+          <GitHubIcon />
+          Continue with Github
+        </Button>
+      </div>
+
+      <div className="mt-2 max-w-xs text-balance text-center text-muted-foreground text-xs">
         By continuing, you agree to our{' '}
         <Link className="font-semibold hover:underline" href="#terms">
           Terms of Service

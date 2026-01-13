@@ -113,7 +113,7 @@ If you're an AI agent integrating better-convex, **ask the user to select their 
 
 | Stack | Key Docs |
 |-------|----------|
-| Next.js + Better Auth + Ents | [Templates](/docs/templates), [Next.js Setup](/docs/nextjs/setup), [Auth Setup](/docs/auth/setup) |
+| Next.js + Better Auth + Ents | [Templates](/docs/templates), [Next.js Setup](/docs/nextjs/setup), [Auth Server](/docs/auth/server) |
 | Next.js + Better Auth + ctx.db | [Templates](/docs/templates) (ctx.db tabs), [Next.js Setup](/docs/nextjs/setup) |
 | Vite + No Auth | [React Setup](/docs/react/setup), [Server Setup](/docs/server/setup) |
 | Any + Custom Auth | [Server Setup](/docs/server/setup), [Middlewares](/docs/server/middlewares) |
@@ -176,9 +176,9 @@ Complete reference for all documentation pages.
 | Page | When to Use |
 |------|-------------|
 | [Auth Overview](/docs/auth/index) | Architecture overview. When to use Better Auth vs other auth solutions. |
-| [Auth Setup](/docs/auth/setup) | Complete Better Auth setup: schema, adapters, HTTP routes, client. |
+| [Auth Server](/docs/auth/server) | Complete Better Auth setup: schema, adapters, HTTP routes, helpers. |
+| [Auth Client](/docs/auth/client) | `useAuth`, `Authenticated`/`Unauthenticated` components. |
 | [Auth Triggers](/docs/auth/triggers) | User lifecycle hooks: `beforeCreate`, `onCreate`, `onDelete`. |
-| [Auth Helpers](/docs/auth/helpers) | `getAuthUserId`, `getSession`, `useAuth`, `Authenticated`/`Unauthenticated` components. |
 
 ### Reference
 
@@ -196,8 +196,8 @@ Complete reference for all documentation pages.
 3. [Concepts](/docs/concepts) → understand folder structure
 
 **Add authentication:**
-1. [Auth Setup](/docs/auth/setup) → configure Better Auth
-2. [Auth Helpers](/docs/auth/helpers) → use auth in components
+1. [Auth Server](/docs/auth/server) → configure Better Auth
+2. [Auth Client](/docs/auth/client) → use auth in components
 3. [Middlewares](/docs/server/middlewares) → protect procedures
 
 **Add database features:**

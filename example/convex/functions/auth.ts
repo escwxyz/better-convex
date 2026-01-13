@@ -79,6 +79,9 @@ export const authClient = createClient<DataModel, typeof schema>({
 
 const createAuthOptions = (ctx: GenericCtx) =>
   ({
+    emailAndPassword: {
+      enabled: true,
+    },
     account: {
       accountLinking: {
         enabled: true,

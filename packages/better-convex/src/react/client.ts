@@ -394,8 +394,16 @@ export class ConvexQueryClient {
         this.queryClient.setQueryData(queryKey, result.value);
       }
     } else {
-      // Push error state to TanStack cache
       const { error } = result;
+      const authState = this.getAuthState();
+
+      // Suppress UNAUTHORIZED errors during auth loading - subscription will
+      // get fresh data once auth state settles (e.g., after HMR or server reload)
+      if (authState?.isLoading && authState.isUnauthorized(error)) {
+        return;
+      }
+
+      // Push error state to TanStack cache
       query.setState(
         {
           error: error as Error,
@@ -410,7 +418,6 @@ export class ConvexQueryClient {
       );
 
       // Call onQueryUnauthorized if server returned auth error
-      const authState = this.getAuthState();
       if (authState?.isUnauthorized(error)) {
         const [, funcName] = queryKey;
         authState.onUnauthorized({ queryName: funcName as string });
