@@ -1,4 +1,4 @@
-name: Code Quality
+name: CI
 
 on:
   push:
@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   lint:
-    name: Lint & Typecheck
+    name: CI
     runs-on: ubuntu-latest
 
     steps:
@@ -50,15 +50,14 @@ jobs:
             ${{ runner.os }}-nextjs-${{ hashFiles('**/bun.lock') }}-
 
       - name: 📥 Install
-        run: bun install --frozen-lockfile && cp example/.env.example example/.env.local
+        run: bun install --frozen-lockfile && bun gen
 
-      - name: 🔬 Run Biome & ESLint
-        working-directory: example
-        run: bun lint
+      - name: 📦 Build Packages
+        run: bun build:pkg
+
+      - name: 🔬 Run Biome & ESLint & Typecheck
+        run: bun check
 
       - name: 🕵️ Typecheck & Build
         working-directory: example
         run: SKIP_ENV_VALIDATION=true bun run build
-
-      # - name: 🧪 Unit tests
-      #   run: bun test
