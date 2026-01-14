@@ -7,7 +7,7 @@ description: Infer input and output types from your Convex API
 
 cRPC provides type inference utilities similar to tRPC. Extract input and output types from your API for use in components, utilities, and type-safe operations.
 
-```ts title="convex/shared/types.ts"
+```ts title="convex/types.ts"
 import type { inferApiInputs, inferApiOutputs } from 'better-convex/server';
 import { api } from './_generated/api';
 
@@ -21,7 +21,7 @@ export type ApiOutputs = inferApiOutputs<Api>;
 Access nested procedure types using bracket notation:
 
 ```tsx title="src/components/user-card.tsx"
-import type { ApiInputs, ApiOutputs } from '@convex/shared/types';
+import type { ApiInputs, ApiOutputs } from '@convex/types';
 
 // Output types
 type User = ApiOutputs['user']['get'];
@@ -36,7 +36,7 @@ type CreatePostArgs = ApiInputs['post']['create'];
 ### In Components
 
 ```tsx title="src/components/user-profile.tsx"
-import type { ApiOutputs } from '@convex/shared/types';
+import type { ApiOutputs } from '@convex/types';
 
 type User = ApiOutputs['user']['get'];
 
@@ -53,7 +53,7 @@ function UserProfile({ user }: { user: User }) {
 ### In Utility Functions
 
 ```tsx title="src/lib/utils/user.ts"
-import type { ApiInputs, ApiOutputs } from '@convex/shared/types';
+import type { ApiInputs, ApiOutputs } from '@convex/types';
 
 type User = ApiOutputs['user']['get'];
 type UpdateUserArgs = ApiInputs['user']['update'];
@@ -92,7 +92,7 @@ type GetUserArgs = FunctionArgs<typeof api.user.get>;
 
 **After (cRPC):**
 ```tsx
-import type { ApiInputs, ApiOutputs } from '@convex/shared/types';
+import type { ApiInputs, ApiOutputs } from '@convex/types';
 
 type User = ApiOutputs['user']['get'];
 type GetUserArgs = ApiInputs['user']['get'];

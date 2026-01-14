@@ -291,7 +291,7 @@ type User = FunctionReturnType<typeof api.user.get>;
 ```tsx
 import { useQuery } from '@tanstack/react-query';
 import { useCRPC } from '@/lib/convex/crpc';
-import type { ApiOutputs } from '@convex/shared/types';
+import type { ApiOutputs } from '@convex/types';
 
 const crpc = useCRPC();
 const { data } = useQuery(crpc.user.list.queryOptions({}));

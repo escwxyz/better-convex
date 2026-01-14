@@ -312,10 +312,7 @@ export const authAction = c.action
   .meta({ auth: 'required' })
   .use(devMiddleware)
   .use(async ({ ctx, next }) => {
-    // Actions don't have db access, use runQuery to get session user
-    // biome-ignore lint/suspicious/noExplicitAny: circular reference
-    const rawUser: any = await ctx.runQuery(api.user.getSessionUser, {});
-    const user = requireAuth(rawUser as SessionUser | null);
+    const user = requireAuth(await ctx.runQuery(api.user.getSessionUser));
 
     return next({ ctx: { ...ctx, user, userId: user.id } });
   });

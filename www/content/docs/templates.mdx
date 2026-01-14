@@ -551,8 +551,7 @@ The cRPC builder with auth middleware and procedure variants.
       .use(devMiddleware)
       .use(async ({ ctx, next }) => {
         // Actions don't have db access - use runQuery
-        // biome-ignore lint/suspicious/noExplicitAny: circular reference
-        const rawUser: any = await ctx.runQuery(api.user.getSessionUser, {});
+        const rawUser = await ctx.runQuery(api.user.getSessionUser, {});
         if (!rawUser) {
           throw new CRPCError({ code: 'UNAUTHORIZED', message: 'Not authenticated' });
         }
@@ -860,8 +859,7 @@ The cRPC builder with auth middleware and procedure variants.
       .use(devMiddleware)
       .use(async ({ ctx, next }) => {
         // Actions don't have db access - use runQuery
-        // biome-ignore lint/suspicious/noExplicitAny: circular reference
-        const rawUser: any = await ctx.runQuery(api.user.getSessionUser, {});
+        const rawUser = await ctx.runQuery(api.user.getSessionUser, {});
         if (!rawUser) {
           throw new CRPCError({ code: 'UNAUTHORIZED', message: 'Not authenticated' });
         }

@@ -460,20 +460,13 @@ export const processDailySummaries = privateAction
   )
   .action(async ({ ctx }) => {
     // Get users with overdue todos
-    const usersToNotify: {
-      userId: Id<'user'>;
-      email: string;
-      name?: string;
-      overdueTodos: Array<{
-        _id: Id<'todos'>;
-        title: string;
-        dueDate: number;
-        daysOverdue: number;
-      }>;
-    }[] = await ctx.runQuery(internal.todoInternal.getUsersWithOverdueTodos, {
-      hoursOverdue: 24,
-      limit: 100,
-    });
+    const usersToNotify = await ctx.runQuery(
+      internal.todoInternal.getUsersWithOverdueTodos,
+      {
+        hoursOverdue: 24,
+        limit: 100,
+      }
+    );
 
     let sent = 0;
     let failed = 0;
@@ -516,30 +509,13 @@ export const generateWeeklyReport = privateAction
     const weekStart = now - 7 * 24 * 60 * 60 * 1000;
 
     // Get user's todos from the past week
-    const weekTodos: {
-      created: Array<{
-        _id: Id<'todos'>;
-        title: string;
-        dueDate: number;
-        completedAt: number;
-      }>;
-      completed: Array<{
-        _id: Id<'todos'>;
-        title: string;
-        dueDate: number;
-        completedAt: number;
-      }>;
-      all: Array<{
-        _id: Id<'todos'>;
-        title: string;
-        dueDate: number;
-        completedAt: number;
-        projectId: Id<'projects'> | null;
-      }>;
-    } = await ctx.runQuery(internal.todoInternal.getUserWeeklyActivity, {
-      userId: input.userId,
-      weekStart,
-    });
+    const weekTodos = await ctx.runQuery(
+      internal.todoInternal.getUserWeeklyActivity,
+      {
+        userId: input.userId,
+        weekStart,
+      }
+    );
 
     // Calculate stats
     const todosCreated = weekTodos.created.length;
