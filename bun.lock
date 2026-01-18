@@ -85,14 +85,8 @@
     "packages/better-convex": {
       "name": "better-convex",
       "version": "0.1.0",
-      "bin": {
-        "better-convex": "./dist/cli.cjs",
-      },
       "dependencies": {
-        "chokidar": "^5.0.0",
         "common-tags": "^1.8.2",
-        "execa": "^9.6.1",
-        "jiti": "^2.6.1",
         "jotai-x": "^2.3.3",
         "picocolors": "^1.1.1",
         "remeda": "^2.21.0",
@@ -123,6 +117,27 @@
         "next",
         "react",
       ],
+    },
+    "packages/better-convex-cli": {
+      "name": "better-convex-cli",
+      "version": "0.1.0",
+      "bin": {
+        "better-convex": "./dist/cli.cjs",
+      },
+      "dependencies": {
+        "chokidar": "^5.0.0",
+        "dotenv": "^17.2.3",
+        "execa": "^9.6.1",
+        "jiti": "^2.6.1",
+      },
+      "devDependencies": {
+        "@types/node": "^25.0.3",
+        "tsdown": "^0.19.0-beta.1",
+        "typescript": "^5.9.3",
+      },
+      "peerDependencies": {
+        "convex": ">=1.31",
+      },
     },
     "www": {
       "name": "www",
@@ -921,6 +936,8 @@
     "better-call": ["better-call@1.1.7", "", { "dependencies": { "@better-auth/utils": "^0.3.0", "@better-fetch/fetch": "^1.1.4", "rou3": "^0.7.10", "set-cookie-parser": "^2.7.1" }, "peerDependencies": { "zod": "^4.0.0" }, "optionalPeers": ["zod"] }, "sha512-6gaJe1bBIEgVebQu/7q9saahVzvBsGaByEnE8aDVncZEDiJO7sdNB28ot9I6iXSbR25egGmmZ6aIURXyQHRraQ=="],
 
     "better-convex": ["better-convex@workspace:packages/better-convex"],
+
+    "better-convex-cli": ["better-convex-cli@workspace:packages/better-convex-cli"],
 
     "better-path-resolve": ["better-path-resolve@1.0.0", "", { "dependencies": { "is-windows": "^1.0.0" } }, "sha512-pbnl5XzGBdrFU/wT4jqmJVPn2B6UHPBOhzMQkY/SPUPB6QtUXtmBHBIwCbXJol93mOpGMnQyP/+BB19q04xj7g=="],
 

@@ -22,9 +22,6 @@
     "./server": "./dist/server/index.js",
     "./package.json": "./package.json"
   },
-  "bin": {
-    "better-convex": "./dist/cli.cjs"
-  },
   "files": [
     "dist"
   ],
@@ -35,10 +32,7 @@
     "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
-    "chokidar": "^5.0.0",
     "common-tags": "^1.8.2",
-    "execa": "^9.6.1",
-    "jiti": "^2.6.1",
     "jotai-x": "^2.3.3",
     "picocolors": "^1.1.1",
     "remeda": "^2.21.0",

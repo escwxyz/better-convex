@@ -41,15 +41,4 @@ export default defineConfig([
     exports: true,
     dts: true,
   },
-  // CLI builds (CJS) - skip bundling node_modules like tsup
-  {
-    entry: ['src/cli/cli.ts', 'src/cli/watcher.ts'],
-    format: 'cjs',
-    platform: 'node',
-    target: 'esnext',
-    tsconfig: 'tooling/tsconfig.build.json',
-    shims: true,
-    skipNodeModulesBundle: true,
-    banner: '#!/usr/bin/env node',
-  },
 ]);
