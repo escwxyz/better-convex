@@ -104,8 +104,8 @@ type ExtractHttpRouter<TApi> = TApi extends { http?: infer R }
  * // Without HTTP endpoints
  * export const { useCRPC } = createCRPCContext({ api, meta });
  *
- * // With HTTP endpoints (AppRouter = Api & { http?: typeof appRouter })
- * export const { useCRPC } = createCRPCContext<AppRouter>({
+ * // With HTTP endpoints (Api = Api & { http?: typeof appRouter })
+ * export const { useCRPC } = createCRPCContext<Api>({
  *   api,
  *   meta,
  *   convexSiteUrl: process.env.NEXT_PUBLIC_CONVEX_SITE_URL!,

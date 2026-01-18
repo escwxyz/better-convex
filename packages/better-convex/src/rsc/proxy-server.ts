@@ -134,10 +134,10 @@ function createRecursiveProxy(
  * // src/lib/convex/rsc.tsx
  * import { api } from '@convex/api';
  * import { meta } from '@convex/meta';
- * import type { AppRouter } from '@convex/types';
+ * import type { Api } from '@convex/types';
  *
  * // Proxy just builds query options - no auth config here
- * export const crpc = createServerCRPCProxy<AppRouter>({ api, meta });
+ * export const crpc = createServerCRPCProxy<Api>({ api, meta });
  *
  * // Auth + execution config in QueryClient
  * const queryClient = new QueryClient({

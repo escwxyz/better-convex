@@ -27,121 +27,53 @@ getServerQueryClientOptions({
 });
 ```
 
-**Feature:** Added HTTP routes support via `WithHttpRouter` helper:
+**Feature:** Added type-safe HTTP routes with tRPC-style client:
 
 ```ts
-// convex/shared/types.ts - before
-export type Api = typeof api;
-
-// convex/shared/types.ts - after
-import { WithHttpRouter } from "better-convex/server";
-import type { appRouter } from "../functions/http";
-
-export type Api = WithHttpRouter<typeof api, typeof appRouter>;
-// ApiInputs['http']['todos'] now works for HTTP route type inference
-```
-
-**Feature:** Added `httpAction` builder to CRPC for type-safe HTTP routes:
-
-```ts
-// crpc.ts - pass httpAction to initCRPC.create()
+// 1. Pass httpAction to initCRPC.create()
 const c = initCRPC.dataModel<DataModel>().create({
-  query,
-  mutation,
-  action,
-  httpAction,
+  query, mutation, action, httpAction,
 });
-
 export const publicRoute = c.httpAction;
 export const authRoute = c.httpAction.use(authMiddleware);
 export const router = c.router;
-```
 
-**Feature:** Added HTTP route builder methods (`.get()`, `.post()`, `.patch()`, `.delete()`):
-
-```ts
-// Define route with HTTP method and path
+// 2. Define routes with .get()/.post()/.patch()/.delete()
 export const health = publicRoute
   .get('/api/health')
   .output(z.object({ status: z.string() }))
   .query(async () => ({ status: 'ok' }));
 
-export const create = authRoute
-  .post('/api/todos')
-  .input(z.object({ title: z.string() }))
-  .output(z.object({ id: zid('todos') }))
-  .mutation(async ({ ctx, input }) => { ... });
-```
-
-**Feature:** Added route input methods (`.params()`, `.searchParams()`, `.input()`):
-
-```ts
-// Path params: /api/todos/:id
-.params(z.object({ id: zid('todos') }))
-
-// Query params: /api/todos?limit=10
-.searchParams(z.object({ limit: z.coerce.number().optional() }))
-
-// JSON body (POST/PATCH/DELETE)
-.input(z.object({ title: z.string() }))
-```
-
-**Feature:** Added `router()` factory for nested HTTP routers (tRPC-style):
-
-```ts
+// 3. Use .params(), .searchParams(), .input() for typed inputs
 export const todosRouter = router({
-  list: publicRoute.get('/api/todos')...,
-  get: publicRoute.get('/api/todos/:id')...,
-  create: authRoute.post('/api/todos')...,
+  list: publicRoute.get('/api/todos')
+    .searchParams(z.object({ limit: z.coerce.number().optional() }))
+    .query(...),
+  get: publicRoute.get('/api/todos/:id')
+    .params(z.object({ id: zid('todos') }))
+    .query(...),
+  create: authRoute.post('/api/todos')
+    .input(z.object({ title: z.string() }))
+    .mutation(...),
 });
 
-export const appRouter = router({
-  health,
-  todos: todosRouter,
-});
-```
-
-**Feature:** Added `registerCRPCRoutes` to register HTTP routes to Convex httpRouter with CORS:
-
-```ts
-// http.ts
-import { registerCRPCRoutes } from "better-convex/server";
-
+// 4. Register with CORS
 registerCRPCRoutes(http, appRouter, {
   httpAction,
-  cors: {
-    allowedOrigins: [process.env.SITE_URL!],
-    allowCredentials: true,
-  },
+  cors: { allowedOrigins: [process.env.SITE_URL!], allowCredentials: true },
 });
-```
 
-**Feature:** Added `crpc.http.*` proxy with TanStack Query integration:
+// 5. Add to Api type for inference
+export type Api = WithHttpRouter<typeof api, typeof appRouter>;
 
-```ts
+// 6. Client: TanStack Query integration via crpc.http.*
 const crpc = useCRPC();
-
-// GET routes → queryOptions
-const todos = useSuspenseQuery(crpc.http.todos.list.queryOptions({ limit: 10 }));
-const health = useSuspenseQuery(crpc.http.health.queryOptions({}));
-
-// POST/PATCH/DELETE routes → mutationOptions
-const createTodo = useMutation(crpc.http.todos.create.mutationOptions({
-  onSuccess: () => queryClient.invalidateQueries(crpc.http.todos.list.queryFilter()),
-}));
-
-// queryFilter for cache invalidation
+useSuspenseQuery(crpc.http.todos.list.queryOptions({ limit: 10 }));
+useMutation(crpc.http.todos.create.mutationOptions());
 queryClient.invalidateQueries(crpc.http.todos.list.queryFilter());
-```
 
-**Feature:** Added `prefetch` helper for RSC HTTP queries:
-
-```ts
-import { crpc, prefetch } from '@/lib/convex/rsc';
-
-// Server component
+// 7. RSC: prefetch helper
 prefetch(crpc.http.health.queryOptions({}));
-prefetch(crpc.user.getCurrentUser.queryOptions());
 ```
 
 **Fix:** Improved authentication in `ConvexAuthProvider`:
