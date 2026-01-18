@@ -59,7 +59,7 @@ export function getServerQueryClientOptions({
             throw new Error(`HTTP route metadata missing for: ${routeKey}`);
           }
 
-          return fetchHttpRoute(convexSiteUrl, routeMeta, args, token);
+          return await fetchHttpRoute(convexSiteUrl, routeMeta, args, token);
         }
 
         // Handle WebSocket queries (convexQuery/convexAction)
@@ -79,8 +79,12 @@ export function getServerQueryClientOptions({
         // Use convex fetch directly - works for public queries too
         const opts = token ? { token } : undefined;
         return type === 'convexQuery'
-          ? fetchQuery(funcRef as FunctionReference<'query'>, args, opts)
-          : fetchAction(funcRef as FunctionReference<'action'>, args, opts);
+          ? await fetchQuery(funcRef as FunctionReference<'query'>, args, opts)
+          : await fetchAction(
+              funcRef as FunctionReference<'action'>,
+              args,
+              opts
+            );
       },
       queryKeyHashFn: createHashFn(),
     },
