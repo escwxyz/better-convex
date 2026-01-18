@@ -238,6 +238,25 @@ export class ConvexQueryClient {
     };
   }
 
+  /**
+   * Check if subscription should be skipped due to auth state.
+   * Needed for useSuspenseQuery which ignores enabled: false.
+   * Regular useQuery already handles this via enabled: false in hooks.
+   */
+  private shouldSkipSubscription(
+    authType: 'optional' | 'required' | undefined
+  ) {
+    if (!authType || !this.authStore) return false;
+
+    const authState = this.getAuthState();
+    // Wait for auth to settle before subscribing
+    if (authState?.isLoading) return true;
+    // For required: also check authenticated
+    if (authType === 'required' && !authState?.isAuthenticated) return true;
+
+    return false;
+  }
+
   /** Get QueryClient, throwing if not connected */
   get queryClient() {
     if (!this._queryClient) {
@@ -437,6 +456,7 @@ export class ConvexQueryClient {
       if (!isConvexQuery(event.query.queryKey)) {
         return;
       }
+
       // Ignore skipped queries (auth required but not authenticated)
       if (isConvexSkipped(event.query.queryKey)) {
         return;
@@ -474,6 +494,11 @@ export class ConvexQueryClient {
 
           // Skip subscription if query has no observers
           if (event.query.getObserversCount() === 0) {
+            break;
+          }
+
+          // Skip subscription while auth is loading or unauthenticated (for required)
+          if (this.shouldSkipSubscription(meta?.authType)) {
             break;
           }
 
@@ -524,6 +549,11 @@ export class ConvexQueryClient {
           }
 
           const [, funcName, args] = event.query.queryKey;
+
+          // Skip subscription while auth is loading or unauthenticated (for required)
+          if (this.shouldSkipSubscription(meta?.authType)) {
+            break;
+          }
 
           // Create WebSocket subscription via Convex watchQuery
           const watch = this.convexClient.watchQuery(
@@ -605,6 +635,11 @@ export class ConvexQueryClient {
           }
 
           const [, funcName, args] = event.query.queryKey;
+
+          // Skip subscription while auth is loading or unauthenticated (for required)
+          if (this.shouldSkipSubscription(meta?.authType)) {
+            break;
+          }
 
           // Create WebSocket subscription via Convex watchQuery
           const watch = this.convexClient.watchQuery(

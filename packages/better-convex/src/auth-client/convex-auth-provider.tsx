@@ -8,7 +8,7 @@ import type { AuthTokenFetcher } from 'convex/browser';
 import type { ConvexReactClient } from 'convex/react';
 import { ConvexProviderWithAuth, useConvexAuth } from 'convex/react';
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { CRPCClientError, defaultIsUnauthorized } from '../crpc/error';
 import {
@@ -112,18 +112,39 @@ function ConvexAuthProviderInner({
   const authStore = useAuthStore();
   const { data: session, isPending } = authClient.useSession();
 
-  // Create fetchAccessToken at render time - immediately available via context
+  // Use refs to avoid recreating fetchAccessToken on session refetch (tab focus)
+  // This prevents Convex SDK from calling setAuth() again and causing race conditions
+  const sessionRef = useRef(session);
+  const isPendingRef = useRef(isPending);
+  sessionRef.current = session;
+  isPendingRef.current = isPending;
+
+  // Clear token when session becomes null (logout)
+  // This can't be inside fetchAccessToken because it's not called after logout
+  useEffect(() => {
+    if (!session && !isPending) {
+      authStore.set('token', null);
+      authStore.set('expiresAt', null);
+      authStore.set('isAuthenticated', false);
+    }
+  }, [session, isPending, authStore]);
+
+  // Stable fetchAccessToken - only recreated when authStore/authClient change (rare)
+  // Reads session/isPending from refs to avoid dependency on changing objects
   const fetchAccessToken = useCallback(
     async ({
       forceRefreshToken = false,
     }: {
       forceRefreshToken?: boolean;
     } = {}) => {
+      const currentSession = sessionRef.current;
+      const currentIsPending = isPendingRef.current;
+
       // If no session:
       // - If still pending (hydration), return cached token from SSR
       // - If not pending (confirmed no session), clear cache
-      if (!session) {
-        if (!isPending) {
+      if (!currentSession) {
+        if (!currentIsPending) {
           authStore.set('token', null);
           authStore.set('expiresAt', null);
         }
@@ -158,29 +179,28 @@ function ConvexAuthProviderInner({
         }
 
         return jwt;
-      } catch {
+      } catch (e) {
+        console.error('[fetchAccessToken] error', e);
         return null;
       }
     },
-    // Rebuild when session/isPending changes to trigger setAuth()
-    [session, isPending, authStore, authClient]
+    // Stable deps - authStore/authClient rarely change
+    // session/isPending accessed via refs to prevent callback recreation
+    [authStore, authClient]
   );
 
   // Create useAuth hook for ConvexProviderWithAuth
-  const useAuth = useMemo(
-    () =>
-      function useConvexAuthHook() {
-        return useMemo(
-          () => ({
-            isLoading: isPending,
-            isAuthenticated: session !== null,
-            fetchAccessToken,
-          }),
-          // eslint-disable-next-line react-hooks/exhaustive-deps
-          [isPending, session, fetchAccessToken]
-        );
-      },
-    [isPending, session, fetchAccessToken]
+  // The hook itself is stable - it reads current values from refs
+  // This prevents Convex SDK from calling setAuth() on every session refetch
+  const useAuth = useCallback(
+    function useConvexAuthHook() {
+      return {
+        isLoading: isPendingRef.current,
+        isAuthenticated: sessionRef.current !== null,
+        fetchAccessToken,
+      };
+    },
+    [fetchAccessToken]
   );
 
   return (

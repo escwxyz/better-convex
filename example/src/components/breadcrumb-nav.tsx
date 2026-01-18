@@ -5,6 +5,7 @@ import { useMaybeAuth } from 'better-convex/react';
 import {
   Building2,
   CheckSquare,
+  ChevronDown,
   FolderOpen,
   Loader2,
   LogIn,
@@ -12,12 +13,21 @@ import {
   Sparkles,
   Tags,
   TestTube2,
+  User,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { OrganizationSwitcher } from '@/components/organization/organization-switcher';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useSignOutMutationOptions } from '@/lib/convex/auth-client';
 import { useCRPC } from '@/lib/convex/crpc';
 import { useCurrentUser } from '@/lib/convex/hooks';
@@ -156,20 +166,34 @@ export function BreadcrumbNav() {
                     <span className="hidden sm:inline">Samples</span>
                   </Button>
                 )}
-                <Button
-                  className="gap-2"
-                  disabled={signOutMutation.isPending}
-                  onClick={() => signOutMutation.mutate()}
-                  size="sm"
-                  variant="ghost"
-                >
-                  {signOutMutation.isPending ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <LogOut className="size-4" />
-                  )}
-                  <span className="hidden sm:inline">Sign out</span>
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button className="gap-2" size="sm" variant="ghost">
+                      <User className="size-4" />
+                      <span className="hidden sm:inline">
+                        {user?.name || 'Account'}
+                      </span>
+                      <ChevronDown className="size-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>
+                      {user?.name || 'My Account'}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      disabled={signOutMutation.isPending}
+                      onClick={() => signOutMutation.mutate()}
+                    >
+                      {signOutMutation.isPending ? (
+                        <Loader2 className="mr-2 size-4 animate-spin" />
+                      ) : (
+                        <LogOut className="mr-2 size-4" />
+                      )}
+                      Sign out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             ) : pathname !== '/login' ? (
               <Button asChild size="sm" variant="default">

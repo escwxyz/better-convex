@@ -135,7 +135,7 @@ const createAuthOptions = (ctx: GenericCtx) =>
         authConfig,
         jwks: process.env.JWKS,
         jwt: {
-          expirationSeconds: 70, // 15m expiry (60s leeway)
+          // expirationSeconds: 70, // testing value, default is 15m expiry (60s leeway)
         },
       }),
       polar({
