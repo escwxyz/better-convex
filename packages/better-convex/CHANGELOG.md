@@ -1,5 +1,12 @@
 # better-convex
 
+## 0.3.1
+
+### Patch Changes
+
+- [#29](https://github.com/udecode/better-convex/pull/29) [`2638311`](https://github.com/udecode/better-convex/commit/26383112835605dd806151832edfbcd98e1e75b2) Thanks [@zbeyens](https://github.com/zbeyens)! - - Move hono to peerDependencies (type-only imports in package)
+  - Add stale cursor auto-recovery for `useInfiniteQuery` - automatically recovers from stale pagination cursors after WebSocket reconnection without losing scroll position
+
 ## 0.3.0
 
 ### Minor Changes
