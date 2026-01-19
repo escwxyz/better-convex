@@ -237,7 +237,7 @@ The hooks provide two key features:
 Get comprehensive auth state:
 
 ```tsx title="src/components/auth-status.tsx" showLineNumbers {1,4,6}
-import { useAuth } from 'better-convex/auth-client';
+import { useAuth } from 'better-convex/react';
 
 function AuthStatus() {
   const { hasSession, isAuthenticated, isLoading } = useAuth();
@@ -263,7 +263,7 @@ function AuthStatus() {
 Check if user maybe has auth (optimistic, has token):
 
 ```tsx showLineNumbers {1,4}
-import { useMaybeAuth } from 'better-convex/auth-client';
+import { useMaybeAuth } from 'better-convex/react';
 
 function Component() {
   const isAuth = useMaybeAuth();
@@ -276,7 +276,7 @@ function Component() {
 Check if user is authenticated (server-verified):
 
 ```tsx showLineNumbers {1,4}
-import { useIsAuth } from 'better-convex/auth-client';
+import { useIsAuth } from 'better-convex/react';
 
 function SecureComponent() {
   const isAuth = useIsAuth();
@@ -289,7 +289,7 @@ function SecureComponent() {
 Guard mutations that require authentication:
 
 ```tsx title="src/components/create-post.tsx" showLineNumbers {1,5,8-9,12}
-import { useAuthGuard } from 'better-convex/auth-client';
+import { useAuthGuard } from 'better-convex/react';
 import { useMutation } from '@tanstack/react-query';
 
 function CreatePostButton() {
@@ -327,7 +327,7 @@ const handleClick = () => {
 Render children only when has session (optimistic):
 
 ```tsx showLineNumbers {1,5-7}
-import { MaybeAuthenticated } from 'better-convex/auth-client';
+import { MaybeAuthenticated } from 'better-convex/react';
 
 function App() {
   return (
@@ -343,7 +343,7 @@ function App() {
 Render children only when server-verified:
 
 ```tsx showLineNumbers {1,5-7}
-import { Authenticated } from 'better-convex/auth-client';
+import { Authenticated } from 'better-convex/react';
 
 function App() {
   return (
@@ -359,7 +359,7 @@ function App() {
 Render children only when no session (optimistic):
 
 ```tsx showLineNumbers {1,5-11}
-import { MaybeAuthenticated, MaybeUnauthenticated } from 'better-convex/auth-client';
+import { MaybeAuthenticated, MaybeUnauthenticated } from 'better-convex/react';
 
 function App() {
   return (
@@ -380,7 +380,7 @@ function App() {
 Render children only when not server-verified (waits for loading):
 
 ```tsx showLineNumbers {1,5-7}
-import { Unauthenticated } from 'better-convex/auth-client';
+import { Unauthenticated } from 'better-convex/react';
 
 function App() {
   return (
