@@ -703,9 +703,7 @@ Run `npx better-convex env sync` to sync all variables to Convex.
 
 Your first production deployment will fail authentication because JWKS isn't set yet. Don't worry - here's how to fix it:
 
-<Steps>
-
-<Step>Deploy your app to production</Step>
+**1. Deploy your app to production**
 
 ```bash
 npx convex deploy --prod
@@ -713,7 +711,7 @@ npx convex deploy --prod
 
 Authentication will fail at this point - that's expected.
 
-<Step>Generate and set JWKS</Step>
+**2. Generate and set JWKS**
 
 Run from your local machine with Convex CLI authenticated:
 
@@ -723,11 +721,9 @@ npx convex run auth:getLatestJwks --prod | npx convex env set JWKS --prod
 
 This generates new signing keys (if none exist) and sets the JWKS environment variable.
 
-<Step>Verify authentication works</Step>
+**3. Verify authentication works**
 
 Test a protected endpoint or sign in through your app. Authentication should now succeed.
-
-</Steps>
 
 <Callout icon={<InfoIcon />}>
 **Troubleshooting:** If you see "Invalid token signature" errors after deployment, your JWKS may be outdated. Re-run the `getLatestJwks` command to sync.
