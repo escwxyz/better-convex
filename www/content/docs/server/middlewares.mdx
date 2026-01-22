@@ -125,7 +125,7 @@ export const queryWithProject = publicQuery
   .use(async ({ ctx, input, next }) => {
     const project = await ctx.db.get(input.projectId);
     // Add to context, enrich input, or override fields
-    return next({ ctx: { ...ctx, project }, input: { ...input, project, name: input.name.trim() } });
+    return next({ ctx: { ...ctx, project }, input: { ...input, name: input.name.trim() } });
   })
   .query(async ({ ctx, input }) => input.project); // both work
 ```
