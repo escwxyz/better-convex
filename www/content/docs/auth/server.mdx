@@ -149,8 +149,8 @@ Now let's look at what happens when you use `useCRPC().posts.list.useQuery()` in
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  4. Identity Cached → Queries Unblocked                                  │
 │     All pending queries now execute instantly                            │
-│     useQuery(api.posts.list) → runs                                      │
-│     useQuery(api.user.me)    → runs                                      │
+│     useQuery(crpc.posts.list.queryOptions()) → runs                      │
+│     useQuery(crpc.user.me.queryOptions())    → runs                      │
 │     ... navigate to other pages → all queries instant                    │
 └─────────────────────────────────────────────────────────────────────────┘
 ```

@@ -153,6 +153,17 @@ Here are battle-tested metadata patterns you can copy into your project.
 
 ### Auth Level
 
+The `auth` metadata controls both server and client behavior:
+
+**Server-side:** Middleware checks authentication
+**Client-side:** Query waits for auth loading and skips appropriately
+
+| `auth` value | Server | Client (auth loading) | Client (logged out) |
+|--------------|--------|----------------------|---------------------|
+| (none) | No check | Runs immediately | Runs |
+| `'optional'` | User optional | Waits | Runs |
+| `'required'` | User required | Waits | Skips |
+
 Use `auth` metadata to distinguish between optional and required authentication:
 
 ```ts title="convex/lib/crpc.ts" showLineNumbers {2,8-9}

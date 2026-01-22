@@ -187,7 +187,12 @@ This is useful for:
 
 ### Auth metadata
 
-Procedures with `.meta({ auth: 'required' })` automatically skip when the user isn't authenticated, without needing `skipUnauth`:
+Procedures with `.meta({ auth: 'required' })` have two key behaviors:
+
+1. **During auth loading**: Query is disabled (waits for auth handshake to complete)
+2. **After auth settles**: Query is skipped if user isn't authenticated
+
+This prevents "unauthenticated" errors on first page load - the query won't run until we know the user's auth state.
 
 <Tabs groupId="db" items={["ctx.db", "ctx.table"]} persist>
   <Tab value="ctx.db">
@@ -219,6 +224,29 @@ Procedures with `.meta({ auth: 'required' })` automatically skip when the user i
     ```
   </Tab>
 </Tabs>
+
+<Callout icon={<InfoIcon />}>
+**How Auth Loading Works:**
+
+When your app loads, auth state is initially unknown (`isLoading: true`). How queries behave depends on their metadata:
+
+| Procedure | Auth Loading | Logged Out |
+|-----------|-------------|------------|
+| `publicQuery` | Runs immediately | Runs |
+| `optionalAuthQuery` (auth: 'optional') | **Waits** | Runs |
+| `authQuery` (auth: 'required') | **Waits** | **Skips** |
+
+**Note:** These procedure builders (`authQuery`, etc.) already include the correct `.meta()` settings. Just use `authQuery` - no need to add `.meta({ auth: 'required' })` yourself.
+</Callout>
+
+**When to use each:**
+
+| Use Case | Solution |
+|----------|----------|
+| Query needs `ctx.user` | Use `authQuery` (has `.meta({ auth: 'required' })`) |
+| Public page with optional user data | Use `optionalAuthQuery` + check `ctx.user` |
+| Fully public data | Use `publicQuery` |
+| Auth query that shouldn't error when logged out | Add `skipUnauth: true` client-side |
 
 ## Loading States
 
@@ -387,6 +415,16 @@ type User = ApiOutputs['user']['get'];
 const convex = useConvex();            const client = useCRPCClient();
 await convex.query(api.user.get, {});  await client.user.get.query({});
 ```
+
+## Troubleshooting
+
+### "Unauthenticated" error on first page load
+
+**Symptom:** Query throws UNAUTHORIZED error when page first loads, but works after refresh or navigation.
+
+**Cause:** Query runs before auth handshake completes. Server receives request without token.
+
+**Fix:** Ensure your server procedure uses `.meta({ auth: 'required' })`.
 
 ## Next Steps
 
