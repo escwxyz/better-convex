@@ -80,6 +80,23 @@ export const { AuthProvider, useAuthStore, useAuthState, useAuthValue } =
 
 export type AuthStore = ReturnType<typeof useAuthStore>;
 
+/**
+ * Safe wrapper around useConvexAuth that doesn't throw when used outside auth provider.
+ * Returns { isAuthenticated: false, isLoading: false } when no auth provider.
+ */
+export function useSafeConvexAuth() {
+  const authStore = useAuthStore();
+
+  // If auth is not configured, return defaults without calling useConvexAuth
+  if (!authStore.store) {
+    return { isAuthenticated: false, isLoading: false };
+  }
+
+  // Auth is configured - use the real hook
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  return useConvexAuth();
+}
+
 export const useAuth = () => {
   const authStore = useAuthStore();
 
@@ -128,7 +145,7 @@ export const useIsAuth = () => {
 };
 
 export const useAuthGuard = () => {
-  const { isAuthenticated } = useConvexAuth();
+  const { isAuthenticated } = useSafeConvexAuth();
   const onMutationUnauthorized = useAuthValue('onMutationUnauthorized');
 
   return (callback?: () => Promise<void> | void) => {

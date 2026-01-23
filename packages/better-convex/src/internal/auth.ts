@@ -1,8 +1,8 @@
-import { useConvexAuth } from 'convex/react';
 import type { FunctionReference } from 'convex/server';
 import { getFunctionName } from 'convex/server';
 
 import type { Meta } from '../crpc/types';
+import { useSafeConvexAuth } from '../react/auth-store';
 import { useMeta } from '../react/context';
 
 export type AuthType = 'required' | 'optional' | undefined;
@@ -21,7 +21,7 @@ export function useAuthSkip(
   funcRef: FunctionReference<'query' | 'mutation' | 'action'>,
   opts?: { skipUnauth?: boolean; enabled?: boolean }
 ) {
-  const { isAuthenticated, isLoading: isAuthLoading } = useConvexAuth();
+  const { isAuthenticated, isLoading: isAuthLoading } = useSafeConvexAuth();
   const meta = useMeta();
 
   const funcName = getFunctionName(funcRef);
