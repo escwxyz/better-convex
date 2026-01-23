@@ -1,7 +1,8 @@
----
+/work---
 title: feat: Add staticQueryOptions for non-hook event handler usage
 type: feat
 date: 2026-01-22
+
 ---
 
 # feat: Add staticQueryOptions for Non-Hook Event Handler Usage
@@ -11,6 +12,7 @@ date: 2026-01-22
 Add `staticQueryOptions` method to the CRPC proxy that returns TanStack Query options without React hooks, enabling usage in event handlers like `onClick → prefetchQuery`.
 
 **Use case:**
+
 ```typescript
 const queryClient = useQueryClient();
 
@@ -53,27 +55,27 @@ Add after line ~122 (after `queryOptions` terminal method):
 
 ```typescript
 // Terminal method: staticQueryOptions (non-hook for event handlers)
-if (prop === 'staticQueryOptions') {
+if (prop === "staticQueryOptions") {
   return (args: unknown = {}, opts?: { skipUnauth?: boolean }) => {
     const funcRef = getFuncRef(api, path);
     const fnType = getFunctionType(path, meta);
 
     // Convert skipToken to 'skip' for convexQuery/convexAction
-    const finalArgs = args === skipToken ? 'skip' : args;
+    const finalArgs = args === skipToken ? "skip" : args;
 
     // Actions use convexAction (one-shot, no subscription)
-    if (fnType === 'action') {
+    if (fnType === "action") {
       return convexAction(
-        funcRef as FunctionReference<'action'>,
-        finalArgs as FunctionArgs<FunctionReference<'action'>>,
+        funcRef as FunctionReference<"action">,
+        finalArgs as FunctionArgs<FunctionReference<"action">>,
         meta,
         opts
       );
     }
 
     return convexQuery(
-      funcRef as FunctionReference<'query'>,
-      finalArgs as FunctionArgs<FunctionReference<'query'>>,
+      funcRef as FunctionReference<"query">,
+      finalArgs as FunctionArgs<FunctionReference<"query">>,
       meta,
       opts
     );
@@ -114,8 +116,8 @@ export type DecorateQuery<T extends FunctionReference<'query'>> = {
 Add `skipToken` import and `convexAction`:
 
 ```typescript
-import { skipToken } from '@tanstack/react-query';
-import { convexAction, convexQuery } from '../crpc/query-options';
+import { skipToken } from "@tanstack/react-query";
+import { convexAction, convexQuery } from "../crpc/query-options";
 ```
 
 ## References
