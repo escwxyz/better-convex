@@ -36,8 +36,8 @@ import {
   internalQuery,
   internalMutation,
   internalAction,
-} from './_generated/server';
-import type { DataModel } from './_generated/dataModel';
+} from '../functions/_generated/server';
+import type { DataModel } from '../functions/_generated/dataModel';
 
 const c = initCRPC
   .dataModel<DataModel>()
@@ -51,6 +51,10 @@ const c = initCRPC
     internalAction,
   });
 ```
+
+<Callout icon={<InfoIcon />}>
+These import paths assume `convex.json` has `"functions": "convex/functions"`. If using a different folder structure, adjust paths accordingly.
+</Callout>
 
 The `initCRPC` builder chains configuration methods:
 
