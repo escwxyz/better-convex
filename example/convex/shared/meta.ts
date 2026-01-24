@@ -41,7 +41,7 @@ export const meta = {
     addMember: { auth: 'required', rateLimit: 'project/member', type: 'mutation' },
     archive: { auth: 'required', rateLimit: 'project/update', type: 'mutation' },
     create: { auth: 'required', rateLimit: 'project/create', type: 'mutation' },
-    get: { type: 'query' },
+    get: { auth: 'optional', type: 'query' },
     leave: { auth: 'required', rateLimit: 'project/member', type: 'mutation' },
     list: { auth: 'optional', limit: 20, type: 'query' },
     listForDropdown: { auth: 'required', type: 'query' },
@@ -49,6 +49,9 @@ export const meta = {
     restore: { auth: 'required', rateLimit: 'project/update', type: 'mutation' },
     transfer: { auth: 'required', rateLimit: 'project/update', type: 'mutation' },
     update: { auth: 'required', rateLimit: 'project/update', type: 'mutation' },
+  },
+  public: {
+    hello: { type: 'query' },
   },
   seed: {
     generateSamples: { auth: 'required', type: 'action' },

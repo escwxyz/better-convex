@@ -402,6 +402,9 @@ export declare const api: {
       null
     >;
   };
+  public: {
+    hello: FunctionReference<"query", "public", {}, { message: string }>;
+  };
   seed: {
     generateSamples: FunctionReference<
       "action",

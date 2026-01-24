@@ -3,12 +3,7 @@ import { asyncMap } from 'convex-helpers';
 import { stream } from 'convex-helpers/server/stream';
 import { zid } from 'convex-helpers/server/zod4';
 import { z } from 'zod';
-import {
-  authMutation,
-  authQuery,
-  optionalAuthQuery,
-  publicQuery,
-} from '../lib/crpc';
+import { authMutation, authQuery, optionalAuthQuery } from '../lib/crpc';
 import type { EntWriter } from '../lib/ents';
 import { aggregateTodosByProject } from './aggregates';
 import schema from './schema';
@@ -133,7 +128,7 @@ export const list = optionalAuthQuery
   });
 
 // Get project with members and todo count - public projects viewable by all
-export const get = publicQuery
+export const get = optionalAuthQuery
   .input(z.object({ projectId: zid('projects') }))
   .output(
     z
@@ -170,14 +165,11 @@ export const get = publicQuery
     }
 
     // Check access - get session to check if authenticated
-    const { getSession } = await import('better-convex/auth');
-    const session = await getSession(ctx);
-    const userId = session?.userId ?? null;
-    const isOwner = userId === project.ownerId;
+    const isOwner = ctx.userId === project.ownerId;
 
     // For private projects, check membership
     if (!(project.isPublic || isOwner)) {
-      if (!userId) {
+      if (!ctx.userId) {
         throw new CRPCError({
           code: 'FORBIDDEN',
           message: 'You do not have access to this project',
@@ -187,7 +179,7 @@ export const get = publicQuery
       // Is not member, throw error
       await ctx
         .table('projectMembers', 'projectId_userId', (q) =>
-          q.eq('projectId', input.projectId).eq('userId', userId)
+          q.eq('projectId', input.projectId).eq('userId', ctx.userId!)
         )
         .firstX();
     }

@@ -1,8 +1,11 @@
 - In all interactions and commit messages, be extremely concise and sacrifice grammar for the sake of concision
+- At the end of each plan, give me a list of unresolved questions to answer, if any. Make the questions extremely concise. Sacrifice grammar for the sake of concision
 - ALWAYS read and understand relevant files before proposing edits. Do not speculate about code you have not inspected
 - ALWAYS use AskUserQuestion tool when asking questions to the user
+- Your primary method for interacting with GitHub should be the GitHub CLI
+- Run `next typegen` after each page addition/removal or when `.next/types` types are missing
+
 - After any package modification, run `bun --cwd packages/better-convex build`, then touch `example/convex/functions/schema.ts` to trigger a re-build
-- When using Ralph Loop, use local `/ralph` command instead of `/ralph-loop` (fixes shell escaping bug in upstream plugin)
 
 ## PR Comments
 
@@ -19,8 +22,7 @@
 ## Browser Testing
 
 - Use `agent-browser` for all browser automation
-- Never close agent-browser
-- Use `--headed` unless asked for headless
+- Never close headed agent-browser
 - Port 3005
 - Do NOT use next-devtools `browser_eval` (overlaps with agent-browser)
 - Use `bun convex:logs` to watch the Convex logs
