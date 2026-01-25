@@ -21,11 +21,13 @@ Let's explore each concept.
 
 ## The Problem
 
-You know how Convex works: you write functions, the database is reactive, and everything syncs in real-time. It's powerful, but as your application grows, you encounter friction.
+You know how Convex works: you write functions, the database is reactive, and everything syncs in real-time. It's powerful. But as your application grows, you start noticing friction.
 
-The generated `api` object lacks type inference for inputs. You import functions directly instead of through a typed router. There's no middleware pattern for shared logic like authentication. **You end up duplicating auth checks across functions, manually wiring up TanStack Query, and losing the ergonomics that made Convex appealing.**
+Let's say you want to use TanStack Query. You'll need to manually wire up hooks for each function, and you'll lose Convex's real-time subscriptions - or spend time implementing them yourself. Want to add authentication checks? You'll copy the same auth logic into every function. Need rate limiting? That's more boilerplate.
 
-This is what Better Convex solves. It is built around the following principles:
+Before you know it, the elegant simplicity that drew you to Convex gets buried under repetitive code.
+
+**This is what Better Convex solves.** It brings together the best of both worlds: Convex's reactive database with TanStack Query's developer experience. Here's what you get:
 
 - **tRPC-style API:** A fluent builder pattern for defining procedures with full type inference.
 - **TanStack Query Native:** First-class integration with `useQuery`, `useMutation`, and React Query DevTools.
